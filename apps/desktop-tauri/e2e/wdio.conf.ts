@@ -19,8 +19,8 @@
  * `$HOME` on macOS, so redirecting `HOME` relocates the v2 profile, the v1 tree
  * first-run continuity looks for, and `~/Music`. Each capability below gets its
  * own `HOME`, wiped once per run in `onPrepare`; specs within a capability
- * share it, which is what lets one spec assert on what a previous *process*
- * persisted.
+ * share it and the one app process driving it, which is what lets one spec
+ * assert on what a previous one persisted.
  */
 
 import fs from 'node:fs';
@@ -46,6 +46,7 @@ const isCi = Boolean(process.env.CI);
  *   adopts on the first launch into it.
  */
 const PROFILES = ['onboarding', 'library', 'migrated'] as const;
+type ProfileName = (typeof PROFILES)[number];
 
 function envFor(name: string, extra: Record<string, string> = {}): Record<string, string> {
   return {
@@ -87,57 +88,64 @@ function capability(name: string, specs: string[], extra: Record<string, string>
     'tauri:options': { application: APP_BINARY },
     'wdio:tauriServiceOptions': serviceOptions(name, extra),
     specs: specs.map(spec => path.join(REPO_ROOT, 'apps/desktop-tauri/e2e/specs', spec)),
-    // Read back by `E2E_PROFILE` filtering below; wdio ignores unknown keys.
+    // Matched against `E2E_PROFILE` below; wdio ignores unknown keys.
     'shiranami:profile': name,
   };
 }
 
 /**
- * Narrow the run to named profiles: `E2E_PROFILE=migrated`, or a comma list.
+ * The one profile this process runs, from `E2E_PROFILE`.
+ *
+ * # Exactly one, because the launcher starts every app up front
+ *
+ * `@wdio/tauri-service`'s embedded provider spawns the app for **every**
+ * capability in `onPrepare`, before the first worker, and keeps each alive for
+ * the whole run. Three capabilities meant three apps at once, and two things
+ * made that fatal. Each defaulted to WebDriver port 4445, so the readiness poll
+ * for the second and third answered from the first. And the single-instance
+ * lock is `/tmp/<identifier>_<uid>_si.sock`, keyed on the bundle id rather than
+ * `HOME`, so the second and third saw the first's socket and exited. Every
+ * worker then drove the `onboarding` app, and the `library` and `migrated`
+ * specs failed reading an `e2eGlobal` of false that was never theirs.
+ *
+ * One profile per wdio process keeps one app alive at a time. `e2e/run.mjs` is
+ * the entry point that loops over them; `pnpm test:e2e` calls it.
  *
  * # Why `--spec` alone is not enough
  *
  * wdio's `--spec` is a *global* filter: it replaces the spec list of **every**
- * capability rather than selecting the one that declared the file. So
- * `--spec shutdown.spec.ts` runs that file three times — once per profile —
- * and the two that were never meant to see it fail on a `before` hook. The
- * onboarding profile has no store registry to wait for (that is the point of
- * it), and the library profile has no migrated log to read, so both sit out
- * their timeouts and report failures that say nothing about the subject.
- *
- * Pairing the two — `E2E_PROFILE=migrated … --spec shutdown.spec.ts` — is what
- * makes "run this one spec" mean what it looks like it means. Unset, every
- * profile runs, which is what CI and a plain `pnpm test:e2e` do.
+ * capability rather than selecting the one that declared the file. Pairing it
+ * with the profile — `E2E_PROFILE=migrated … --spec shutdown.spec.ts` — is what
+ * makes "run this one spec" mean what it looks like it means.
  */
-function selectedCapabilities<T extends { 'shiranami:profile': string }>(all: T[]): T[] {
-  const requested = process.env.E2E_PROFILE?.split(',')
-    .map(name => name.trim())
-    .filter(name => name.length > 0);
-
-  if (requested === undefined || requested.length === 0) return all;
-
-  const unknown = requested.filter(name => !all.some(cap => cap['shiranami:profile'] === name));
-  if (unknown.length > 0) {
+function requiredProfile(): ProfileName {
+  const requested = process.env.E2E_PROFILE?.trim();
+  const profile = PROFILES.find(name => name === requested);
+  if (profile === undefined) {
     throw new Error(
-      `E2E_PROFILE names no such profile: ${unknown.join(', ')}. ` +
-        `Known profiles: ${all.map(cap => cap['shiranami:profile']).join(', ')}.`
+      `E2E_PROFILE must name one profile, got ${requested ? `'${requested}'` : 'nothing'}. ` +
+        `Known profiles: ${PROFILES.join(', ')}. ` +
+        'Run `pnpm --filter @shiranami/desktop-tauri test:e2e` to cover them all, one app at a time.'
     );
   }
-
-  return all.filter(cap => requested.includes(cap['shiranami:profile']));
+  return profile;
 }
+
+const PROFILE = requiredProfile();
 
 export const config: WebdriverIO.Config = {
   runner: 'local',
   tsConfigPath: path.join(REPO_ROOT, 'apps/desktop-tauri/e2e/tsconfig.json'),
 
-  // One app at a time. The single-instance plugin is keyed off the profile, and
-  // two apps sharing a `HOME` would race `shiranami.db`. Sequential also keeps
-  // the interleaved backend logs readable, which is v1's stated reason too.
+  // One worker at a time: the capability's spec files share its one app.
   maxInstances: 1,
-  specFileRetries: isCi ? 1 : 0,
+  // A retry re-runs the file against the same live app, not a fresh one. For
+  // `onboarding` that is an already-onboarded profile, since completing the
+  // wizard is a one-way door, so a retry there can only bury the first failure
+  // under meaningless ones.
+  specFileRetries: isCi && PROFILE !== 'onboarding' ? 1 : 0,
 
-  capabilities: selectedCapabilities([
+  capabilities: [
     capability('onboarding', ['cold-boot.spec.ts'], {
       // Explicitly absent rather than merely unset, so the reason is greppable:
       // SHIRANAMI_E2E would hide the wizard this capability exists to see.
@@ -159,7 +167,7 @@ export const config: WebdriverIO.Config = {
       // Last on purpose: it quits the app.
       'shutdown.spec.ts',
     ]),
-  ]),
+  ].filter(cap => cap['shiranami:profile'] === PROFILE),
 
   services: [['tauri', {}]],
 
@@ -178,11 +186,12 @@ export const config: WebdriverIO.Config = {
   connectionRetryCount: 2,
 
   /**
-   * Stage every profile before anything launches.
+   * Stage the selected profile before its app launches.
    *
-   * Once per run, not per spec: the profiles are the fixtures, and rebuilding
-   * one between spec files would throw away the cross-process persistence the
-   * `library` capability's specs rely on.
+   * wdio runs this hook before the service's own `onPrepare`, which is where
+   * the app is spawned, so this is the last moment the profile can be touched.
+   * Nothing may reset it later: a `beforeSession` reset once did, and deleted
+   * the config and the log file out from under the running app.
    */
   onPrepare() {
     if (!fs.existsSync(APP_BINARY)) {
@@ -194,43 +203,23 @@ export const config: WebdriverIO.Config = {
       );
     }
 
-    for (const name of PROFILES) {
-      resetProfile(name);
+    resetProfile(PROFILE);
+
+    if (PROFILE === 'library') {
+      // A settled install: past onboarding, so the shell renders immediately.
+      seedSettings(profileHome('library'), {
+        'app.onboardingCompleted': true,
+        'app.language': 'en',
+        'app.telemetryEnabled': false,
+      });
     }
 
-    // A settled install: past onboarding, so the shell renders immediately.
-    seedSettings(profileHome('library'), {
-      'app.onboardingCompleted': true,
-      'app.language': 'en',
-      'app.telemetryEnabled': false,
-    });
-
-    // The migrated capability's v1 tree. Its audio lives outside the profile,
-    // as a real user's would.
-    stageV1Profile(profileHome('migrated'), path.join(TMP_ROOT, 'media', 'migrated'));
+    if (PROFILE === 'migrated') {
+      // The migrated capability's v1 tree. Its audio lives outside the profile,
+      // as a real user's would.
+      stageV1Profile(profileHome('migrated'), path.join(TMP_ROOT, 'media', 'migrated'));
+    }
 
     // `onboarding` is left exactly as `resetProfile` made it: empty.
-  },
-
-  /**
-   * Give a retried `onboarding` run the cold profile it is named after.
-   *
-   * `specFileRetries` re-runs the *file*, not the fixture, and completing the
-   * wizard is a one-way door — it writes `app.onboardingCompleted` and the
-   * dialog never returns for the life of the profile. So the retry replayed
-   * nine tests against an already-onboarded profile and turned three genuine
-   * failures into six meaningless ones, burying the real signal.
-   *
-   * Safe to do per session **only** because this capability declares exactly
-   * one spec file. The `library` and `migrated` capabilities deliberately share
-   * one profile across their specs so that a value written by one process can
-   * be asserted by the next, which is why they are left alone here and staged
-   * once in `onPrepare`.
-   */
-  beforeSession(_config, capabilities) {
-    const profileName = (capabilities as unknown as Record<string, unknown>)['shiranami:profile'];
-    if (profileName !== 'onboarding') return;
-
-    resetProfile('onboarding');
   },
 };

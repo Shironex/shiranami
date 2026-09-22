@@ -71,7 +71,8 @@ export async function waitForStores(): Promise<void> {
         '`preflight.e2e` was false (SHIRANAMI_E2E did not reach the process); ' +
         'bridgeFlag false with the global true means the shim read it too late; ' +
         'both true with registry undefined means the dynamic import of ' +
-        `e2e-bridge failed. Original: ${error instanceof Error ? error.message : String(error)}`
+        `e2e-bridge failed. Original: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
     );
   }
 }

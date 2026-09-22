@@ -105,21 +105,38 @@ pub fn initialization_script(e2e: bool) -> String {
 /// `__TAURI_INTERNALS__` is read *inside* `invoke` rather than captured, so this
 /// does not depend on whether Tauri's own injection has run by the time this
 /// script does.
+///
+/// # And `__wdio_original_core__`, which 1.2.0 reads instead
+///
+/// `@wdio/tauri-service` 1.2.0 stopped reading `window.__TAURI__.core` in its
+/// script wrapper and reads `window.__wdio_original_core__`, the reference its
+/// own guest-js plugin normally stashes before installing mocks. The app does
+/// not load that plugin, so the global was absent, and the five-second wait
+/// came back on every lookup. Aliasing it to the same `core` restores the fast
+/// path without pulling the plugin into the renderer bundle.
 const HARNESS_TAURI_GLOBAL: &str = r#"(function () {
-  if (window.__TAURI__) return;
-  Object.defineProperty(window, '__TAURI__', {
-    value: {
-      core: {
-        invoke: function (command, args, options) {
-          return window.__TAURI_INTERNALS__.invoke(command, args, options);
+  if (!window.__TAURI__) {
+    Object.defineProperty(window, '__TAURI__', {
+      value: {
+        core: {
+          invoke: function (command, args, options) {
+            return window.__TAURI_INTERNALS__.invoke(command, args, options);
+          },
         },
       },
-    },
-    writable: false,
-    // Configurable, unlike the two globals above: this one exists for a tool,
-    // and a tool that needs to substitute it should be able to.
-    configurable: true,
-  });
+      writable: false,
+      // Configurable, unlike the two globals above: this one exists for a tool,
+      // and a tool that needs to substitute it should be able to.
+      configurable: true,
+    });
+  }
+  if (!window.__wdio_original_core__) {
+    Object.defineProperty(window, '__wdio_original_core__', {
+      value: window.__TAURI__.core,
+      writable: false,
+      configurable: true,
+    });
+  }
 })();"#;
 
 fn base_initialization_script(e2e: bool) -> String {
@@ -486,7 +503,9 @@ mod tests {
     /// by anything injected into it — cannot undo either one.
     #[test]
     fn neither_global_can_be_reassigned() {
-        let script = initialization_script(false);
+        // The base script alone: under the `e2e` feature the harness globals add
+        // locked properties of their own, which this count is not about.
+        let script = base_initialization_script(false);
 
         assert_eq!(
             script.matches("writable: false").count(),
@@ -550,5 +569,15 @@ mod tests {
             .find("core:")
             .expect("the service reads `window.__TAURI__.core.invoke`");
         assert!(script[core..].contains("invoke:"));
+    }
+
+    /// 1.2.0's script wrapper reads this alias rather than `__TAURI__.core`,
+    /// and waits five seconds per call when it is missing.
+    #[cfg(feature = "e2e")]
+    #[test]
+    fn the_harness_aliases_the_core_the_service_script_wrapper_reads() {
+        let script = initialization_script(false);
+        assert!(script.contains("'__wdio_original_core__'"));
+        assert!(script.contains("value: window.__TAURI__.core"));
     }
 }

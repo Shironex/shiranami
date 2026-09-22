@@ -33,9 +33,10 @@ export function profileHome(name: string): string {
  * Delete and recreate a profile, returning the empty result.
  *
  * Called from `onPrepare`, once per run — never between specs. Specs inside one
- * capability deliberately share a profile so that a value written by one and
- * read by the next is a real cross-process persistence check rather than a
- * mock; the isolation boundary is the capability, not the spec file.
+ * capability deliberately share a profile, and the one app process the tauri
+ * service keeps alive for it, so that a value written by one and read by the
+ * next went through the app's real storage rather than a mock; the isolation
+ * boundary is the capability, not the spec file.
  */
 export function resetProfile(name: string): Profile {
   const home = profileHome(name);
