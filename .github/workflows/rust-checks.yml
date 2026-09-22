@@ -167,6 +167,12 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # A ceiling, not an estimate. Without one, a hung test holds the runner for
+    # GitHub's default 360 minutes. Windows runs used to take 19 to 47 minutes,
+    # 8 to 28 of them in one test that flushed the WAL ~120,000 times (see
+    # `service_golden.rs`). Without that test they measured 12 to 19, so 30
+    # leaves headroom for a cold cache on a slow runner.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
