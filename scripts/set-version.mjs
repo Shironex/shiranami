@@ -31,8 +31,8 @@ const SEMVER_RE =
 
 const JSON_TARGETS = [
   'package.json',
-  'apps/desktop-tauri/package.json',
-  'apps/desktop-tauri/src-tauri/tauri.conf.json',
+  'apps/desktop/package.json',
+  'apps/desktop/src-tauri/tauri.conf.json',
 ];
 
 const version = process.argv[2];

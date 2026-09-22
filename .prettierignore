@@ -3,7 +3,7 @@
 
 # Cargo build output and Tauri's regenerated permission schemas.
 target/
-apps/desktop-tauri/src-tauri/gen/
+apps/desktop/src-tauri/gen/
 
 # Package managers own their lockfiles' formatting. Prettier reformatting
 # pnpm-lock.yaml rewrites ~14k lines that pnpm then rewrites back on the next

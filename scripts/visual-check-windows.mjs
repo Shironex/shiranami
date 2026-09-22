@@ -48,7 +48,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-const CONFIG_PATH = resolve(process.cwd(), 'apps/desktop-tauri/src-tauri/tauri.conf.json');
+const CONFIG_PATH = resolve(process.cwd(), 'apps/desktop/src-tauri/tauri.conf.json');
 const OUT_ROOT = resolve(process.cwd(), 'test-results/visual-windows');
 const CDP_PORT = Number(process.env.CDP_PORT ?? 9222);
 const CDP_URL = process.env.CDP_URL ?? `http://127.0.0.1:${String(CDP_PORT)}`;
@@ -154,7 +154,7 @@ async function waitForCdp(timeoutMs) {
 
 const app = spawn(
   'pnpm',
-  ['--filter', '@shiranami/desktop-tauri', 'exec', 'tauri', 'dev', '--config', overlayPath],
+  ['--filter', '@shiranami/desktop', 'exec', 'tauri', 'dev', '--config', overlayPath],
   { stdio: ['ignore', 'inherit', 'inherit'], shell: process.platform === 'win32' }
 );
 

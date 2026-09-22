@@ -28,7 +28,7 @@ const HOME = profile('library').home;
 /** Read rather than written down, so a version bump does not break this spec. */
 const CONFIG_VERSION = (
   JSON.parse(
-    fs.readFileSync(path.join(REPO_ROOT, 'apps/desktop-tauri/src-tauri/tauri.conf.json'), 'utf8')
+    fs.readFileSync(path.join(REPO_ROOT, 'apps/desktop/src-tauri/tauri.conf.json'), 'utf8')
   ) as { version: string }
 ).version;
 

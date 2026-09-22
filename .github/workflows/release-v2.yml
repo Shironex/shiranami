@@ -354,7 +354,7 @@ jobs:
           # wants both back in their original form.
           node -e '
             const fs = require("fs");
-            const conf = JSON.parse(fs.readFileSync("../apps/desktop-tauri/src-tauri/tauri.conf.json", "utf8"));
+            const conf = JSON.parse(fs.readFileSync("../apps/desktop/src-tauri/tauri.conf.json", "utf8"));
             const pub = Buffer.from(conf.plugins.updater.pubkey, "base64").toString("utf8");
             fs.writeFileSync("updater.pub", pub.endsWith("\n") ? pub : pub + "\n");
 

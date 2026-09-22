@@ -87,7 +87,7 @@ function capability(name: string, specs: string[], extra: Record<string, string>
     browserName: 'tauri',
     'tauri:options': { application: APP_BINARY },
     'wdio:tauriServiceOptions': serviceOptions(name, extra),
-    specs: specs.map(spec => path.join(REPO_ROOT, 'apps/desktop-tauri/e2e/specs', spec)),
+    specs: specs.map(spec => path.join(REPO_ROOT, 'apps/desktop/e2e/specs', spec)),
     // Matched against `E2E_PROFILE` below; wdio ignores unknown keys.
     'shiranami:profile': name,
   };
@@ -125,7 +125,7 @@ function requiredProfile(): ProfileName {
     throw new Error(
       `E2E_PROFILE must name one profile, got ${requested ? `'${requested}'` : 'nothing'}. ` +
         `Known profiles: ${PROFILES.join(', ')}. ` +
-        'Run `pnpm --filter @shiranami/desktop-tauri test:e2e` to cover them all, one app at a time.'
+        'Run `pnpm --filter @shiranami/desktop test:e2e` to cover them all, one app at a time.'
     );
   }
   return profile;
@@ -135,7 +135,7 @@ const PROFILE = requiredProfile();
 
 export const config: WebdriverIO.Config = {
   runner: 'local',
-  tsConfigPath: path.join(REPO_ROOT, 'apps/desktop-tauri/e2e/tsconfig.json'),
+  tsConfigPath: path.join(REPO_ROOT, 'apps/desktop/e2e/tsconfig.json'),
 
   // One worker at a time: the capability's spec files share its one app.
   maxInstances: 1,
@@ -197,7 +197,7 @@ export const config: WebdriverIO.Config = {
     if (!fs.existsSync(APP_BINARY)) {
       throw new Error(
         `no app binary at ${APP_BINARY}.\n` +
-          'Build it first: pnpm --filter @shiranami/desktop-tauri e2e:build\n' +
+          'Build it first: pnpm --filter @shiranami/desktop e2e:build\n' +
           '(the embedded WebDriver server is behind the `e2e` Cargo feature, so a ' +
           'plain `cargo build` produces a binary this suite cannot connect to).'
       );

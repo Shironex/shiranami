@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-/** `apps/desktop-tauri/e2e`. */
+/** `apps/desktop/e2e`. */
 export const E2E_ROOT = path.resolve(here, '..');
 
 /** The workspace root, four levels up from `e2e/helpers`. */

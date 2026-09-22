@@ -196,7 +196,7 @@ export default defineConfig(
       // Rust tier: cargo build output and Tauri's regenerated permission
       // schemas. Nothing in either is authored here.
       '**/target/**',
-      'apps/desktop-tauri/src-tauri/gen/**',
+      'apps/desktop/src-tauri/gen/**',
       'packages/eslint-plugin/dist/**',
       '.design-sync/**',
       // Agent worktrees are whole checkouts of this repo nested inside it. They

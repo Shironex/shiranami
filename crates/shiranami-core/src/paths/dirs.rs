@@ -111,7 +111,7 @@ mod tests {
     /// data loss through a wrong directory.
     #[test]
     fn the_v2_directory_name_matches_the_shipped_bundle_identifier() {
-        let config = repo_file("apps/desktop-tauri/src-tauri/tauri.conf.json");
+        let config = repo_file("apps/desktop/src-tauri/tauri.conf.json");
         assert!(
             config.contains(&format!("\"identifier\": \"{V2_DIRECTORY_NAME}\"")),
             "tauri.conf.json no longer declares identifier {V2_DIRECTORY_NAME}; \

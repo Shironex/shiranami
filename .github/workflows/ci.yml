@@ -65,7 +65,7 @@ jobs:
             # real `cargo build` of the whole tree, so a change three crates
             # down is a change to the thing under test.
             desktop:
-              - 'apps/desktop-tauri/**'
+              - 'apps/desktop/**'
               - 'crates/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
@@ -279,10 +279,10 @@ jobs:
       # embeds no assets at all and points the webview at the Vite dev server —
       # a binary that boots to a blank page and fails every spec on a timeout.
       - name: Build the E2E binary
-        run: pnpm --filter @shiranami/desktop-tauri run e2e:build
+        run: pnpm --filter @shiranami/desktop run e2e:build
 
       - name: Run E2E tests
-        run: pnpm --filter @shiranami/desktop-tauri run test:e2e
+        run: pnpm --filter @shiranami/desktop run test:e2e
 
       # The app's own log per profile — for a failure, the Rust side's account
       # of the same run. `.tmp` is gitignored and holds nothing else.
@@ -291,7 +291,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-tauri-profiles
-          path: apps/desktop-tauri/e2e/.tmp/
+          path: apps/desktop/e2e/.tmp/
           retention-days: 7
           if-no-files-found: ignore
 
