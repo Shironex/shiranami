@@ -8,7 +8,7 @@ pub mod safety;
 
 pub use authority::{PathAuthority, PathAuthorityError, PathAuthorityResult};
 pub use dirs::{
-    MIGRATION_MARKER_FILE, SETTINGS_FILE, V1_DIRECTORY_NAME, V2_DIRECTORY_NAME, app_data_root,
+    MIGRATION_MARKER_FILE, SETTINGS_FILE, V1_DIRECTORY_SEGMENTS, V2_DIRECTORY_NAME, app_data_root,
     data_dir, is_migrated, legacy_data_dir,
 };
 pub use folders_cache::FoldersCache;

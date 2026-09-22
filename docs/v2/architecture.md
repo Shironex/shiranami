@@ -362,12 +362,21 @@ without touching callers.
 
 ### 3.1 Directories
 
-Tauri derives app dirs from the **bundle identifier**, not the product name:
+Tauri derives app dirs from the **bundle identifier**. Electron derives `userData` from `app.name`,
+which is the bundled `package.json`'s `productName`, else its `name`. `apps/desktop/package.json`
+has never had a `productName`, and its `name` has been `@shiranami/desktop` since v0.1.0, so the
+scope becomes a directory level:
 
-|         | Electron (v1)                             | Tauri (v2)                                             |
-| ------- | ----------------------------------------- | ------------------------------------------------------ |
-| macOS   | `~/Library/Application Support/Shiranami` | `~/Library/Application Support/com.shironex.shiranami` |
-| Windows | `%APPDATA%\Shiranami`                     | `%APPDATA%\com.shironex.shiranami`                     |
+|         | Electron (v1)                                      | Tauri (v2)                                             |
+| ------- | -------------------------------------------------- | ------------------------------------------------------ |
+| macOS   | `~/Library/Application Support/@shiranami/desktop` | `~/Library/Application Support/com.shironex.shiranami` |
+| Windows | `%APPDATA%\@shiranami\desktop`                     | `%APPDATA%\com.shironex.shiranami`                     |
+
+> **Amendment (2026-09-22, #412):** this table used to say `…/Shiranami`, taken from
+> `electron-builder.json`'s `productName`, which names the executable and installer, not the data
+> directory. No v1 build ever wrote there. A packaged v1.0.1 on real hardware wrote to
+> `%APPDATA%\@shiranami\desktop`, and `legacy_data_dir()` now resolves that. The pin test reads
+> `package.json` instead.
 
 > **Decision:** move to the Tauri-native directory and **copy** the v1 tree on first run. Never
 > move, never delete. Copy semantics keep v1 bootable, which is the whole safety net behind the
@@ -2745,7 +2754,7 @@ The names are content hashes and nothing rehashes them (D16), so both halves of
 a deleted cache are reproducible without touching the database:
 
 - Covers inherited from v1 are still in the v1 tree
-  (`~/Library/Application Support/Shiranami/album-art`, `%APPDATA%\Shiranami\album-art`).
+  (`~/Library/Application Support/@shiranami/desktop/album-art`, `%APPDATA%\@shiranami\desktop\album-art`).
   Copying them back into the v2 directory (`…/com.shironex.shiranami/album-art`)
   restores exactly the names the rows reference. First-run continuity will not
   do it again — it declines once the v2 tree has a database of its own, which is

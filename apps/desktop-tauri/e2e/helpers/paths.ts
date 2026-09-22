@@ -43,8 +43,12 @@ export const APP_BINARY = path.join(REPO_ROOT, 'target/debug/shiranami-desktop')
 /** The Tauri bundle identifier; `crates/shiranami-core/src/paths/dirs.rs`. */
 export const V2_DIRECTORY_NAME = 'com.shironex.shiranami';
 
-/** Electron's product name, and so the v1 directory; same file. */
-export const V1_DIRECTORY_NAME = 'Shiranami';
+/**
+ * v1's `userData` below the app-data root; `V1_DIRECTORY_SEGMENTS` in the same
+ * file. Electron derives it from `package.json`'s `name`, `@shiranami/desktop`,
+ * not from electron-builder's `productName`.
+ */
+export const V1_DIRECTORY = path.join('@shiranami', 'desktop');
 
 /** `<home>/Library/Application Support` — macOS's `app_data_root()`. */
 export function appSupportDir(home: string): string {
@@ -58,7 +62,7 @@ export function v2DataDir(home: string): string {
 
 /** Where v1 kept its profile, and so where first-run continuity reads from. */
 export function v1DataDir(home: string): string {
-  return path.join(appSupportDir(home), V1_DIRECTORY_NAME);
+  return path.join(appSupportDir(home), V1_DIRECTORY);
 }
 
 /**

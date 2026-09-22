@@ -1,13 +1,21 @@
 //! Application-directory resolution, including the v1 tree the first run copies
 //! from (architecture §3.1).
 //!
-//! Tauri derives its app directories from the **bundle identifier**, Electron
-//! from the product name, so the two do not coincide:
+//! Tauri derives its app directories from the **bundle identifier**. Electron
+//! derives `userData` from `app.name`, which is the bundled `package.json`'s
+//! `productName`, else its `name` — and `apps/desktop/package.json` has always
+//! had no `productName` and the scoped name `@shiranami/desktop`, whose `/`
+//! becomes a directory level. So the two do not coincide:
 //!
-//! |         | Electron (v1)                             | Tauri (v2)                                             |
-//! | ------- | ----------------------------------------- | ------------------------------------------------------ |
-//! | macOS   | `~/Library/Application Support/Shiranami` | `~/Library/Application Support/com.shironex.shiranami` |
-//! | Windows | `%APPDATA%\Shiranami`                     | `%APPDATA%\com.shironex.shiranami`                     |
+//! |         | Electron (v1)                                      | Tauri (v2)                                             |
+//! | ------- | -------------------------------------------------- | ------------------------------------------------------ |
+//! | macOS   | `~/Library/Application Support/@shiranami/desktop` | `~/Library/Application Support/com.shironex.shiranami` |
+//! | Windows | `%APPDATA%\@shiranami\desktop`                     | `%APPDATA%\com.shironex.shiranami`                     |
+//!
+//! `electron-builder.json`'s `productName: "Shiranami"` names the executable and
+//! the installer, not this directory. Until 2026-09-22 this module believed it
+//! did and resolved `<root>/Shiranami`, a directory no v1 build ever wrote; a
+//! packaged v1.0.1 on real hardware (#412) is what showed it.
 //!
 //! Phase 17 owns the copy itself. Core owns only the question "where is the v1
 //! tree, and has it already been adopted?", because the settings loader has to
@@ -15,8 +23,9 @@
 
 use std::path::PathBuf;
 
-/// Electron's product name, and so the v1 directory name.
-pub const V1_DIRECTORY_NAME: &str = "Shiranami";
+/// v1's `package.json` `name`, and so its `userData` directory: `@shiranami`
+/// then `desktop`, one level each.
+pub const V1_DIRECTORY_SEGMENTS: [&str; 2] = ["@shiranami", "desktop"];
 
 /// The Tauri bundle identifier, and so the v2 directory name.
 pub const V2_DIRECTORY_NAME: &str = "com.shironex.shiranami";
@@ -61,7 +70,11 @@ pub fn app_data_root() -> Option<PathBuf> {
 
 /// The v1 (Electron) data directory, whether or not it exists.
 pub fn legacy_data_dir() -> Option<PathBuf> {
-    app_data_root().map(|root| root.join(V1_DIRECTORY_NAME))
+    app_data_root().map(|root| {
+        V1_DIRECTORY_SEGMENTS
+            .iter()
+            .fold(root, |dir, part| dir.join(part))
+    })
 }
 
 /// The v2 (Tauri) data directory, whether or not it exists.
@@ -101,28 +114,46 @@ mod tests {
         );
     }
 
-    /// Likewise for the v1 side: Electron derives its directory from
-    /// `productName`, and that is the tree first-run continuity copies *from*.
+    /// Likewise for the v1 side, pinned to what Electron actually reads.
+    ///
+    /// `app.getPath('userData')` is `<appData>/<app.name>`, and `app.name` is
+    /// the bundled `package.json`'s `productName`, else its `name`. So the
+    /// invariant is two facts about that file: the name, and the *absence* of a
+    /// `productName` that would override it. This test used to read
+    /// `electron-builder.json`'s `productName` instead — the installer's name —
+    /// and passed while pointing continuity at a directory no v1 had written.
     #[test]
-    fn the_v1_directory_name_matches_the_electron_product_name() {
-        let config = repo_file("apps/desktop/electron-builder.json");
+    fn the_v1_directory_matches_what_electron_derives_from_package_json() {
+        let package = repo_file("apps/desktop/package.json");
+        let name = format!("\"name\": \"{}\"", V1_DIRECTORY_SEGMENTS.join("/"));
         assert!(
-            config.contains(&format!("\"productName\": \"{V1_DIRECTORY_NAME}\"")),
-            "electron-builder.json no longer declares productName {V1_DIRECTORY_NAME}; \
-             the legacy directory lookup would miss the user's v1 data"
+            package.contains(&name),
+            "apps/desktop/package.json no longer declares {name}; v1's userData              directory moved and the legacy lookup would miss the user's data"
+        );
+        assert!(
+            !package.contains("\"productName\""),
+            "apps/desktop/package.json now declares productName, which Electron              prefers over name for userData; the legacy lookup must follow it"
         );
     }
 
     #[test]
-    fn the_two_directories_are_siblings_and_distinct() {
-        let (Some(v1), Some(v2)) = (legacy_data_dir(), data_dir()) else {
+    fn the_two_directories_share_a_root_and_are_distinct() {
+        let (Some(root), Some(v1), Some(v2)) = (app_data_root(), legacy_data_dir(), data_dir())
+        else {
             // No HOME in the environment; nothing to assert.
             return;
         };
-        assert_eq!(v1.parent(), v2.parent(), "both live under the same root");
+        assert!(
+            v1.starts_with(&root) && v2.starts_with(&root),
+            "both live under the same root"
+        );
         assert_ne!(
             v1, v2,
             "v2 must not resolve onto the v1 tree it copies from"
+        );
+        assert!(
+            !v2.starts_with(&v1) && !v1.starts_with(&v2),
+            "neither may nest inside the other, or the copy would recurse"
         );
     }
 

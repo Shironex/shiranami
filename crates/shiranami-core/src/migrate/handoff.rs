@@ -162,8 +162,8 @@ mod tests {
   "capturedAt": "2026-08-01T09:14:22.531Z",
   "v1Version": "1.0.0",
   "platform": "darwin",
-  "userDataPath": "/Users/someone/Library/Application Support/Shiranami",
-  "databasePath": "/Users/someone/Library/Application Support/Shiranami/shiranami.db",
+  "userDataPath": "/Users/someone/Library/Application Support/@shiranami/desktop",
+  "databasePath": "/Users/someone/Library/Application Support/@shiranami/desktop/shiranami.db",
   "downloadsLocation": "/Users/someone/Music/Shiranami Downloads"
 }
 "#,
