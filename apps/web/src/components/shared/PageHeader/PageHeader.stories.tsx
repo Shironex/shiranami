@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Library } from 'lucide-react';
+import { Library, Plus } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import PageHeader from './PageHeader';
 
 /**
@@ -30,5 +31,21 @@ export const Section: Story = {
     icon: Library,
     title: 'Albums',
     subtitle: '24 albums',
+  },
+};
+
+/** Trailing action controls (e.g. a create button) via the `actions` slot. */
+export const SectionWithActions: Story = {
+  args: {
+    variant: 'section',
+    icon: Library,
+    title: 'Albums',
+    subtitle: '24 albums',
+    actions: (
+      <Button size="sm" className="gap-1.5">
+        <Plus className="size-4" />
+        New album
+      </Button>
+    ),
   },
 };

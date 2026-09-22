@@ -50,6 +50,49 @@ export function reconstructBatchesFromSnapshot(items: DownloadQueueItem[]): void
   }
 }
 
+/**
+ * Fetch the persisted main-process queue and mirror it into the renderer
+ * stores: batches first (so the App-level importer sees each batch the instant
+ * it sees its items — zustand setState is synchronous), then the queue
+ * snapshot. On failure the queue store is flagged so the Downloads view can
+ * surface an error state with a retry; any later queue-state broadcast also
+ * recovers the snapshot.
+ */
+export function hydrateDownloadQueue(): void {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader
+    .getDownloadQueue()
+    .then(snapshot => {
+      reconstructBatchesFromSnapshot(snapshot.items);
+      useDownloadQueueStore.getState().applySnapshot(snapshot);
+    })
+    .catch((err: unknown) => {
+      logger.error('[downloads] queue hydration failed', err);
+      useDownloadQueueStore.getState().markHydrationFailed();
+    });
+}
+
+/**
+ * The subset of a resolved batch's ids the coordinator may mark imported.
+ *
+ * A retried item leaves its batch (`batchId` cleared by the queue) and its
+ * persisted row becomes live state again — in flight it must survive a
+ * restart, and once `done` the single-import path owns forgetting it after
+ * the import lands. Either way a late batch resolution must not drop it, so
+ * only enqueued ids whose current queue item is still batch-owned — or whose
+ * row is already absent — are eligible to forget.
+ */
+export function batchIdsToForget(
+  enqueuedIds: Iterable<string>,
+  items: readonly DownloadQueueItem[]
+): string[] {
+  const byId = new Map(items.map(item => [item.id, item]));
+  return [...enqueuedIds].filter(id => {
+    const item = byId.get(id);
+    return !item || item.batchId != null;
+  });
+}
+
 export interface BatchImportSummary {
   done: number;
   skipped: number;
@@ -262,9 +305,12 @@ export function useDownloadQueueImporter(): void {
           // rows so they aren't re-imported / its playlist isn't recreated on the
           // next launch. Narrow residual window: a crash after the playlist is
           // created but before this completes would recreate the playlist once on
-          // the next boot — accepted as rare and non-corrupting.
+          // the next boot — accepted as rare and non-corrupting. Only ids still
+          // batch-owned (or already absent) are passed — see `batchIdsToForget`.
           window.electronAPI.downloader
-            .markDownloadsImported([...batch.enqueuedIds])
+            .markDownloadsImported(
+              batchIdsToForget(batch.enqueuedIds, useDownloadQueueStore.getState().items)
+            )
             .catch(err => logger.warn('[download-queue] markDownloadsImported failed', err));
           removeBatch(batch.batchId);
         }

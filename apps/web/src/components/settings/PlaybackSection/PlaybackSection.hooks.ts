@@ -30,8 +30,10 @@ export function usePlaybackSection(): IPlaybackSectionView {
 
   const loudnessEnabled = usePlaybackStore(s => s.loudnessEnabled);
   const loudnessTargetLufs = usePlaybackStore(s => s.loudnessTargetLufs);
+  const loudnessLevelingMode = usePlaybackStore(s => s.loudnessLevelingMode);
   const setLoudnessEnabled = usePlaybackStore(s => s.setLoudnessEnabled);
   const setLoudnessTargetLufs = usePlaybackStore(s => s.setLoudnessTargetLufs);
+  const setLoudnessLevelingMode = usePlaybackStore(s => s.setLoudnessLevelingMode);
   const loudness = useLoudnessAnalysis();
 
   const loudnessAnalysisStatus = loudness.running
@@ -66,6 +68,15 @@ export function usePlaybackSection(): IPlaybackSectionView {
     loudnessMin: LOUDNESS_TARGET_MIN_LUFS,
     loudnessMax: LOUDNESS_TARGET_MAX_LUFS,
     onLoudnessTargetChange: setLoudnessTargetLufs,
+
+    loudnessModeLabel: t('play.loudnessMode'),
+    loudnessModeDescription: t('play.loudnessModeDesc'),
+    loudnessLevelingMode,
+    loudnessModeOptions: [
+      { value: 'track', label: t('play.loudnessModeTrack') },
+      { value: 'album', label: t('play.loudnessModeAlbum') },
+    ],
+    onLoudnessLevelingModeChange: setLoudnessLevelingMode,
 
     loudnessAnalysisRunning: loudness.running,
     loudnessAnalysisStatus,

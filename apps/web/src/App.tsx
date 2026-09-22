@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { VIEW_TRANSITION } from '@/lib/motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { logger } from '@/lib/logger';
 import { IS_ELECTRON, IS_E2E } from '@/lib/platform';
 import { PLAYER_BAR_HEIGHT, VISUALIZER_HEIGHT, PLAYER_BAR_PLUS_VIZ } from '@/lib/layout';
 import { Sidebar } from '@/components/shared/Sidebar';
@@ -22,6 +21,7 @@ import { ThemeBackground } from '@/components/shared/ThemeBackground';
 import { SidePanel } from '@/components/shared/SidePanel';
 import { VisualizerStrip } from '@/components/shared/VisualizerStrip';
 import { SupportBanner } from '@/components/shared/SupportBanner';
+import { WindDownOverlay } from '@/components/shared/WindDownOverlay';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 
 const OverviewView = lazy(() => import('@/components/overview/OverviewView/OverviewView'));
@@ -37,6 +37,7 @@ const SmartPlaylistsView = lazy(
   () => import('@/components/smart-playlists/SmartPlaylistsView/SmartPlaylistsView')
 );
 const NowPlayingView = lazy(() => import('@/components/now-playing/NowPlayingView/NowPlayingView'));
+const SanctuaryView = lazy(() => import('@/components/sanctuary/SanctuaryView/SanctuaryView'));
 const DownloadsView = lazy(() => import('@/components/downloads/DownloadsView/DownloadsView'));
 const PlaylistDetailView = lazy(
   () => import('@/components/playlists/PlaylistDetailView/PlaylistDetailView')
@@ -61,6 +62,7 @@ const EditTagsDialogManager = lazy(
 const OnboardingWizard = lazy(
   () => import('@/components/onboarding/OnboardingWizard/OnboardingWizard')
 );
+const NamingCeremony = lazy(() => import('@/components/companion/NamingCeremony/NamingCeremony'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
@@ -69,20 +71,23 @@ import { usePlayerPreferences } from '@/hooks/usePlayerPreferences';
 import { usePlaybackResume } from '@/hooks/usePlaybackResume';
 import { useUpdateNotifications } from '@/hooks/useUpdateNotifications';
 import { useSystemNotices } from '@/hooks/useSystemNotices';
+import { useRadioNowPlayingBridge } from '@/hooks/useRadioNowPlaying';
+import { useRadioDiaryRecorder } from '@/hooks/useRadioDiaryRecorder';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useSanctuaryAutoEnter } from '@/hooks/useSanctuaryAutoEnter';
+import { useTempoBreathingPublisher } from '@/hooks/useTempoBreathing';
+import { useReconcileCustomTheme } from '@/hooks/queries/useBackgroundLibrary';
 import { useDebugPanel } from '@/hooks/useDebugPanel';
 import { DevProfiler } from '@/components/debug/DevProfiler';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
+import { useSanctuaryStore } from '@/stores/useSanctuaryStore';
 import { useLayoutStore } from '@/stores/useLayoutStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
-import {
-  useDownloadQueueImporter,
-  reconstructBatchesFromSnapshot,
-} from '@/hooks/useDownloadQueueImporter';
+import { useDownloadQueueImporter, hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -143,7 +148,12 @@ function App() {
   }, [libraryError, refetchLibrary, t]);
   useUpdateNotifications();
   useSystemNotices();
+  useRadioNowPlayingBridge();
+  useRadioDiaryRecorder();
   useKeyboardShortcuts();
+  useSanctuaryAutoEnter();
+  useTempoBreathingPublisher();
+  useReconcileCustomTheme();
   const debugOpen = useDebugPanel();
 
   useEffect(() => {
@@ -183,6 +193,11 @@ function App() {
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const visualizerPosition = useLayoutStore(s => s.visualizerPosition);
   const compactMode = useCompactStore(s => s.compactMode);
+  const sanctuaryActive = useSanctuaryStore(s => s.sanctuaryActive);
+  // Sanctuary replaces the whole shell (sidebar, top bar, player bar) with the
+  // fullscreen immersive player; the z-0 theme/bloom layers stay mounted
+  // beneath it. Compact mode wins if both are somehow set.
+  const showSanctuary = sanctuaryActive && !compactMode;
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
   // Lyrics/queue panel shows beside the center views except in now-playing,
   // where both are inline. Which side it docks on comes from useLayoutStore.
@@ -209,22 +224,10 @@ function App() {
   // (mounted below) is the single owner of library import for queued downloads.
   useEffect(() => {
     if (!IS_ELECTRON) return;
-    const applySnapshot = useDownloadQueueStore.getState().applySnapshot;
-    window.electronAPI.downloader
-      .getDownloadQueue()
-      .then(snapshot => {
-        // Reconstruct any in-flight playlist-import batches from the restored
-        // queue BEFORE applying the snapshot, so the App-level importer sees each
-        // batch the instant it sees its items (zustand setState is synchronous).
-        reconstructBatchesFromSnapshot(snapshot.items);
-        applySnapshot(snapshot);
-      })
-      .catch((err: unknown) => {
-        // The persisted queue failed to load at boot. The next queue-state
-        // broadcast will recover the snapshot, but log so it's diagnosable.
-        logger.error('[downloads] initial queue hydration failed', err);
-      });
-    const cleanup = window.electronAPI.downloader.onQueueState(applySnapshot);
+    hydrateDownloadQueue();
+    const cleanup = window.electronAPI.downloader.onQueueState(
+      useDownloadQueueStore.getState().applySnapshot
+    );
     return cleanup;
   }, []);
 
@@ -314,6 +317,12 @@ function App() {
           >
             <ThemeBackground />
             <AmbientBackground />
+            {/* Wind-down dim + closing line. Fixed at z-[60] (over the shell,
+                under splash/toasts) and pointer-events-none, so it composes
+                above the theme/ambient layers without blocking anything. */}
+            <ErrorBoundary viewName="WindDownOverlay">
+              <WindDownOverlay />
+            </ErrorBoundary>
             <ErrorBoundary viewName="CommandPalette">
               <CommandPalette />
             </ErrorBoundary>
@@ -342,12 +351,29 @@ function App() {
                 <EditTagsDialogManager />
               </Suspense>
             </ErrorBoundary>
+            {/* The companion's one-time naming moment — self-gating (stage,
+                name, ceremony flag), so mounting it is unconditional. */}
+            <ErrorBoundary viewName="NamingCeremony">
+              <Suspense fallback={null}>
+                <NamingCeremony />
+              </Suspense>
+            </ErrorBoundary>
 
-            {compactMode ? (
+            {compactMode && (
               <ErrorBoundary viewName="CompactPlayer" compact>
                 <CompactPlayer />
               </ErrorBoundary>
-            ) : (
+            )}
+
+            {showSanctuary && (
+              <ErrorBoundary viewName="SanctuaryView">
+                <Suspense fallback={null}>
+                  <SanctuaryView />
+                </Suspense>
+              </ErrorBoundary>
+            )}
+
+            {!compactMode && !showSanctuary && (
               <>
                 {/* Skip to content link for keyboard users */}
                 <a
@@ -394,7 +420,9 @@ function App() {
                           : undefined,
                     }}
                   >
-                    {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'left' && <SidePanel side="left" />}
+                    </AnimatePresence>
 
                     {/* Center content */}
                     <div className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col">
@@ -506,7 +534,9 @@ function App() {
                       </AnimatePresence>
                     </div>
 
-                    {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    <AnimatePresence initial={false}>
+                      {showSidePanel && sidePanelSide === 'right' && <SidePanel side="right" />}
+                    </AnimatePresence>
 
                     {showVisualizerStrip && <VisualizerStrip />}
                   </main>

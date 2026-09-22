@@ -31,7 +31,7 @@ export default function EnrichProgressBar() {
         {progress.status === 'writing' && t('lib.enrichWriting')}
         {progress.status === 'done' && (
           <span className="flex items-center gap-1.5 min-w-0">
-            <Check className="w-3 h-3 text-green-500 shrink-0" aria-hidden="true" />
+            <Check className="w-3 h-3 text-success shrink-0" aria-hidden="true" />
             <span className="truncate">{progress.trackName}</span>
             <EnrichConfidenceBadge confidence={progress.confidence} />
           </span>

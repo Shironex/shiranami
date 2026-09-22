@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { IS_ELECTRON } from '@/lib/platform';
 import i18n from '@/lib/i18n';
 import { logger } from '@/lib/logger';
+import { hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import type { DownloadQueueItem } from '@shiranami/contracts';
 import type { IDownloadSection, IDownloadsViewView } from './DownloadsView.types';
@@ -14,6 +15,22 @@ function cancel(id: string) {
   window.electronAPI.downloader.cancelDownload(id).catch((err: unknown) => {
     logger.error('[downloads] cancel failed', err);
     toast.error(i18n.t('error.cancelFailed', { ns: 'downloads' }));
+  });
+}
+
+function retry(id: string) {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.retryDownload?.(id).catch((err: unknown) => {
+    logger.error('[downloads] retry failed', err);
+    toast.error(i18n.t('error.retryFailed', { ns: 'downloads' }));
+  });
+}
+
+function retryAllFailed() {
+  if (!IS_ELECTRON) return;
+  window.electronAPI.downloader.retryAllFailedDownloads?.().catch((err: unknown) => {
+    logger.error('[downloads] retry all failed', err);
+    toast.error(i18n.t('error.retryAllFailed', { ns: 'downloads' }));
   });
 }
 
@@ -51,9 +68,11 @@ function cancelAll() {
 
 export function useDownloadsView(): IDownloadsViewView {
   const { t } = useTranslation('downloads');
+  const { t: tCommon } = useTranslation('common');
   const items = useDownloadQueueStore(s => s.items);
   const paused = useDownloadQueueStore(s => s.paused);
   const hydrated = useDownloadQueueStore(s => s.hydrated);
+  const hydrationFailed = useDownloadQueueStore(s => s.hydrationFailed);
   const [showCancelAllConfirm, setShowCancelAllConfirm] = useState(false);
 
   const sections = useMemo<IDownloadSection[]>(() => {
@@ -77,6 +96,10 @@ export function useDownloadsView(): IDownloadsViewView {
   const hasPendingWork =
     sections.find(s => s.key === 'active')!.items.length > 0 ||
     sections.find(s => s.key === 'queued')!.items.length > 0;
+  const hasFailed = items.some(item => item.status === 'error');
+  // Feature-detected: the legacy Electron preload has no retry handler, so the
+  // affordances only render where the runtime actually implements the channel.
+  const canRetry = IS_ELECTRON && typeof window.electronAPI.downloader.retryDownload === 'function';
 
   return {
     t,
@@ -84,11 +107,17 @@ export function useDownloadsView(): IDownloadsViewView {
     paused,
     isEmpty: items.length === 0,
     hydrated,
+    isError: !hydrated && hydrationFailed,
+    retryLabel: tCommon('retry'),
+    onRetryHydration: hydrateDownloadQueue,
     hasPendingWork,
     hasCompleted,
     showCancelAllConfirm,
     setShowCancelAllConfirm,
     onCancelItem: cancel,
+    onRetryItem: canRetry ? retry : undefined,
+    hasFailed,
+    onRetryAllFailed: canRetry ? retryAllFailed : undefined,
     onClearCompleted: clearCompleted,
     onPauseQueue: pauseQueue,
     onResumeQueue: resumeQueue,

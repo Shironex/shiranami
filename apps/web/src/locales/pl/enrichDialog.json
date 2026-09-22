@@ -1,5 +1,6 @@
 {
   "title": "Znajdź brakujące metadane",
+  "description": "Podejrzyj dopasowane metadane ze źródeł online, zanim zastosujesz je do tego utworu.",
   "searching": "Wyszukiwanie pasujących metadanych…",
   "noMatchTitle": "Nie znaleziono pasujących metadanych",
   "noMatchBody": "Spróbuj edytować tytuł lub artystę przed ponowną próbą.",

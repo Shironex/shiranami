@@ -31,12 +31,13 @@ function seedQueue(items: DownloadQueueItem[], paused = false): void {
 }
 
 /**
- * downloads · DownloadsView. The Downloads screen: an `<h1>` title with
- * pause/resume, cancel-all (a confirm popover), and clear-completed actions,
- * then the queue grouped into Active / Queued / Completed `<h2>` sections of
- * `DownloadQueueRow`s. Reads the renderer-side `useDownloadQueueStore` mirror of
- * the main-process queue; holds a blank loading frame until the first snapshot
- * lands, then shows either the grouped sections or an empty state. Cancellation,
+ * downloads · DownloadsView. The Downloads screen: a `PageHeader` `<h1>` with
+ * pause/resume, cancel-all (a confirm popover), and clear-completed actions in
+ * its actions slot, then the queue grouped into Active / Queued / Completed
+ * `<h2>` sections of `DownloadQueueRow`s. Reads the renderer-side
+ * `useDownloadQueueStore` mirror of the main-process queue; holds a skeleton
+ * frame until the first snapshot lands, then shows the grouped sections, an
+ * empty state, or an error state with retry if hydration failed. Cancellation,
  * pause, and clear are IPC no-ops in the browser run. Stories seed the store.
  */
 const meta: Meta<typeof DownloadsView> = {
@@ -112,7 +113,33 @@ export const Empty: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('No downloads yet')).toBeInTheDocument();
-    // No queue chrome renders in the empty state.
-    await expect(canvas.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    // The page header stays put; only the queue toolbar goes away.
+    await expect(canvas.getByRole('heading', { level: 1, name: 'Downloads' })).toBeInTheDocument();
+    await expect(
+      canvas.queryByRole('button', { name: 'Pause the download queue' })
+    ).not.toBeInTheDocument();
+  },
+};
+
+/** Initial hydration failed — the error state offers a retry. */
+export const LoadError: Story = {
+  beforeEach: () => {
+    // Reset to the pre-hydration shape, then flag the failed initial fetch.
+    useDownloadQueueStore.setState({
+      items: [],
+      byUrl: new Map(),
+      byYoutubeId: new Map(),
+      maxConcurrency: 0,
+      activeCount: 0,
+      paused: false,
+      hydrated: false,
+      hydrationFailed: false,
+    });
+    useDownloadQueueStore.getState().markHydrationFailed();
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("Couldn't load the download queue")).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   },
 };

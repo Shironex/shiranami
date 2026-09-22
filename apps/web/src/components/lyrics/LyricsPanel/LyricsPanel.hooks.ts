@@ -39,13 +39,15 @@ function sourceToLabel(source: LyricsSource, t: TranslateFn): string | null {
 
 export function useLyricsPanel(): ILyricsPanelView {
   const { t } = useTranslation('lyrics');
+  const { t: tCommon } = useTranslation('common');
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
-  const { synced, plain, source, activeLine, isLoading, handleLineClick } = useLyricsView();
+  const { synced, plain, source, activeLine, isLoading, isError, retry, handleLineClick } =
+    useLyricsView();
 
   const baseSizeClass = LYR_SIZE_CLASS[lyricsSyncedFontSize];
   const activeSizeClass = LYR_SIZE_CLASS[nextLyricsFontSize(lyricsSyncedFontSize)];
@@ -57,8 +59,11 @@ export function useLyricsPanel(): ILyricsPanelView {
     plain,
     activeLine,
     isLoading,
+    isError,
     sourceLabel: sourceToLabel(source, t),
+    retryLabel: tCommon('retry'),
     onLineClick: handleLineClick,
+    onRetry: retry,
     syncedDimOpacity: lyricsSyncedDimOpacity,
     plainOpacity: lyricsPlainOpacity,
     syncedBaseClassName: cn(PANEL_BASE_AFFORDANCES, baseSizeClass),

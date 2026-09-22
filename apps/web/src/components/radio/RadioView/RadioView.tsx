@@ -1,4 +1,15 @@
-import { Radio, Search, Heart, Globe, Languages, Tag, Loader2, X, MapPin } from 'lucide-react';
+import {
+  Radio,
+  Search,
+  Heart,
+  Globe,
+  Languages,
+  Tag,
+  Loader2,
+  X,
+  MapPin,
+  BookText,
+} from 'lucide-react';
 import { List } from 'react-window';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -8,6 +19,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { FilterPopover } from '../FilterPopover';
 import { StationRow } from '../StationRow';
 import { StationRowSkeleton } from '../StationRowSkeleton';
+import { RadioDiary } from './RadioDiary';
 import { useRadioView } from './RadioView.hooks';
 
 export default function RadioView() {
@@ -39,6 +51,11 @@ export default function RadioView() {
     currentTrackId,
     isPlaying,
     skeletonRows,
+    isDiaryOpen,
+    diaryStationUuid,
+    diaryStationName,
+    onToggleDiary,
+    onCloseDiary,
     onSearchInputChange,
     onToggleLocal,
     onSelectCountry,
@@ -53,17 +70,22 @@ export default function RadioView() {
 
   // Lift list/computation out of JSX render position into consts above the
   // return so the JSX below stays declarative.
+  //
+  // Two control tiers share this header: mode tabs (which list is shown) and
+  // filter pills/buttons (how it is narrowed). The active mode tab is solid
+  // primary while active filters stay on the primary/15 tint, so the tiers
+  // never read as one flat row of identical toggles.
   const modeTabElements = modeTabs.map(tab => {
     const Icon = tab.icon;
     return (
       <button
         key={tab.id}
         onClick={tab.onClick}
+        aria-pressed={tab.isActive}
         className={cn(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-          'focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary/40',
+          'focus-ring flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
           tab.isActive
-            ? 'bg-primary/15 text-primary'
+            ? 'bg-primary text-primary-foreground shadow-sm'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent'
         )}
       >
@@ -79,8 +101,7 @@ export default function RadioView() {
       onClick={pill.onClick}
       aria-pressed={pill.isActive}
       className={cn(
-        'shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+        'focus-ring shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
         pill.isActive
           ? 'bg-primary/15 text-primary'
           : 'glass-subtle border border-border/30 text-muted-foreground hover:text-foreground'
@@ -94,14 +115,14 @@ export default function RadioView() {
     ? activeChips.map(chip => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
+          className="group inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary transition-colors hover:bg-primary/20"
         >
           {chip.prefix && <span>{chip.prefix}</span>}
           {chip.label}
           <button
             onClick={chip.onRemove}
             aria-label={chip.removeLabel}
-            className="rounded-full p-0.5 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+            className="focus-ring rounded-full p-0.5 transition-colors group-hover:bg-primary/25 hover:bg-primary/35"
           >
             <X className="w-3 h-3" />
           </button>
@@ -201,13 +222,7 @@ export default function RadioView() {
         </div>
         {showLoadMore && (
           <div className="shrink-0 flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isLoadingMore}
-              onClick={onLoadMore}
-              className="rounded-xl"
-            >
+            <Button variant="outline" size="sm" disabled={isLoadingMore} onClick={onLoadMore}>
               {isLoadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {t('loadMore')}
             </Button>
@@ -216,6 +231,14 @@ export default function RadioView() {
       </div>
     );
   }
+
+  const diaryPanel = isDiaryOpen ? (
+    <RadioDiary
+      stationUuid={diaryStationUuid}
+      stationName={diaryStationName}
+      onClose={onCloseDiary}
+    />
+  ) : null;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -255,8 +278,7 @@ export default function RadioView() {
               aria-pressed={isLocalActive}
               title={t('filterLocalTooltip')}
               className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
+                'focus-ring inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
                 isLocalActive
                   ? 'bg-primary/15 text-primary'
                   : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
@@ -300,6 +322,21 @@ export default function RadioView() {
             icon={<Tag className="w-3.5 h-3.5 shrink-0 opacity-70" />}
             disabled={catalog.tags.length === 0}
           />
+
+          <button
+            onClick={onToggleDiary}
+            aria-pressed={isDiaryOpen}
+            title={t('diaryTooltip')}
+            className={cn(
+              'focus-ring hidden lg:inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+              isDiaryOpen
+                ? 'bg-primary/15 text-primary'
+                : 'glass-subtle border border-border/40 text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <BookText className="w-3.5 h-3.5 shrink-0 opacity-70" />
+            {t('diaryTitle')}
+          </button>
         </div>
 
         {/* Genre pills */}
@@ -318,7 +355,7 @@ export default function RadioView() {
             {showClearAll && (
               <button
                 onClick={onClearAll}
-                className="text-xs font-medium text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                className="focus-ring rounded-sm text-xs font-medium text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
               >
                 {t('clearFilters')}
               </button>
@@ -335,8 +372,14 @@ export default function RadioView() {
         )}
       </div>
 
-      {/* Result region */}
-      {resultRegion}
+      {/* Result region, with the diary alongside it when open. Beside the list
+          rather than above it so the station list keeps its full height, and
+          only from `lg` up — below that the list is the whole point of the
+          view and there is no room to spare. */}
+      <div className="flex-1 min-h-0 flex">
+        {resultRegion}
+        {diaryPanel}
+      </div>
     </div>
   );
 }

@@ -112,7 +112,7 @@ export default function EqualizerSection() {
       type="button"
       onClick={() => onApplyPreset(tile.id)}
       className={cn(
-        'px-3 py-2 rounded-lg border text-center text-xs font-medium transition-all',
+        'focus-ring px-3 py-2 rounded-lg border text-center text-xs font-medium transition-all',
         tile.selected
           ? 'border-primary/40 bg-primary/10 text-foreground'
           : 'border-border/30 text-muted-foreground hover:border-border/50 hover:bg-accent/30 hover:text-foreground/80'
@@ -219,7 +219,7 @@ export default function EqualizerSection() {
           <button
             type="button"
             onClick={onReset}
-            className="text-xs px-3 py-1.5 rounded-lg border border-border/30 text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border/50 transition-colors"
+            className="focus-ring text-xs px-3 py-1.5 rounded-lg border border-border/30 text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border/50 transition-colors"
           >
             {resetLabel}
           </button>

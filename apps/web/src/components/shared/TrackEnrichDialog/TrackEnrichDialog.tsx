@@ -7,7 +7,15 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHint,
+  DialogHintBar,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { EnrichConfidenceBadge } from '@/components/settings/EnrichConfidenceBadge';
@@ -97,6 +105,7 @@ export default function TrackEnrichDialog(props: ITrackEnrichDialogProps) {
             <Disc3 className="h-5 w-5" />
             {t('title')}
           </DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
 
         {state.kind === 'searching' && (
@@ -177,36 +186,31 @@ export default function TrackEnrichDialog(props: ITrackEnrichDialogProps) {
         <div className="flex justify-end gap-2">
           {showRetryFooter && (
             <>
-              <Button variant="ghost" onClick={handleClose} className="rounded-lg">
+              <Button variant="ghost" onClick={handleClose}>
                 {t('close')}
               </Button>
-              <Button onClick={runPreview} className="rounded-lg gap-2 [&_svg]:size-3.5">
+              <Button onClick={runPreview} className="gap-2 [&_svg]:size-3.5">
                 <RotateCw aria-hidden="true" />
                 {t('retry')}
               </Button>
             </>
           )}
           {state.kind === 'applied' && (
-            <Button onClick={handleClose} className="rounded-lg gap-2 [&_svg]:size-3.5">
+            <Button onClick={handleClose} className="gap-2 [&_svg]:size-3.5">
               <Check aria-hidden="true" />
               {t('done')}
             </Button>
           )}
           {state.kind === 'found' && (
             <>
-              <Button
-                variant="ghost"
-                onClick={handleClose}
-                disabled={applying}
-                className="rounded-lg"
-              >
+              <Button variant="ghost" onClick={handleClose} disabled={applying}>
                 {t('discard')}
               </Button>
               <Button
                 onClick={handleApply}
                 disabled={applying}
                 aria-busy={applying}
-                className="rounded-lg gap-2 [&_svg]:size-3.5"
+                className="gap-2 [&_svg]:size-3.5"
               >
                 {applying ? (
                   <Loader2 className="animate-spin" aria-hidden="true" />
@@ -218,6 +222,10 @@ export default function TrackEnrichDialog(props: ITrackEnrichDialogProps) {
             </>
           )}
         </div>
+
+        <DialogHintBar>
+          <DialogHint keyLabel="Esc" label={t('close')} />
+        </DialogHintBar>
       </DialogContent>
     </Dialog>
   );

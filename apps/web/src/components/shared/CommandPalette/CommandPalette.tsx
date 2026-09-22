@@ -12,7 +12,7 @@ import {
 import { TrackThumbnail } from '@/components/shared/TrackThumbnail';
 import { SIDEBAR_NAV_ITEMS } from '@/lib/sidebar-items';
 import { NAV_VIEWS } from '@/hooks/useKeyboardShortcuts';
-import { IS_MAC } from '@/lib/platform';
+import { DialogHint, DialogHintBar, DIALOG_ENTER_KEY } from '@/components/ui/dialog';
 import type { Track } from '@/stores/types';
 import { formatDuration } from '@shiranami/shared';
 import { useCommandPalette } from './CommandPalette.hooks';
@@ -22,21 +22,6 @@ import { useCommandPalette } from './CommandPalette.hooks';
 // bindings. Views without a number binding (overview, smart-playlists,
 // downloads) simply render no hint.
 const NAV_SHORTCUTS = new Map(NAV_VIEWS.map((entry, i) => [entry.view, String(i + 1)]));
-
-// Enter glyph: the return-key symbol on macOS, the spelled-out key elsewhere.
-const ENTER_KEY = IS_MAC ? '↵' : 'Enter';
-
-/** A single kbd + label pair for the footer hint strip. */
-function FooterHint({ keyLabel, label }: { keyLabel: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border border-border/60 bg-muted/40 px-1 text-[0.65rem] font-medium leading-none text-muted-foreground">
-        {keyLabel}
-      </kbd>
-      <span>{label}</span>
-    </span>
-  );
-}
 
 export default function CommandPalette() {
   const {
@@ -109,7 +94,12 @@ export default function CommandPalette() {
   const libraryRows = tracks.map(track => renderTrackRow(track, 'library'));
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
+    <CommandDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={t('dialogTitle')}
+      description={t('dialogDescription')}
+    >
       <CommandInput placeholder={t('placeholder')} />
       <CommandList>
         <CommandEmpty>{t('noResults')}</CommandEmpty>
@@ -131,10 +121,10 @@ export default function CommandPalette() {
         )}
       </CommandList>
 
-      <div className="flex items-center justify-end gap-4 border-t border-border/50 px-3 py-2 text-xs text-muted-foreground">
-        <FooterHint keyLabel={ENTER_KEY} label={t('hintSelect')} />
-        <FooterHint keyLabel="Esc" label={t('hintClose')} />
-      </div>
+      <DialogHintBar className="mx-0 mb-0 px-3 py-2">
+        <DialogHint keyLabel={DIALOG_ENTER_KEY} label={t('hintSelect')} />
+        <DialogHint keyLabel="Esc" label={t('hintClose')} />
+      </DialogHintBar>
     </CommandDialog>
   );
 }

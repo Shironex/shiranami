@@ -104,10 +104,11 @@ jobs:
           key: ${{ runner.os }}-cargo-release-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
           restore-keys: ${{ runner.os }}-cargo-release-
 
-      # The workspace sits at 2.0.0-alpha.0 in git; the release version is a
-      # dispatch input and is never committed. `Cargo.lock` goes stale for the
-      # workspace's own crates as a result, which is why no step below passes
-      # `--locked`.
+      # The dispatch input wins over whatever git holds. From 2.0.0 the shipped
+      # version is committed first (so the tag's tree says what it is), which
+      # makes this a no-op for a matching input; a pre-release or rehearsal
+      # version still stamps here and leaves `Cargo.lock` stale for the
+      # workspace's own crates, which is why no step below passes `--locked`.
       - name: Stamp the release version
         run: node scripts/set-version-v2.mjs "${{ inputs.version }}"
 
@@ -322,8 +323,11 @@ jobs:
     name: Verify update signature
     needs: publish
     runs-on: ubuntu-latest
+    # `write`, though this job only reads: GitHub hides draft releases from any
+    # token without push access, so with `read` the download below answered
+    # "release not found" for the draft `publish` had just created (rc.1, #448).
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -372,8 +376,10 @@ jobs:
     needs: publish
     if: ${{ vars.WINDOWS_SIGNING_ENABLED == 'true' }}
     runs-on: windows-latest
+    # `write` for the same reason as `verify-minisign`: drafts are invisible to
+    # a read-only token.
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Download the published installer
         shell: bash

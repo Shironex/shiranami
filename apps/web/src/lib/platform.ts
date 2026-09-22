@@ -1,3 +1,24 @@
+// The bridge must be installed before the constants below are computed, and
+// this import is what makes that true *structurally* rather than by convention.
+//
+// `main.tsx` puts `import '@/lib/bridge/install'` first for the same reason, and
+// in the dev server that is enough — Vite serves each module separately and
+// evaluates them in import order. A Rollup production build does not preserve
+// that: it hoists `platform.ts` into a shared chunk, and ESM evaluates an
+// imported chunk *completely* before the body of the chunk that imports it. So
+// `platform.ts` ran, froze `IS_ELECTRON = false`, and only then did the entry
+// chunk reach the install seam. Every one of the 325 call sites downstream then
+// read a constant that said "not Electron" inside the Tauri webview — the app
+// booted into permanent mock mode and showed the first-run wizard on every
+// launch. Found by the Phase 18 E2E suite; invisible to `pnpm tauri:dev`.
+//
+// Declaring the dependency here is the fix, because it is the real one: these
+// constants are derived from what the seam installs. `install.ts` is inert
+// outside the Tauri webview and nothing in its graph reaches this module (both
+// files document that invariant), so this cannot cycle and costs the browser,
+// Storybook and vitest environments nothing.
+import '@/lib/bridge/install';
+
 /** Whether we're running inside Electron (vs plain browser) */
 export const IS_ELECTRON = typeof window !== 'undefined' && !!window.electronAPI;
 

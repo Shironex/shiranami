@@ -114,4 +114,35 @@ describe('useThemeBgStore rehydration sanitizing', () => {
     expect(state.bgBlur).toBe(mod.THEME_BG_BLUR_DEFAULT); // 'broken' -> default
     expect(state.bgDim).toBe(mod.THEME_BG_DIM_MIN); // -3 -> clamped to 0
   });
+
+  /**
+   * `bgFit` was added without touching `version`, which is the only safe way to
+   * add a field here: `createPersistedStore` passes no `migrate` to zustand, so
+   * a version mismatch yields no migrated state at all and this bucket's three
+   * tuned values would come back as defaults. This test is what says the
+   * addition costs an existing user nothing.
+   */
+  it('keeps values written before bgFit existed, and defaults the new field', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { bgOpacity: 0.42, bgBlur: 7, bgDim: 0.25 }, version: 1 })
+    );
+
+    const mod = await import('./useThemeBgStore');
+    const state = mod.useThemeBgStore.getState();
+    expect(state.bgOpacity).toBe(0.42);
+    expect(state.bgBlur).toBe(7);
+    expect(state.bgDim).toBe(0.25);
+    expect(state.bgFit).toBe(mod.THEME_BG_FIT_DEFAULT);
+  });
+
+  it('coerces an unrecognised persisted fit back to the default', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { bgFit: 'stretch-to-fill' }, version: 1 })
+    );
+
+    const mod = await import('./useThemeBgStore');
+    expect(mod.useThemeBgStore.getState().bgFit).toBe(mod.THEME_BG_FIT_DEFAULT);
+  });
 });

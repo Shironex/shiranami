@@ -6,7 +6,9 @@ How CI is wired and what to do when something fails.
 
 | File                                         | Trigger               | Purpose                                                 |
 | -------------------------------------------- | --------------------- | ------------------------------------------------------- |
-| `.github/workflows/ci.yml`                   | push / PR to `master` | Lint, typecheck, test, landing build                    |
+| `.github/workflows/ci.yml`                   | push / PR to `master` | Lint, typecheck, test, mock mode, landing build         |
+| `.github/workflows/rust-checks.yml`          | push / PR, Rust paths | fmt, clippy, `cargo test`, drift guard, analyser canary |
+| `.github/workflows/visual-windows.yml`       | dispatch / label      | WebView2 CDP visual check on Windows (opt-in)           |
 | `.github/workflows/release.yml`              | release published     | Package macOS + Windows builds, upload to release       |
 | `.github/workflows/pr-title-lint.yml`        | PR open / edit / sync | Enforce conventional-commit PR titles                   |
 | `.github/workflows/labeler.yml`              | PR open / sync        | Apply path-based labels (`area:*`, `dependencies`, ...) |

@@ -166,6 +166,326 @@ describe('useUIStore', () => {
   });
 });
 
+describe('nowPlayingViewEnabled default (v2)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to enabled on a fresh profile', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().nowPlayingViewEnabled).toBe(true);
+  });
+
+  it('keeps a persisted opt-out from before the default flip', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { nowPlayingViewEnabled: false }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().nowPlayingViewEnabled).toBe(false);
+  });
+});
+
+describe('visual-effect gates (artworkBloomEnabled / coverCrossfadeEnabled)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults both gates to enabled on a fresh profile', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(true);
+    expect(store.getState().coverCrossfadeEnabled).toBe(true);
+  });
+
+  it('persists setArtworkBloomEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setArtworkBloomEnabled(false);
+    expect(store.getState().artworkBloomEnabled).toBe(false);
+    expect(readPersisted().artworkBloomEnabled).toBe(false);
+  });
+
+  it('persists setCoverCrossfadeEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setCoverCrossfadeEnabled(false);
+    expect(store.getState().coverCrossfadeEnabled).toBe(false);
+    expect(readPersisted().coverCrossfadeEnabled).toBe(false);
+  });
+
+  it('restores a persisted false through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { artworkBloomEnabled: false, coverCrossfadeEnabled: false },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(false);
+    expect(store.getState().coverCrossfadeEnabled).toBe(false);
+  });
+
+  it('ignores non-boolean garbage and keeps the enabled default', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { artworkBloomEnabled: 'nope', coverCrossfadeEnabled: 1 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().artworkBloomEnabled).toBe(true);
+    expect(store.getState().coverCrossfadeEnabled).toBe(true);
+  });
+});
+
+describe('vinyl display settings (vinylDisplayEnabled / vinylLabelSource / vinylRingStyle)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to a disabled display with artwork label and glow ring', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(false);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+
+  it('persists all three setters to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylDisplayEnabled(true);
+    store.getState().setVinylLabelSource('logo');
+    store.getState().setVinylRingStyle('spectrum');
+
+    expect(readPersisted().vinylDisplayEnabled).toBe(true);
+    expect(readPersisted().vinylLabelSource).toBe('logo');
+    expect(readPersisted().vinylRingStyle).toBe('spectrum');
+  });
+
+  it('round-trips persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { vinylDisplayEnabled: true, vinylLabelSource: 'logo', vinylRingStyle: 'off' },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(true);
+    expect(store.getState().vinylLabelSource).toBe('logo');
+    expect(store.getState().vinylRingStyle).toBe('off');
+  });
+
+  it('coerces garbage back to the defaults on load', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { vinylDisplayEnabled: 'yes', vinylLabelSource: 'hologram', vinylRingStyle: 42 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylDisplayEnabled).toBe(false);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+
+  it('setters reject unknown enum values', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylLabelSource('hologram' as never);
+    store.getState().setVinylRingStyle('laser' as never);
+    expect(store.getState().vinylLabelSource).toBe('artwork');
+    expect(store.getState().vinylRingStyle).toBe('glow');
+  });
+});
+
+describe('vinyl customization (speed / finish / tonearm / per-stage sizes)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to a 33⅓ black pressing without a tonearm, sized like before', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylTonearmEnabled).toBe(false);
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+
+  it('persists all five setters to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylSpeed('45');
+    store.getState().setVinylFinish('marble');
+    store.getState().setVinylTonearmEnabled(true);
+    store.getState().setVinylNowPlayingSize('small');
+    store.getState().setVinylSanctuarySize('large');
+
+    expect(readPersisted().vinylSpeed).toBe('45');
+    expect(readPersisted().vinylFinish).toBe('marble');
+    expect(readPersisted().vinylTonearmEnabled).toBe(true);
+    expect(readPersisted().vinylNowPlayingSize).toBe('small');
+    expect(readPersisted().vinylSanctuarySize).toBe('large');
+  });
+
+  it('round-trips persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          vinylSpeed: '78',
+          vinylFinish: 'picture',
+          vinylTonearmEnabled: true,
+          vinylNowPlayingSize: 'medium',
+          vinylSanctuarySize: 'small',
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('78');
+    expect(store.getState().vinylFinish).toBe('picture');
+    expect(store.getState().vinylTonearmEnabled).toBe(true);
+    expect(store.getState().vinylNowPlayingSize).toBe('medium');
+    expect(store.getState().vinylSanctuarySize).toBe('small');
+  });
+
+  it('coerces garbage back to the defaults on load', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          vinylSpeed: 99,
+          vinylFinish: 'gold',
+          vinylTonearmEnabled: 'yes',
+          vinylNowPlayingSize: 'huge',
+          vinylSanctuarySize: 12,
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylTonearmEnabled).toBe(false);
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+
+  it('setters reject unknown enum values', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setVinylSpeed('16' as never);
+    store.getState().setVinylFinish('gold' as never);
+    store.getState().setVinylNowPlayingSize('huge' as never);
+    store.getState().setVinylSanctuarySize('tiny' as never);
+    expect(store.getState().vinylSpeed).toBe('33');
+    expect(store.getState().vinylFinish).toBe('black');
+    expect(store.getState().vinylNowPlayingSize).toBe('large');
+    expect(store.getState().vinylSanctuarySize).toBe('medium');
+  });
+});
+
+describe('roomLightEnabled (time-of-day lighting grade gate)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to enabled on a fresh profile (opt-out setting)', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(true);
+  });
+
+  it('persists setRoomLightEnabled to localStorage', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    store.getState().setRoomLightEnabled(false);
+    expect(store.getState().roomLightEnabled).toBe(false);
+    expect(readPersisted().roomLightEnabled).toBe(false);
+  });
+
+  it('restores a persisted opt-out through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { roomLightEnabled: false }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(false);
+  });
+
+  it('ignores non-boolean garbage and keeps the enabled default', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({ state: { roomLightEnabled: 'nope' }, version: 1 })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightEnabled).toBe(true);
+  });
+});
+
+describe('room-light shaping (roomLightIntensity / roomLightStop / roomLightHueShift)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetModules();
+  });
+
+  it('defaults to the authored look: full strength, auto stop, no hue nudge', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(100);
+    expect(store.getState().roomLightStop).toBe('auto');
+    expect(store.getState().roomLightHueShift).toBe(0);
+  });
+
+  it('persists the setters and clamps their ranges', async () => {
+    const { useUIStore: store } = await import('./useUIStore');
+
+    store.getState().setRoomLightIntensity(999);
+    store.getState().setRoomLightStop('dusk');
+    store.getState().setRoomLightHueShift(-999);
+
+    expect(store.getState().roomLightIntensity).toBe(150);
+    expect(store.getState().roomLightStop).toBe('dusk');
+    expect(store.getState().roomLightHueShift).toBe(-30);
+    expect(readPersisted().roomLightIntensity).toBe(150);
+    expect(readPersisted().roomLightStop).toBe('dusk');
+    expect(readPersisted().roomLightHueShift).toBe(-30);
+  });
+
+  it('restores persisted values through the sanitize path', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: { roomLightIntensity: 60, roomLightStop: 'goldenHour', roomLightHueShift: 15 },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(60);
+    expect(store.getState().roomLightStop).toBe('goldenHour');
+    expect(store.getState().roomLightHueShift).toBe(15);
+  });
+
+  it('coerces persisted garbage back to the defaults', async () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        state: {
+          roomLightIntensity: 'strong',
+          roomLightStop: 'midnight',
+          roomLightHueShift: 'warm',
+        },
+        version: 1,
+      })
+    );
+    const { useUIStore: store } = await import('./useUIStore');
+    expect(store.getState().roomLightIntensity).toBe(100);
+    expect(store.getState().roomLightStop).toBe('auto');
+    expect(store.getState().roomLightHueShift).toBe(0);
+  });
+});
+
 describe('coerceVisualizerStyle (persist merge path)', () => {
   const ALL_STYLES = [
     'bars',

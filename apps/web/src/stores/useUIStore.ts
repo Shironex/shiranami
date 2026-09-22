@@ -1,6 +1,6 @@
 import { clamp } from '@shiranami/shared';
 import { arrayMove } from '@/lib/array';
-import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore';
+import { createPersistedStore, coerceEnum, acceptStoreHmr } from '@/lib/createPersistedStore';
 import { useViewStore, type AppView, type PlayerSidePanel } from '@/stores/useViewStore';
 import {
   ALWAYS_VISIBLE_SIDEBAR_ITEMS,
@@ -42,6 +42,78 @@ export const VISUALIZER_STYLE_VALUES = [
   'vu',
   'kanji',
 ] as const satisfies readonly VisualizerStyle[];
+
+/** What the vinyl record's center label shows. */
+export type VinylLabelSource = 'artwork' | 'logo';
+/** The audio-reactive ring drawn around the vinyl disc. */
+export type VinylRingStyle = 'off' | 'glow' | 'spectrum';
+/** Turntable speed, in RPM ('33' is the 33⅓ long-play speed). */
+export type VinylSpeed = '33' | '45' | '78';
+/** The pressing's finish — what the disc face looks like. */
+export type VinylFinish = 'black' | 'clear' | 'marble' | 'picture';
+/** The disc's footprint on a stage (Now Playing / Sanctuary). */
+export type VinylSize = 'small' | 'medium' | 'large';
+
+export const VINYL_LABEL_SOURCES = [
+  'artwork',
+  'logo',
+] as const satisfies readonly VinylLabelSource[];
+export const VINYL_RING_STYLES = [
+  'off',
+  'glow',
+  'spectrum',
+] as const satisfies readonly VinylRingStyle[];
+export const VINYL_SPEEDS = ['33', '45', '78'] as const satisfies readonly VinylSpeed[];
+export const VINYL_FINISHES = [
+  'black',
+  'clear',
+  'marble',
+  'picture',
+] as const satisfies readonly VinylFinish[];
+export const VINYL_SIZES = ['small', 'medium', 'large'] as const satisfies readonly VinylSize[];
+
+export const VINYL_LABEL_SOURCE_DEFAULT: VinylLabelSource = 'artwork';
+export const VINYL_RING_STYLE_DEFAULT: VinylRingStyle = 'glow';
+export const VINYL_SPEED_DEFAULT: VinylSpeed = '33';
+export const VINYL_FINISH_DEFAULT: VinylFinish = 'black';
+/**
+ * 'large' fills the Now Playing artwork slot exactly as the display did before
+ * the size preference existed; the Sanctuary default likewise keeps its
+ * original footprint. Different defaults, same rationale: no visual change on
+ * upgrade.
+ */
+export const VINYL_NOW_PLAYING_SIZE_DEFAULT: VinylSize = 'large';
+export const VINYL_SANCTUARY_SIZE_DEFAULT: VinylSize = 'medium';
+
+/**
+ * Which room-light stop the grade holds at; `auto` follows the local clock.
+ * The stop keys mirror `ROOM_LIGHT_STOPS` in `useRoomLight` — pinned by a test
+ * there rather than imported, keeping this store free of hook dependencies.
+ */
+export type RoomLightStopSetting = 'auto' | 'dawn' | 'day' | 'goldenHour' | 'dusk' | 'night';
+
+export const ROOM_LIGHT_STOP_SETTINGS = [
+  'auto',
+  'dawn',
+  'day',
+  'goldenHour',
+  'dusk',
+  'night',
+] as const satisfies readonly RoomLightStopSetting[];
+
+export const ROOM_LIGHT_STOP_DEFAULT: RoomLightStopSetting = 'auto';
+
+/** Grade strength in percent; 100 is the authored look, 150 leans into it. */
+export const ROOM_LIGHT_INTENSITY_MIN = 0;
+export const ROOM_LIGHT_INTENSITY_MAX = 150;
+export const ROOM_LIGHT_INTENSITY_DEFAULT = 100;
+export const ROOM_LIGHT_INTENSITY_STEP = 5;
+
+/** Warmth hue nudge in degrees, applied to the tint wash and the lamp pool. */
+export const ROOM_LIGHT_HUE_SHIFT_MIN = -30;
+export const ROOM_LIGHT_HUE_SHIFT_MAX = 30;
+export const ROOM_LIGHT_HUE_SHIFT_DEFAULT = 0;
+export const ROOM_LIGHT_HUE_SHIFT_STEP = 5;
 
 export type LibraryViewMode = 'tracks' | 'albums';
 export type AlbumGridSize = 'small' | 'medium' | 'large';
@@ -133,6 +205,16 @@ function coerceUiScale(v: unknown): number {
 function coerceLandingView(v: unknown): LandingView {
   return v === 'overview' || v === 'library' ? v : LANDING_VIEW_DEFAULT;
 }
+function coerceRoomLightIntensity(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return ROOM_LIGHT_INTENSITY_DEFAULT;
+  return Math.round(clamp(parsed, ROOM_LIGHT_INTENSITY_MIN, ROOM_LIGHT_INTENSITY_MAX));
+}
+function coerceRoomLightHueShift(v: unknown): number {
+  const parsed = typeof v === 'number' ? v : Number(v);
+  if (Number.isNaN(parsed)) return ROOM_LIGHT_HUE_SHIFT_DEFAULT;
+  return Math.round(clamp(parsed, ROOM_LIGHT_HUE_SHIFT_MIN, ROOM_LIGHT_HUE_SHIFT_MAX));
+}
 
 // --- Sanitizer: defensively re-apply enum whitelists and numeric clamps ---
 
@@ -154,6 +236,21 @@ interface PersistedUIState {
   libraryHeroCardEnabled: boolean;
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  tempoBreathingEnabled: boolean;
+  artworkBloomEnabled: boolean;
+  coverCrossfadeEnabled: boolean;
+  vinylDisplayEnabled: boolean;
+  vinylLabelSource: VinylLabelSource;
+  vinylRingStyle: VinylRingStyle;
+  vinylSpeed: VinylSpeed;
+  vinylFinish: VinylFinish;
+  vinylTonearmEnabled: boolean;
+  vinylNowPlayingSize: VinylSize;
+  vinylSanctuarySize: VinylSize;
+  roomLightEnabled: boolean;
+  roomLightIntensity: number;
+  roomLightStop: RoomLightStopSetting;
+  roomLightHueShift: number;
   landingView: LandingView;
 }
 
@@ -209,6 +306,56 @@ function sanitize(persisted: LegacyPersistedUIState | undefined): Partial<Persis
     out.lowPerformanceMode = persisted.lowPerformanceMode;
   if (typeof persisted.noiseOverlayEnabled === 'boolean')
     out.noiseOverlayEnabled = persisted.noiseOverlayEnabled;
+  if (typeof persisted.tempoBreathingEnabled === 'boolean')
+    out.tempoBreathingEnabled = persisted.tempoBreathingEnabled;
+  if (typeof persisted.artworkBloomEnabled === 'boolean')
+    out.artworkBloomEnabled = persisted.artworkBloomEnabled;
+  if (typeof persisted.coverCrossfadeEnabled === 'boolean')
+    out.coverCrossfadeEnabled = persisted.coverCrossfadeEnabled;
+  if (typeof persisted.vinylDisplayEnabled === 'boolean')
+    out.vinylDisplayEnabled = persisted.vinylDisplayEnabled;
+  if (persisted.vinylLabelSource !== undefined)
+    out.vinylLabelSource = coerceEnum(
+      persisted.vinylLabelSource,
+      VINYL_LABEL_SOURCES,
+      VINYL_LABEL_SOURCE_DEFAULT
+    );
+  if (persisted.vinylRingStyle !== undefined)
+    out.vinylRingStyle = coerceEnum(
+      persisted.vinylRingStyle,
+      VINYL_RING_STYLES,
+      VINYL_RING_STYLE_DEFAULT
+    );
+  if (persisted.vinylSpeed !== undefined)
+    out.vinylSpeed = coerceEnum(persisted.vinylSpeed, VINYL_SPEEDS, VINYL_SPEED_DEFAULT);
+  if (persisted.vinylFinish !== undefined)
+    out.vinylFinish = coerceEnum(persisted.vinylFinish, VINYL_FINISHES, VINYL_FINISH_DEFAULT);
+  if (typeof persisted.vinylTonearmEnabled === 'boolean')
+    out.vinylTonearmEnabled = persisted.vinylTonearmEnabled;
+  if (persisted.vinylNowPlayingSize !== undefined)
+    out.vinylNowPlayingSize = coerceEnum(
+      persisted.vinylNowPlayingSize,
+      VINYL_SIZES,
+      VINYL_NOW_PLAYING_SIZE_DEFAULT
+    );
+  if (persisted.vinylSanctuarySize !== undefined)
+    out.vinylSanctuarySize = coerceEnum(
+      persisted.vinylSanctuarySize,
+      VINYL_SIZES,
+      VINYL_SANCTUARY_SIZE_DEFAULT
+    );
+  if (typeof persisted.roomLightEnabled === 'boolean')
+    out.roomLightEnabled = persisted.roomLightEnabled;
+  if (persisted.roomLightIntensity !== undefined)
+    out.roomLightIntensity = coerceRoomLightIntensity(persisted.roomLightIntensity);
+  if (persisted.roomLightStop !== undefined)
+    out.roomLightStop = coerceEnum(
+      persisted.roomLightStop,
+      ROOM_LIGHT_STOP_SETTINGS,
+      ROOM_LIGHT_STOP_DEFAULT
+    );
+  if (persisted.roomLightHueShift !== undefined)
+    out.roomLightHueShift = coerceRoomLightHueShift(persisted.roomLightHueShift);
   if (persisted.landingView !== undefined)
     out.landingView = coerceLandingView(persisted.landingView);
   return out;
@@ -238,6 +385,21 @@ const UI_KEYS: ReadonlySet<string> = new Set([
   'libraryHeroCardEnabled',
   'lowPerformanceMode',
   'noiseOverlayEnabled',
+  'tempoBreathingEnabled',
+  'artworkBloomEnabled',
+  'coverCrossfadeEnabled',
+  'vinylDisplayEnabled',
+  'vinylLabelSource',
+  'vinylRingStyle',
+  'vinylSpeed',
+  'vinylFinish',
+  'vinylTonearmEnabled',
+  'vinylNowPlayingSize',
+  'vinylSanctuarySize',
+  'roomLightEnabled',
+  'roomLightIntensity',
+  'roomLightStop',
+  'roomLightHueShift',
   'landingView',
 ]);
 
@@ -362,8 +524,49 @@ interface UIState {
   nowPlayingViewEnabled: boolean;
   nowPlayingPanel: NowPlayingPanel;
   libraryHeroCardEnabled: boolean;
+  /**
+   * v2 visual-feature gate map — which store owns which toggle:
+   *
+   * - useUIStore (here): `artworkBloomEnabled` (four-layer album-art bloom +
+   *   its track-change pulse), `coverCrossfadeEnabled` (the visual dissolve
+   *   between records — distinct from the audio crossfade, which lives in
+   *   usePlaybackStore), `tempoBreathingEnabled` (BPM-locked breathing),
+   *   `noiseOverlayEnabled` (film-grain overlay), `roomLightEnabled` (the
+   *   time-of-day lighting grade over the ambient scene), and
+   *   `lowPerformanceMode` (master kill for all ambient rendering, including
+   *   palette extraction in useAmbientColor).
+   * - useAccentStore: `followArtAccent` — accent follows the cover's palette.
+   * - useSanctuaryStore: Sanctuary Mode (fullscreen immersive player).
+   * - useLyricsAppearanceStore: `lyricsPresentation` — list vs. focus stage.
+   */
   lowPerformanceMode: boolean;
   noiseOverlayEnabled: boolean;
+  tempoBreathingEnabled: boolean;
+  artworkBloomEnabled: boolean;
+  coverCrossfadeEnabled: boolean;
+  /**
+   * Vinyl record display: swap the Now Playing artwork card for a spinning
+   * vinyl disc. The customization fields below (label source, reactive ring,
+   * speed, finish, tonearm, per-stage sizes) only matter while this master
+   * gate is on (the Sanctuary vinyl variant also honors them).
+   */
+  vinylDisplayEnabled: boolean;
+  vinylLabelSource: VinylLabelSource;
+  vinylRingStyle: VinylRingStyle;
+  vinylSpeed: VinylSpeed;
+  vinylFinish: VinylFinish;
+  vinylTonearmEnabled: boolean;
+  vinylNowPlayingSize: VinylSize;
+  vinylSanctuarySize: VinylSize;
+  roomLightEnabled: boolean;
+  /**
+   * Room-light shaping, honored only while `roomLightEnabled` is on: grade
+   * strength in percent (0–150), the stop the grade holds at (`auto` follows
+   * the clock), and the warmth hue nudge in degrees.
+   */
+  roomLightIntensity: number;
+  roomLightStop: RoomLightStopSetting;
+  roomLightHueShift: number;
   landingView: LandingView;
 }
 
@@ -375,6 +578,21 @@ interface UIActions {
   setLibraryHeroCardEnabled: (enabled: boolean) => void;
   setLowPerformanceMode: (enabled: boolean) => void;
   setNoiseOverlayEnabled: (enabled: boolean) => void;
+  setTempoBreathingEnabled: (enabled: boolean) => void;
+  setArtworkBloomEnabled: (enabled: boolean) => void;
+  setCoverCrossfadeEnabled: (enabled: boolean) => void;
+  setVinylDisplayEnabled: (enabled: boolean) => void;
+  setVinylLabelSource: (source: VinylLabelSource) => void;
+  setVinylRingStyle: (style: VinylRingStyle) => void;
+  setVinylSpeed: (speed: VinylSpeed) => void;
+  setVinylFinish: (finish: VinylFinish) => void;
+  setVinylTonearmEnabled: (enabled: boolean) => void;
+  setVinylNowPlayingSize: (size: VinylSize) => void;
+  setVinylSanctuarySize: (size: VinylSize) => void;
+  setRoomLightEnabled: (enabled: boolean) => void;
+  setRoomLightIntensity: (intensity: number) => void;
+  setRoomLightStop: (stop: RoomLightStopSetting) => void;
+  setRoomLightHueShift: (degrees: number) => void;
   setLandingView: (view: LandingView) => void;
   setSidebarCollapsed: (sidebarCollapsed: boolean) => void;
   toggleSidebarCollapsed: () => void;
@@ -409,11 +627,30 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     playlistGridSize: 'medium',
     albumSortMode: 'name',
     albumSortOrder: 'asc',
-    nowPlayingViewEnabled: false,
+    // On by default since v2: Lyric Focus and the BPM/key line live inside
+    // the Now Playing view, so a fresh profile should be able to reach them.
+    // Persisted users keep whatever they chose (sanitize honors the stored
+    // boolean); only fresh profiles pick up the new default.
+    nowPlayingViewEnabled: true,
     nowPlayingPanel: 'lyrics',
     libraryHeroCardEnabled: true,
     lowPerformanceMode: false,
     noiseOverlayEnabled: false,
+    tempoBreathingEnabled: true,
+    artworkBloomEnabled: true,
+    coverCrossfadeEnabled: true,
+    vinylDisplayEnabled: false,
+    vinylLabelSource: VINYL_LABEL_SOURCE_DEFAULT,
+    vinylRingStyle: VINYL_RING_STYLE_DEFAULT,
+    vinylSpeed: VINYL_SPEED_DEFAULT,
+    vinylFinish: VINYL_FINISH_DEFAULT,
+    vinylTonearmEnabled: false,
+    vinylNowPlayingSize: VINYL_NOW_PLAYING_SIZE_DEFAULT,
+    vinylSanctuarySize: VINYL_SANCTUARY_SIZE_DEFAULT,
+    roomLightEnabled: true,
+    roomLightIntensity: ROOM_LIGHT_INTENSITY_DEFAULT,
+    roomLightStop: ROOM_LIGHT_STOP_DEFAULT,
+    roomLightHueShift: ROOM_LIGHT_HUE_SHIFT_DEFAULT,
     landingView: LANDING_VIEW_DEFAULT,
 
     setNowPlayingViewEnabled: enabled => {
@@ -438,6 +675,57 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
     },
     setNoiseOverlayEnabled: enabled => {
       set({ noiseOverlayEnabled: enabled });
+    },
+    setTempoBreathingEnabled: enabled => {
+      set({ tempoBreathingEnabled: enabled });
+    },
+    setArtworkBloomEnabled: enabled => {
+      set({ artworkBloomEnabled: enabled });
+    },
+    setCoverCrossfadeEnabled: enabled => {
+      set({ coverCrossfadeEnabled: enabled });
+    },
+    setVinylDisplayEnabled: enabled => {
+      set({ vinylDisplayEnabled: enabled });
+    },
+    setVinylLabelSource: source => {
+      set({
+        vinylLabelSource: coerceEnum(source, VINYL_LABEL_SOURCES, VINYL_LABEL_SOURCE_DEFAULT),
+      });
+    },
+    setVinylRingStyle: style => {
+      set({ vinylRingStyle: coerceEnum(style, VINYL_RING_STYLES, VINYL_RING_STYLE_DEFAULT) });
+    },
+    setVinylSpeed: speed => {
+      set({ vinylSpeed: coerceEnum(speed, VINYL_SPEEDS, VINYL_SPEED_DEFAULT) });
+    },
+    setVinylFinish: finish => {
+      set({ vinylFinish: coerceEnum(finish, VINYL_FINISHES, VINYL_FINISH_DEFAULT) });
+    },
+    setVinylTonearmEnabled: enabled => {
+      set({ vinylTonearmEnabled: enabled });
+    },
+    setVinylNowPlayingSize: size => {
+      set({
+        vinylNowPlayingSize: coerceEnum(size, VINYL_SIZES, VINYL_NOW_PLAYING_SIZE_DEFAULT),
+      });
+    },
+    setVinylSanctuarySize: size => {
+      set({
+        vinylSanctuarySize: coerceEnum(size, VINYL_SIZES, VINYL_SANCTUARY_SIZE_DEFAULT),
+      });
+    },
+    setRoomLightEnabled: enabled => {
+      set({ roomLightEnabled: enabled });
+    },
+    setRoomLightIntensity: intensity => {
+      set({ roomLightIntensity: coerceRoomLightIntensity(intensity) });
+    },
+    setRoomLightStop: stop => {
+      set({ roomLightStop: coerceEnum(stop, ROOM_LIGHT_STOP_SETTINGS, ROOM_LIGHT_STOP_DEFAULT) });
+    },
+    setRoomLightHueShift: degrees => {
+      set({ roomLightHueShift: coerceRoomLightHueShift(degrees) });
     },
     setLandingView: view => {
       set({ landingView: view });
@@ -531,6 +819,21 @@ export const useUIStore = createPersistedStore<UIState & UIActions>(
         libraryHeroCardEnabled: s.libraryHeroCardEnabled,
         lowPerformanceMode: s.lowPerformanceMode,
         noiseOverlayEnabled: s.noiseOverlayEnabled,
+        tempoBreathingEnabled: s.tempoBreathingEnabled,
+        artworkBloomEnabled: s.artworkBloomEnabled,
+        coverCrossfadeEnabled: s.coverCrossfadeEnabled,
+        vinylDisplayEnabled: s.vinylDisplayEnabled,
+        vinylLabelSource: s.vinylLabelSource,
+        vinylRingStyle: s.vinylRingStyle,
+        vinylSpeed: s.vinylSpeed,
+        vinylFinish: s.vinylFinish,
+        vinylTonearmEnabled: s.vinylTonearmEnabled,
+        vinylNowPlayingSize: s.vinylNowPlayingSize,
+        vinylSanctuarySize: s.vinylSanctuarySize,
+        roomLightEnabled: s.roomLightEnabled,
+        roomLightIntensity: s.roomLightIntensity,
+        roomLightStop: s.roomLightStop,
+        roomLightHueShift: s.roomLightHueShift,
         landingView: s.landingView,
       }) as PersistedUIState,
     sanitize: (persisted, current) => ({

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { within, expect } from 'storybook/test';
 import type { Track } from '@/stores/types';
 import { useLibraryStore } from '@/stores/useLibraryStore';
@@ -48,10 +49,16 @@ const meta: Meta<typeof LibraryView> = {
     a11y: { test: 'error' },
   },
   decorators: [
+    // The view hook holds a (threshold-gated) FTS search query, so stories need
+    // a QueryClient even though these fixtures never cross the threshold.
     Story => (
-      <div className="flex h-[40rem] flex-col">
-        <Story />
-      </div>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <div className="flex h-[40rem] flex-col">
+          <Story />
+        </div>
+      </QueryClientProvider>
     ),
   ],
 };

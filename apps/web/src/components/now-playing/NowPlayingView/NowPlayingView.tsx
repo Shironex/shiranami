@@ -1,7 +1,9 @@
 import { Music, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { Companion } from '@/components/companion/Companion';
 import { LyricsBody } from '@/components/lyrics/LyricsBody';
+import { LyricsFocus } from '@/components/lyrics/LyricsFocus';
 import { QueuePanel } from '@/components/player/QueuePanel';
 import { EqualizerPanel } from '@/components/player/EqualizerPanel';
 import { PlayerControls } from '@/components/player/PlayerControls';
@@ -11,6 +13,7 @@ import { VolumeControl } from '@/components/player/VolumeControl';
 import { TimeDisplay } from '@/components/player/TimeDisplay';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { IconButton } from '@/components/ui/icon-button';
+import { VinylRecord } from '@/components/shared/VinylRecord';
 import { useNowPlayingView } from './NowPlayingView.hooks';
 
 export default function NowPlayingView() {
@@ -18,16 +21,23 @@ export default function NowPlayingView() {
     t,
     hasTrack,
     currentTrack,
+    titleText,
     durationLabel,
+    tempoKeyLine,
     showWaveformSeekbar,
     panel,
     panelVisible,
+    companion,
+    companionVisible,
     panelButtons,
     panelGroupLabel,
     lowPerformanceMode,
+    vinylDisplayEnabled,
+    vinylSizeClass,
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
+    showLyricsFocus,
     lyricsPlainOpacity,
     lyricsSyncedDimOpacity,
     onTogglePanel,
@@ -58,6 +68,19 @@ export default function NowPlayingView() {
       <TooltipContent side="bottom">{label}</TooltipContent>
     </Tooltip>
   ));
+
+  // The depth-of-field lyrics stage (built above the return like the toggles).
+  // Null when the classic LyricsBody should render instead — the shell keys
+  // the swap off that null so exactly one presentation mounts.
+  const lyricsFocusStage =
+    showLyricsFocus && lyrics.synced ? (
+      <LyricsFocus
+        synced={lyrics.synced}
+        activeLine={lyrics.activeLine}
+        onLineClick={lyrics.handleLineClick}
+        syncedDimOpacity={lyricsSyncedDimOpacity}
+      />
+    ) : null;
 
   return (
     <div className="@container flex-1 flex flex-col overflow-hidden relative">
@@ -112,52 +135,99 @@ export default function NowPlayingView() {
         >
           {/* Album art — scales dramatically with container. On track change it
               mirrors the PlayerBar's ±3° tilt spring (decorative: skipped under
-              reduced motion / low-performance mode). */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTrack.id}
-              initial={
-                albumArtTiltEnabled
-                  ? { scale: 0.9, opacity: 0, rotate: -3 }
-                  : { scale: 0.9, opacity: 0 }
-              }
-              animate={
-                albumArtTiltEnabled ? { scale: 1, opacity: 1, rotate: 0 } : { scale: 1, opacity: 1 }
-              }
-              exit={
-                albumArtTiltEnabled
-                  ? { scale: 0.9, opacity: 0, rotate: 3 }
-                  : { scale: 0.9, opacity: 0 }
-              }
-              transition={{ type: 'spring', damping: 22, stiffness: 250 }}
-              className={cn(
-                'shrink-0 aspect-square rounded-2xl @5xl:rounded-3xl overflow-hidden',
-                'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center',
-                // The art is sized by max-width, and the box is aspect-square, so
-                // capping max-width also caps its height. The `calc(100vh - …)`
-                // term is a height budget that reserves room for the header, track
-                // info, seek bar and controls: on tall viewports the width clamp
-                // wins (art stays large), but on short ones (e.g. a 1080p screen at
-                // 150% display scaling → ~720px tall) the height budget wins and
-                // shrinks the art so the controls always clear the window bottom
-                // instead of sliding under the OS taskbar.
-                panelVisible
-                  ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh_-_28rem),clamp(280px,22vw,480px))]'
-                  : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
-              )}
-            >
-              {currentTrack.albumArt ? (
-                <img
-                  src={currentTrack.albumArt}
-                  alt={currentTrack.album}
-                  className="w-full h-full object-cover"
-                  decoding="async"
+              reduced motion / low-performance mode). The relative wrapper owns
+              the sizing so the resident can perch on the frame's lower-right
+              corner *outside* the art's overflow clip. */}
+          <div
+            className={cn(
+              'relative shrink-0 aspect-square',
+              // The art is sized by max-width, and the box is aspect-square, so
+              // capping max-width also caps its height. The `calc(100vh - …)`
+              // term is a height budget that reserves room for the header, track
+              // info, seek bar and controls: on tall viewports the width clamp
+              // wins (art stays large), but on short ones (e.g. a 1080p screen at
+              // 150% display scaling → ~720px tall) the height budget wins and
+              // shrinks the art so the controls always clear the window bottom
+              // instead of sliding under the OS taskbar.
+              panelVisible
+                ? 'w-[55%] min-w-[180px] max-w-[240px] @3xl:w-full @3xl:max-w-[min(calc(100vh_-_28rem),clamp(280px,22vw,480px))]'
+                : 'w-full max-w-[min(calc(100vh_-_30rem),clamp(300px,24vw,440px))]'
+            )}
+          >
+            {vinylDisplayEnabled ? (
+              /* The slot keeps its clamp-based footprint; the size preference
+                 scales the disc inside it so the layout math stays intact. */
+              <div className="absolute inset-0 flex items-center justify-center">
+                <VinylRecord
+                  albumArt={currentTrack.albumArt}
+                  albumAlt={currentTrack.album}
+                  className={vinylSizeClass}
                 />
-              ) : (
-                <Music className="w-16 h-16 text-muted-foreground/30" />
-              )}
-            </motion.div>
-          </AnimatePresence>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTrack.id}
+                  initial={
+                    albumArtTiltEnabled
+                      ? { scale: 0.9, opacity: 0, rotate: -3 }
+                      : { scale: 0.9, opacity: 0 }
+                  }
+                  animate={
+                    albumArtTiltEnabled
+                      ? { scale: 1, opacity: 1, rotate: 0 }
+                      : { scale: 1, opacity: 1 }
+                  }
+                  exit={
+                    albumArtTiltEnabled
+                      ? { scale: 0.9, opacity: 0, rotate: 3 }
+                      : { scale: 0.9, opacity: 0 }
+                  }
+                  transition={{ type: 'spring', damping: 22, stiffness: 250 }}
+                  className={cn(
+                    'w-full h-full rounded-2xl @5xl:rounded-3xl overflow-hidden',
+                    'shadow-2xl shadow-black/40 bg-muted flex items-center justify-center'
+                  )}
+                >
+                  {currentTrack.albumArt ? (
+                    <img
+                      src={currentTrack.albumArt}
+                      alt={currentTrack.album}
+                      className="w-full h-full object-cover"
+                      decoding="async"
+                    />
+                  ) : (
+                    <Music className="w-16 h-16 text-muted-foreground/30" />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
+
+            {/* The resident, half overlapping the frame edge (display-only:
+                interactions stay on the player-bar perch). */}
+            {companionVisible && (
+              <div
+                aria-hidden="true"
+                className={cn(
+                  'absolute -bottom-2 -right-3 z-10 pointer-events-none select-none',
+                  'transition-opacity duration-300',
+                  companion.mode === 'hiding' && 'opacity-0'
+                )}
+              >
+                <Companion
+                  species={companion.species}
+                  stage={companion.stage}
+                  mode={companion.mode}
+                  overlay={companion.overlay}
+                  overlaySeq={companion.overlaySeq}
+                  motion={companion.motion}
+                  outfit={companion.outfit}
+                  accessories={companion.accessories}
+                  size={64}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Track info */}
           <AnimatePresence mode="wait">
@@ -170,11 +240,16 @@ export default function NowPlayingView() {
               className="text-center w-full max-w-[360px] @5xl:max-w-[420px] px-2"
             >
               <h1 className="font-serif italic text-2xl @5xl:text-3xl @7xl:text-4xl text-foreground truncate">
-                {currentTrack.title}
+                {titleText}
               </h1>
               <p className="text-xs @5xl:text-sm @7xl:text-base text-muted-foreground mt-1 truncate">
                 {currentTrack.artist} · {currentTrack.album}
               </p>
+              {tempoKeyLine && (
+                <p className="text-[10px] @5xl:text-xs text-muted-foreground/60 tabular-nums mt-1 truncate">
+                  {tempoKeyLine}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -222,28 +297,35 @@ export default function NowPlayingView() {
                         {t('lyrics')}
                       </h2>
                     </div>
-                    <LyricsBody
-                      synced={lyrics.synced}
-                      plain={lyrics.plain}
-                      activeLine={lyrics.activeLine}
-                      isLoading={lyrics.isLoading}
-                      onLineClick={lyrics.handleLineClick}
-                      loadingLabel={t('findingLyrics')}
-                      emptyLabel={t('noLyrics')}
-                      syncedDimOpacity={lyricsSyncedDimOpacity}
-                      plainOpacity={lyricsPlainOpacity}
-                      syncedWrapperClassName="contents"
-                      syncedContainerClassName="pr-2 @3xl:pr-4"
-                      syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
-                      syncedBottomSpacerClassName="h-[40vh]"
-                      syncedBaseClassName={lyricsClasses.syncedBase}
-                      syncedActiveClassName={lyricsClasses.syncedActive}
-                      syncedPastClassName={lyricsClasses.syncedPast}
-                      syncedIdleClassName={lyricsClasses.syncedIdle}
-                      plainContainerClassName="pr-2 @3xl:pr-4"
-                      plainTextClassName={lyricsClasses.plainText}
-                      emptyClassName="text-muted-foreground/25"
-                    />
+                    {lyricsFocusStage}
+                    {lyricsFocusStage === null && (
+                      <LyricsBody
+                        synced={lyrics.synced}
+                        plain={lyrics.plain}
+                        activeLine={lyrics.activeLine}
+                        isLoading={lyrics.isLoading}
+                        isError={lyrics.isError}
+                        onLineClick={lyrics.handleLineClick}
+                        onRetry={lyrics.retry}
+                        loadingLabel={t('findingLyrics')}
+                        emptyLabel={t('noLyrics')}
+                        errorLabel={t('lyricsError')}
+                        retryLabel={t('retry', { ns: 'common' })}
+                        syncedDimOpacity={lyricsSyncedDimOpacity}
+                        plainOpacity={lyricsPlainOpacity}
+                        syncedWrapperClassName="contents"
+                        syncedContainerClassName="pr-2 @3xl:pr-4"
+                        syncedSpacingClassName="space-y-4 @5xl:space-y-5 @7xl:space-y-6"
+                        syncedBottomSpacerClassName="h-[40vh]"
+                        syncedBaseClassName={lyricsClasses.syncedBase}
+                        syncedActiveClassName={lyricsClasses.syncedActive}
+                        syncedPastClassName={lyricsClasses.syncedPast}
+                        syncedIdleClassName={lyricsClasses.syncedIdle}
+                        plainContainerClassName="pr-2 @3xl:pr-4"
+                        plainTextClassName={lyricsClasses.plainText}
+                        emptyClassName="text-muted-foreground/60"
+                      />
+                    )}
                   </>
                 )}
 

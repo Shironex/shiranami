@@ -17,9 +17,9 @@ interface VariantStyle {
 const VARIANTS: Record<StatusBadgeVariant, VariantStyle> = {
   experimental: {
     icon: Sparkles,
-    // Amber — caution, "may change or be removed"
+    // Warning amber — caution, "may change or be removed"
     classes:
-      'bg-amber-500/10 border-amber-400/25 text-amber-300 shadow-[inset_0_1px_0_rgba(var(--status-warning-rgb),0.12)]',
+      'bg-warning/10 border-warning/25 text-warning shadow-[inset_0_1px_0_rgba(var(--status-warning-rgb),0.12)]',
   },
   beta: {
     icon: FlaskConical,
@@ -29,9 +29,9 @@ const VARIANTS: Record<StatusBadgeVariant, VariantStyle> = {
   },
   new: {
     icon: Zap,
-    // Emerald — "shipped recently, check it out"
+    // Success green — "shipped recently, check it out"
     classes:
-      'bg-emerald-500/10 border-emerald-400/25 text-emerald-300 shadow-[inset_0_1px_0_rgba(var(--status-success-rgb),0.12)]',
+      'bg-success/10 border-success/25 text-success shadow-[inset_0_1px_0_rgba(var(--status-success-rgb),0.12)]',
   },
 };
 

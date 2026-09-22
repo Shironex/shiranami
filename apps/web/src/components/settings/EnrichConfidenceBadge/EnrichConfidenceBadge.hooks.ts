@@ -7,8 +7,8 @@ import type {
 
 // Token-backed colors — High = success green, Med = warning amber, Low = danger red.
 const LEVEL_CLASSES: Record<ConfidenceLevel, string> = {
-  high: 'bg-[rgba(var(--status-success-rgb),0.12)] text-emerald-300 border-emerald-400/25',
-  med: 'bg-[rgba(var(--status-warning-rgb),0.12)] text-amber-300 border-amber-400/25',
+  high: 'bg-success/10 text-success border-success/25',
+  med: 'bg-warning/10 text-warning border-warning/25',
   low: 'bg-destructive/10 text-destructive border-destructive/25',
 };
 

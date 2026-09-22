@@ -13,10 +13,17 @@ import { useThemeBackground } from './ThemeBackground.hooks';
  *
  * The scrim ships in the same component as the image (never after) so no theme
  * can ever render un-scrimmed — it is the WCAG floor that keeps light
- * foreground text legible over the bright themes (summer/sunset). Both the
- * image and the scrim are deliberately retained under low-perf and
- * prefers-reduced-transparency: the image is a single static bitmap with no
- * animation or blur, so it carries the theme identity at near-zero cost.
+ * foreground text legible over the bright themes (summer/sunset) and over an
+ * imported image, which nobody has vetted at all. Both the image and the scrim
+ * are deliberately retained under low-perf and prefers-reduced-transparency:
+ * the image is a single static bitmap with no animation or blur, so it carries
+ * the theme identity at near-zero cost.
+ *
+ * That last sentence is a promise the `custom` theme could break, since an
+ * imported GIF is not a static bitmap. It does not, because the hook resolves
+ * an animated import to its poster still under exactly those two settings —
+ * the freeze happens in the URL, so the markup below stays one `background-image`
+ * div and the scrim cannot end up on the wrong side of a second branch.
  */
 export default function ThemeBackground() {
   const { hasThemeImage, imageUrl } = useThemeBackground();
@@ -27,7 +34,7 @@ export default function ThemeBackground() {
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <div
         className="theme-bg-image absolute inset-0"
-        style={{ backgroundImage: `url(${imageUrl})` }}
+        style={{ backgroundImage: `url("${imageUrl}")` }}
       />
       <div className="theme-bg-scrim absolute inset-0" />
       <div

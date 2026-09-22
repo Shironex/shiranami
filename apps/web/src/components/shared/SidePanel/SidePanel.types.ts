@@ -12,6 +12,8 @@ export interface ISidePanelView {
   readonly shouldRender: boolean;
   /** Which content the panel shows (only meaningful when `shouldRender`). */
   readonly content: 'lyrics' | 'queue' | null;
+  /** Skip the enter/exit motion when the OS prefers reduced motion. */
+  readonly reducedMotion: boolean;
   /** Persisted shared width of the panel, in px. */
   readonly rightPanelWidth: number;
   /** The side the panel docks on (drives border + resize-handle edge). */

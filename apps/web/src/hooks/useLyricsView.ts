@@ -14,6 +14,8 @@ interface UseLyricsViewResult {
   activeLine: number;
   isLoading: boolean;
   isError: boolean;
+  /** Re-run the failed lyrics fetch (drives the error-branch Retry action). */
+  retry: () => void;
   /** Seek to a line's timestamp. */
   handleLineClick: (time: number) => void;
 }
@@ -32,7 +34,7 @@ export function useLyricsView(): UseLyricsViewResult {
   const currentTrack = usePlaybackStore(s => s.currentTrack);
   const seek = usePlaybackStore(s => s.seek);
 
-  const { data, isLoading, isError } = useLyricsQuery(
+  const { data, isLoading, isError, refetch } = useLyricsQuery(
     currentTrack?.id ?? null,
     currentTrack?.title ?? '',
     currentTrack?.artist ?? '',
@@ -54,5 +56,9 @@ export function useLyricsView(): UseLyricsViewResult {
 
   const handleLineClick = useCallback((time: number) => seek(time), [seek]);
 
-  return { synced, plain, source, activeLine, isLoading, isError, handleLineClick };
+  const retry = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  return { synced, plain, source, activeLine, isLoading, isError, retry, handleLineClick };
 }

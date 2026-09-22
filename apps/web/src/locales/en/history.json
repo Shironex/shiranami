@@ -37,5 +37,10 @@
   "activityBarTitle": "{{label}}: {{count}} plays, {{minutes}}m listened",
   "activityGraphLabel": "Listening activity: {{total}} plays over {{days}} days",
   "errorTitle": "Couldn't load listening history",
-  "errorSubtitle": "Something went wrong. Try again."
+  "errorSubtitle": "Something went wrong. Try again.",
+  "recaps": {
+    "title": "Recaps",
+    "caption": "The weeks, in short — each one kept as it finishes.",
+    "quietWeek": "A quiet week. That's fine too."
+  }
 }

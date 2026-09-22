@@ -22,7 +22,11 @@ export function useAppVersionQuery() {
         return FALLBACK_VERSION;
       }
     },
-    initialData: FALLBACK_VERSION,
+    // Placeholder, not `initialData`: initial data counts as fresh, and with an
+    // infinite stale time the query then never ran, so every build showed
+    // `apps/web`'s own version. That is the v1 line's 1.0.0, which v1 happened
+    // to match and v2 does not.
+    placeholderData: FALLBACK_VERSION,
     staleTime: Infinity,
   });
 }

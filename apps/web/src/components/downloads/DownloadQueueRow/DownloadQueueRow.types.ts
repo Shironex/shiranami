@@ -4,6 +4,8 @@ import type { DownloadStatus } from '@/components/shared/DownloadProgressButton'
 export interface IDownloadQueueRowProps {
   readonly item: DownloadQueueItem;
   readonly onCancel: (id: string) => void;
+  /** Retry a failed download. Absent when the runtime has no retry support. */
+  readonly onRetry?: (id: string) => void;
 }
 
 export interface IDownloadQueueRowView {
@@ -25,10 +27,16 @@ export interface IDownloadQueueRowView {
   readonly isActive: boolean;
   /** Active, converting, or queued — the row can be cancelled. */
   readonly isCancellable: boolean;
+  /** Failed, and the runtime supports retrying — the row shows a retry button. */
+  readonly isRetryable: boolean;
   /** Tooltip for the cancel button. */
   readonly cancelTitle: string;
   /** Accessible label for the cancel button. */
   readonly cancelAriaLabel: string;
+  /** Tooltip for the retry button. */
+  readonly retryTitle: string;
+  /** Accessible label for the retry button. */
+  readonly retryAriaLabel: string;
   /** Accessible label for the determinate progress bar. */
   readonly progressAriaLabel: string;
 }

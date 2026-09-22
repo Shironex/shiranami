@@ -15,6 +15,12 @@ export interface IPlayerBarView {
   readonly t: TranslateFn;
   /** The currently-playing track, or null when playback is idle (bar is hidden). */
   readonly currentTrack: Track | null;
+  /**
+   * The title line. For a radio stream this is the station's ICY `StreamTitle`
+   * once one has arrived and the station's own name until then; for everything
+   * else it is `currentTrack.title`. Empty string when nothing is playing.
+   */
+  readonly titleText: string;
   /** Whether the current track is a live radio stream (hides seek + favorite). */
   readonly isRadio: boolean;
   /** Whether the current track is favorited. */

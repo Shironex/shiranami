@@ -4,13 +4,13 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
-import { IS_MAC } from '@/lib/platform';
+import { formatBindingLabel } from '@/lib/keymap';
+import { useKeymapStore } from '@/stores/useKeymapStore';
 import type { IPlayerOverflowMenuView } from './PlayerOverflowMenu.types';
-
-const MOD = IS_MAC ? '⌘' : 'Ctrl';
 
 export function usePlayerOverflowMenu(): IPlayerOverflowMenuView {
   const { t } = useTranslation('player');
+  const compactBinding = useKeymapStore(s => s.bindings.compactMode);
   const showVisualizer = useUIStore(s => s.showVisualizer);
   const toggleVisualizer = useUIStore(s => s.toggleVisualizer);
   const setCompactMode = useCompactStore(s => s.setCompactMode);
@@ -39,7 +39,7 @@ export function usePlayerOverflowMenu(): IPlayerOverflowMenuView {
     showEqualizer,
     showCompactButton,
     showVisualizerButton,
-    compactTooltip: t('compactModeTooltip', { shortcut: `${MOD}+Shift+M` }),
+    compactTooltip: t('compactModeTooltip', { shortcut: formatBindingLabel(compactBinding) }),
     onEnterCompact,
     onToggleVisualizer: toggleVisualizer,
   };

@@ -5,6 +5,7 @@
   "eq": "Korektor",
   "findingLyrics": "Szukanie tekstu...",
   "noLyrics": "Tekst niedostępny",
+  "lyricsError": "Nie udało się wczytać tekstu",
   "showLyrics": "Pokaż tekst",
   "hideLyrics": "Ukryj tekst",
   "showQueue": "Pokaż kolejkę",

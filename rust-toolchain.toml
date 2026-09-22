@@ -1,0 +1,7 @@
+# Pinned exactly, not floating "stable": a rustup host that drifts mid-release
+# changes the bytes we sign, and the Windows dual-signing order (architecture
+# §4.4, R8) assumes a reproducible build. Bump deliberately, in its own commit.
+[toolchain]
+channel = "1.94.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

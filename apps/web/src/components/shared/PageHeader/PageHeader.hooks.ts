@@ -10,6 +10,7 @@ export function usePageHeader({
   icon,
   subtitle,
   variant = 'page',
+  actions,
 }: IPageHeaderProps): IPageHeaderView {
-  return { title, icon, subtitle, variant };
+  return { title, icon, subtitle, variant, actions };
 }

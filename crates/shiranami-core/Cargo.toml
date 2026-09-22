@@ -1,0 +1,27 @@
+[package]
+name = "shiranami-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+# The home-directory pattern behind `scrub`. One regex, compiled once behind a
+# `LazyLock`, matching v1's `HOME_DIR_PATTERN` including its `[^\s'"]` stop set.
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+specta = { workspace = true }
+specta-typescript = { workspace = true }
+specta-serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MainMetricsSnapshot } from '@shiranami/contracts';
+import type { MetricsSnapshot } from '@shiranami/contracts/bindings';
 import type { TimerStats } from '@/lib/debug/timerRegistry';
 import type { RenderStat } from '@/lib/debug/renderStats';
 
@@ -39,7 +39,7 @@ const MAX_LONG_TASKS = 30;
 
 interface DebugState {
   open: boolean;
-  main: MainMetricsSnapshot | null;
+  main: MetricsSnapshot | null;
   renderer: RendererMetrics;
   longTasks: LongTaskEntry[];
 }
@@ -47,7 +47,7 @@ interface DebugState {
 interface DebugActions {
   toggle: () => void;
   close: () => void;
-  setMain: (snapshot: MainMetricsSnapshot) => void;
+  setMain: (snapshot: MetricsSnapshot) => void;
   setRenderer: (metrics: RendererMetrics) => void;
   pushLongTask: (entry: LongTaskEntry) => void;
   reset: () => void;

@@ -48,7 +48,7 @@ export const ReducedRendering: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Reduced rendering')).toBeInTheDocument();
-    await expect(canvas.getByText('Reduced')).toHaveClass('bg-amber-500/15');
+    await expect(canvas.getByText('Reduced')).toHaveClass('bg-warning/15');
     await expect(canvasElement.querySelector('.grid')).toHaveClass('opacity-35');
   },
 };

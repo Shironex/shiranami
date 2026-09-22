@@ -43,7 +43,10 @@ export default function SmartPlaylistDetail(props: ISmartPlaylistDetailProps) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-6">
         <p className="text-sm text-muted-foreground">{t('notFound')}</p>
-        <button onClick={onBack} className="text-xs text-primary hover:underline">
+        <button
+          onClick={onBack}
+          className="focus-ring rounded-sm text-xs text-primary hover:underline"
+        >
           {t('goBack')}
         </button>
       </div>
@@ -91,13 +94,13 @@ export default function SmartPlaylistDetail(props: ISmartPlaylistDetailProps) {
                   <button
                     onClick={onDelete}
                     disabled={isDeleting}
-                    className="flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors disabled:opacity-50"
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs font-medium bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors disabled:opacity-50"
                   >
                     {tCommon('delete')}
                   </button>
                   <button
                     onClick={onCancelDelete}
-                    className="flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                    className="focus-ring flex-1 px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                   >
                     {tCommon('cancel')}
                   </button>

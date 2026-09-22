@@ -2,13 +2,16 @@ import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic2, ListMusic, SlidersVertical, type LucideIcon } from 'lucide-react';
 import { formatDuration } from '@shiranami/shared';
+import { formatTempoKeyLine } from '@/lib/tempoKeyFormat';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
-import { useUIStore } from '@/stores/useUIStore';
+import { useUIStore, type VinylSize } from '@/stores/useUIStore';
 import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useLyricsView } from '@/hooks/useLyricsView';
+import { useCompanionPresence } from '@/hooks/useCompanionPresence';
 import { useDecorativeMotion } from '@/hooks/useDecorativeMotion';
+import { useTrackTitle } from '@/hooks/useRadioNowPlaying';
 import { cn } from '@/lib/utils';
 import type { LyricsFontSize } from '@/stores/useLyricsAppearanceStore';
 import type {
@@ -49,6 +52,16 @@ const NP_PLAIN_TEXT_SHARED =
 
 const PANEL_ORDER: ActivePanel[] = ['lyrics', 'queue', 'eq'];
 
+/**
+ * Disc width inside the artwork slot per size preference — 'large' fills the
+ * slot, exactly what the display did before the preference existed.
+ */
+const NP_VINYL_SIZE_CLASS: Record<VinylSize, string> = {
+  small: 'w-[70%]',
+  medium: 'w-[85%]',
+  large: 'w-full',
+};
+
 const PANEL_META: Record<ActivePanel, { icon: LucideIcon; showKey: string; hideKey: string }> = {
   lyrics: { icon: Mic2, showKey: 'showLyrics', hideKey: 'hideLyrics' },
   queue: { icon: ListMusic, showKey: 'showQueue', hideKey: 'hideQueue' },
@@ -64,13 +77,31 @@ export function useNowPlayingView(): INowPlayingViewView {
   const panel = useUIStore(s => s.nowPlayingPanel);
   const togglePanel = useUIStore(s => s.toggleNowPlayingPanel);
   const lowPerformanceMode = useUIStore(s => s.lowPerformanceMode);
+  const vinylDisplayEnabled = useUIStore(s => s.vinylDisplayEnabled);
+  const vinylNowPlayingSize = useUIStore(s => s.vinylNowPlayingSize);
   const albumArtTiltEnabled = useDecorativeMotion();
   const lyricsPlainOpacity = useLyricsAppearanceStore(s => s.lyricsPlainOpacity);
   const lyricsPlainFontSize = useLyricsAppearanceStore(s => s.lyricsPlainFontSize);
   const lyricsSyncedDimOpacity = useLyricsAppearanceStore(s => s.lyricsSyncedDimOpacity);
   const lyricsSyncedFontSize = useLyricsAppearanceStore(s => s.lyricsSyncedFontSize);
 
+  const lyricsPresentation = useLyricsAppearanceStore(s => s.lyricsPresentation);
+
   const lyrics = useLyricsView();
+
+  // Radio only: the station's ICY `StreamTitle` when one has arrived, the
+  // station name otherwise. `currentTrack.title` for everything else, so this
+  // view agrees with the player bar instead of showing a second answer.
+  const titleText = useTrackTitle(currentTrack);
+
+  // The resident relocates to the album art's lower-right corner here (the
+  // player bar — its usual perch — is hidden in this view).
+  const companion = useCompanionPresence();
+
+  // The focus stage only replaces the *synced* list — loading, plain-text and
+  // empty states keep the classic LyricsBody branches.
+  const showLyricsFocus =
+    lyricsPresentation === 'focus' && !lyrics.isLoading && (lyrics.synced?.length ?? 0) > 0;
 
   const lyricsClasses = useMemo(
     () => ({
@@ -103,6 +134,10 @@ export function useNowPlayingView(): INowPlayingViewView {
 
   const durationLabel = useMemo(() => formatDuration(duration), [duration]);
 
+  // The analysis engine's estimates, when the track carries them: a small
+  // "≈ 82 BPM · A minor" line under the artist/album. Null hides the line.
+  const tempoKeyLine = formatTempoKeyLine(currentTrack?.bpm, currentTrack?.musicalKey);
+
   // Exit if no track is playing.
   useEffect(() => {
     if (!currentTrack) {
@@ -114,16 +149,23 @@ export function useNowPlayingView(): INowPlayingViewView {
     t,
     hasTrack: Boolean(currentTrack),
     currentTrack,
+    titleText,
     durationLabel,
+    tempoKeyLine,
     showWaveformSeekbar,
     panel,
     panelVisible: panel !== null,
+    companion,
+    companionVisible: companion.enabled,
     panelButtons,
     panelGroupLabel: t('panelGroup'),
     lowPerformanceMode,
+    vinylDisplayEnabled,
+    vinylSizeClass: NP_VINYL_SIZE_CLASS[vinylNowPlayingSize],
     albumArtTiltEnabled,
     lyricsClasses,
     lyrics,
+    showLyricsFocus,
     lyricsPlainOpacity,
     lyricsSyncedDimOpacity,
     onTogglePanel: togglePanel,

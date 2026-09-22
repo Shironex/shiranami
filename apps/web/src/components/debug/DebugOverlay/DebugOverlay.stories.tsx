@@ -1,19 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { within, expect } from 'storybook/test';
-import type { MainMetricsSnapshot } from '@shiranami/contracts';
+import type { MetricsSnapshot } from '@shiranami/contracts/bindings';
 import { useDebugStore, type RendererMetrics } from '@/stores/useDebugStore';
 
 import DebugOverlay from './DebugOverlay';
 
-function makeMain(): MainMetricsSnapshot {
+// The v2 payload: the app process first, then its direct children by ascending
+// pid. There is no `Browser`/`GPU`/`Renderer` vocabulary to report — see
+// `lib/bridge/namespaces/debug.ts`.
+function makeMain(): MetricsSnapshot {
   return {
     ts: Date.now(),
-    cpu: { percentCPUUsage: 8.4, idleWakeupsPerSecond: 120 },
-    heap: { totalHeapSize: 81920, usedHeapSize: 53248, heapSizeLimit: 2097152 },
     procs: [
-      { type: 'Browser', pid: 1001, cpu: 4.2, mem: 122880 },
-      { type: 'GPU', pid: 1002, cpu: 31.7, mem: 65536 },
-      { type: 'Renderer', pid: 1003, cpu: 12.1, mem: 204800 },
+      { kind: 'main', pid: 1001, cpu: 4.2, mem: 122880 },
+      { kind: 'child', pid: 1002, cpu: 31.7, mem: 65536 },
+      { kind: 'child', pid: 1003, cpu: 12.1, mem: 204800 },
     ],
   };
 }
@@ -42,7 +43,7 @@ function makeRenderer(): RendererMetrics {
 }
 
 /** Seed the debug store the overlay reads from. */
-function seed(main: MainMetricsSnapshot | null, renderer: RendererMetrics): void {
+function seed(main: MetricsSnapshot | null, renderer: RendererMetrics): void {
   useDebugStore.setState({
     open: true,
     main,
@@ -57,7 +58,7 @@ function seed(main: MainMetricsSnapshot | null, renderer: RendererMetrics): void
 /**
  * debug · DebugOverlay. The dev-only performance panel: a fixed translucent
  * `role="dialog"` named "Performance debug panel" with a Close button, listing
- * main-process per-process CPU/memory, renderer FPS/frame-time/JS-heap, React
+ * backend per-process CPU/memory, renderer FPS/frame-time/JS-heap, React
  * commit attribution, the active timer registry, per-store update Hz, and a
  * long-task feed. Reads everything from `useDebugStore`; shows "waiting for
  * samples…" placeholders until the first snapshot lands. Stories seed the store.
@@ -90,8 +91,9 @@ export const Default: Story = {
       canvas.getByRole('dialog', { name: 'Performance debug panel' })
     ).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: 'Close debug panel' })).toBeInTheDocument();
-    // Seeded main-process rows render their per-process figures.
-    await expect(canvas.getByText('GPU')).toBeInTheDocument();
+    // Seeded backend rows render their per-process figures, labelled by kind.
+    await expect(canvas.getByText('main')).toBeInTheDocument();
+    await expect(canvas.getAllByText('child')).toHaveLength(2);
     await expect(canvas.getByText('31.7')).toBeInTheDocument();
   },
 };

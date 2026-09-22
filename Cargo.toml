@@ -1,0 +1,472 @@
+#  Shiranami v2 — Rust workspace.
+#
+#  Lives inside the existing pnpm workspace (docs/v2/architecture.md §2.1): the
+#  domain crates under `crates/` own all backend logic, and
+#  `apps/desktop-tauri/src-tauri` is a thin composition root that wires them
+#  into a Tauri v2 shell. The dependency spine runs one way only —
+#  core → net → { db, serve, metadata, integrations }, core → audio,
+#  { db, metadata } → library, { net, db } → downloader,
+#  { db, downloader } → recommendation, core → media-controls, everything →
+#  src-tauri — and is expressed by the path dependencies below.
+
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/desktop-tauri/src-tauri"]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+rust-version = "1.94.1"
+authors = ["Shironex"]
+license = "SEE LICENSE IN LICENSE"
+repository = "https://github.com/Shironex/shiranami"
+publish = false
+
+[workspace.dependencies]
+# Internal crates — the layering spine. Depend on these, never on a sibling
+# that sits above you in the ordering documented at the top of this file.
+shiranami-core = { path = "crates/shiranami-core" }
+shiranami-net = { path = "crates/shiranami-net" }
+shiranami-db = { path = "crates/shiranami-db" }
+shiranami-audio = { path = "crates/shiranami-audio" }
+shiranami-metadata = { path = "crates/shiranami-metadata" }
+shiranami-library = { path = "crates/shiranami-library" }
+shiranami-downloader = { path = "crates/shiranami-downloader" }
+shiranami-integrations = { path = "crates/shiranami-integrations" }
+shiranami-recommendation = { path = "crates/shiranami-recommendation" }
+shiranami-serve = { path = "crates/shiranami-serve" }
+shiranami-media-controls = { path = "crates/shiranami-media-controls" }
+
+# External — pinned per docs/v2/architecture.md Appendix B. Only the
+# dependencies Phase 1 actually compiles are listed; each later phase adds its
+# own row here rather than in a leaf crate, so versions stay unified.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2.11", features = ["tray-icon", "image-png"] }
+tauri-build = "2"
+tauri-plugin-single-instance = "2.4"
+thiserror = "2"
+tracing = "0.1"
+
+# Phase 14 lane 6 (`window` / `app` / `dialog` / `shell` / `debug`), the
+# Appendix B rows for architecture §2.2 #30. All four are reached from **Rust
+# only** — no capability grants the webview their JS commands, so the renderer
+# still cannot open a path or a dialog except through a command that validates
+# first.
+#
+# `trash` and `sys-locale` are plain crates rather than plugins because neither
+# has one: `shell:trash-file` is `shell.trashItem` and `app:get-locale-country`
+# is `app.getLocaleCountryCode()`, and a plugin would only add an ACL surface
+# for functionality nothing outside the command layer may call.
+tauri-plugin-dialog = "2.7"
+tauri-plugin-opener = "2.5"
+trash = "5"
+sys-locale = "0.3"
+
+# Sanctuary Mode's display-sleep inhibition (`window:set-display-sleep-inhibited`):
+# a screensaver surface the OS screensaver kills is worse than none. Plain crate,
+# same reasoning as `trash`/`sys-locale` — one guard object held in managed
+# state, nothing the webview may reach directly.
+keepawake = "0.6"
+
+# Exact pins, as nuclear ships (architecture D6/R11): tauri-specta is
+# perpetually pre-1.0, and a floating rc would resolve differently between a
+# local run and CI — which is precisely how a regenerate-and-diff guard starts
+# failing for reasons that have nothing to do with drift.
+# `serde_json` is deliberately NOT enabled. It would give `serde_json::Value` a
+# `Type` impl marked *inline*, and `Value` is recursive, so the exporter
+# overflows its stack rather than emitting anything — a `fatal runtime error`
+# from a test that looks like it only writes a file, naming nothing. Without the
+# feature the same mistake is a compile error naming the line, and
+# `shiranami_desktop_lib::wire::Json` is the supported way to carry an opaque
+# value across the boundary.
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+specta-serde = "=0.0.12"
+# Phase 14. `typescript` is the exporter the command/event bindings are rendered
+# through; `derive` is what `#[specta::specta]` on a command needs. The
+# `javascript` feature stays off — the renderer is TypeScript and a second
+# emitter would be a second thing the drift guard has to diff.
+tauri-specta = { version = "=2.0.0-rc.25", features = [
+  "derive",
+  "typescript",
+] }
+
+# Phase 3 (`shiranami-net`). reqwest 0.13 already resolves `default-tls` to
+# rustls, so the explicit list is not about picking a TLS stack — it is about
+# dropping what we never use (`charset`, `blocking`, `cookies`) while keeping
+# `system-proxy`, which is the one Chromium behaviour `electron.net` gave the v1
+# client for free and a corporate-proxy user would notice losing.
+reqwest = { version = "0.13", default-features = false, features = [
+  "rustls",
+  "http2",
+  "gzip",
+  "brotli",
+  "system-proxy",
+] }
+# `net` is here for the SSRF guard's DNS resolution and nothing else; the guard
+# must resolve a hostname *itself* rather than trust the connector, or the
+# range classification has nothing to classify. Phase 8 adds `fs` and `io-util`:
+# the audio route streams a file range off disk rather than buffering it, which
+# is the whole reason a 300 MB FLAC does not become 300 MB of resident memory.
+# Phase 11 adds `process`: yt-dlp, ffmpeg and `xattr` are child processes, and
+# `kill_on_drop(true)` — the R20 mitigation — is a `tokio::process` method.
+tokio = { version = "1", features = [
+  "net",
+  "rt",
+  "sync",
+  "time",
+  "fs",
+  "io-util",
+  "process",
+] }
+url = "2.5"
+httpdate = "1"
+
+# Phase 5 (`shiranami-audio`) — the Rust replacement for the C++ N-API addon.
+# `symphonia` decodes strictly more than the vendored dr_libs did, and `ebur128`
+# is a port of the vendored libebur128, so the LUFS the volume-leveling feature
+# already persisted stay comparable (architecture §2.9, Appendix B).
+#
+# `alac` is the one addition to Appendix B's feature list: `.m4a` is in v1's
+# accepted-extension set and an iTunes-ripped `.m4a` holds ALAC, not AAC, so
+# without it a format v1 played would analyse as undecodable.
+symphonia = { version = "0.6", features = [
+  "mp3",
+  "flac",
+  "isomp4",
+  "aac",
+  "alac",
+  "opt-simd",
+] }
+ebur128 = "0.1.10"
+
+# The v2 feature wave's tempo/key rung (research-rust F2) — the one DSP
+# addition §2.9 predicted ("`realfft` for BPM post-v2"). MIT, pure Rust, wraps
+# `rustfft`'s real-to-complex transform for the key detector's chromagram. The
+# licence matters as much as the function: the off-the-shelf analysis crates
+# (`bliss-audio`, `aubio-rs`) are GPL and unusable under this repo's
+# source-available licence, so the DSP is hand-rolled on this instead
+# (research-rust §0.9).
+realfft = "3.5"
+
+# Phase 6 (`shiranami-db`). Feature set as Appendix B pins it. `sqlite` brings
+# a bundled SQLite, so the engine is the same on every platform and in CI —
+# which matters more than usual here, because the `sqlite_master` diff test
+# compares schema *text* and a host libsqlite3 would put the build machine in
+# that comparison. `macros` is unused in Phase 6 and pinned for Phase 7's
+# `query_as!`; nothing compiles it until then.
+sqlx = { version = "0.9", default-features = false, features = [
+  "runtime-tokio",
+  "sqlite",
+  "macros",
+  "migrate",
+] }
+
+# Names the waveform-peaks cache files. v1 keyed them `sha256(path|mtime|size)`
+# truncated to 128 bits and v2 adopts that cache verbatim (§3.3), so the hash is
+# a compatibility constraint, not an implementation choice. Pinned to the 0.10
+# line already resolved in the lockfile so the tree holds one `digest` version.
+sha2 = "0.10"
+
+# Phase 7 (`shiranami-db` repositories). Every row this crate inserts carries an
+# id the *application* generates, because v1's handlers did: `crypto.randomUUID()`
+# in the main process, never a SQLite default. Keeping the ids v4 UUIDs keeps the
+# zod `z.string().uuid()` guards on v1's IPC surface satisfiable, which is what a
+# handover-window rollback depends on.
+uuid = { version = "1", features = ["v4"] }
+
+# Phase 8 (`shiranami-serve`). The loopback byte server.
+#
+# axum runs with `default-features = false`: the webview speaks HTTP/1.1 over
+# loopback and nothing else, and every feature left out — `json`, `form`,
+# `multipart`, `ws`, `http2` — is a parser this server would otherwise expose to
+# any local process that guesses the port. `query` is out too: the routes read
+# their parameters through `url::form_urlencoded` directly, because that is what
+# reproduces `URLSearchParams`' rule that `+` decodes to a space — see
+# `routes::query`.
+axum = { version = "0.8", default-features = false, features = [
+  "http1",
+  "tokio",
+] }
+# `io` gives `ReaderStream`, which turns the seeked-and-limited file handle into
+# a chunked body. It is the difference between streaming and `fs::read`.
+tokio-util = { version = "0.7", default-features = false, features = ["io"] }
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+bytes = "1"
+# The session token is a credential, so its bytes come from the OS CSPRNG and
+# are compared in constant time. `subtle` rather than a hand-rolled fold because
+# the compiler is allowed to short-circuit the hand-rolled one.
+getrandom = "0.3"
+subtle = "2"
+
+# Phase 9 (`shiranami-metadata`). `lofty` replaces music-metadata, node-id3,
+# flac-tagger *and* the ffmpeg re-mux path in one dependency (architecture §2.2
+# row 17), which is what lets the tag writer become atomic everywhere instead of
+# only on the ffmpeg branch.
+lofty = "0.24"
+
+# The album-art pipeline. `image` decodes whatever the tag held and encodes the
+# JPEG; `fast_image_resize` does the 512 px downscale, because `image`'s own
+# Lanczos3 is roughly an order of magnitude slower on the sizes covers arrive at.
+# Both are pinned by Appendix B / decision D16. No `mozjpeg-sys`: its only
+# justification was byte-parity with sharp, which D16 abandons outright, and it
+# would reintroduce a C toolchain the C++ rewrite just deleted.
+#
+# `image` carries only the decoders v1's two pipelines could actually read
+# (nativeImage: png/jpeg; sharp: + webp/gif) plus `bmp`, which `IMAGE_EXTENSIONS`
+# already lists as servable. Encoding is JPEG-only — every cache entry is `.jpg`.
+image = { version = "0.25", default-features = false, features = [
+  "jpeg",
+  "png",
+  "webp",
+  "gif",
+  "bmp",
+] }
+fast_image_resize = { version = "6.1", features = ["image"] }
+
+# The enrich batch runs four lookups at a time and has to stop promptly when the
+# user cancels. `futures` supplies the bounded concurrency (`buffered`), and
+# `tokio-util`'s `CancellationToken` (pinned above with serve's `io` feature) is
+# the single-slot cancel that architecture §2.2 row 16 names as the replacement
+# for v1's `utilityProcess` handshake.
+futures = { version = "0.3", default-features = false, features = ["std"] }
+
+# The search-title cleaner is nine regexes ported verbatim from
+# `metadata-lookup.ts`, one of which is a long alternation over YouTube-title
+# noise. Hand-rolling that alternation would be a rewrite of the thing this
+# phase is supposed to port faithfully, so the dependency buys fidelity.
+# `unicode-perl` is on because `\s` must match what JavaScript's `\s` matches,
+# which includes NBSP and the Unicode line separators — YouTube titles carry
+# them. `\d` and `\b` are pinned back to ASCII at their use sites, since
+# JavaScript's are ASCII-only and a Unicode `\b` would split CJK titles
+# differently.
+regex = { version = "1.11", default-features = false, features = [
+  "std",
+  "perf",
+  "unicode-case",
+  "unicode-perl",
+] }
+
+# Phase 10 (`shiranami-library`). The scan pipeline, per Appendix B.
+#
+# `walkdir` reproduces v1's directory walk including the property the port
+# depends on most: with `follow_links` left off, a symlink's `file_type()` is
+# neither a file nor a directory, which is exactly why v1's
+# `entry.isDirectory() / entry.isFile()` pair skipped symlinks and needed no
+# cycle detection. Getting that for free is worth more than the recursion it
+# saves.
+#
+# `rayon` replaces the `utilityProcess` pool. v1 bounded concurrency at 16
+# in-flight IPC round-trips; v2 bounds it at 16 threads in a scan-owned
+# `ThreadPool`, deliberately *not* the global pool — a library scan must not
+# starve any other rayon user in the process for the minutes it runs.
+walkdir = "2.5"
+rayon = "1.12"
+
+# `notify` (Appendix B) is deliberately *not* pinned here: v1 has no folder
+# watcher of any kind — no `chokidar`, no `fs.watch`, no polling timer, and
+# `folders.last_scanned` is written but never read — so there is nothing for
+# Phase 10 to port. The §2.1 charter lists scan/validate/storage and no watch.
+# Adding one would be a new feature wearing a port's clothes.
+
+# The disk-usage bar's capacity numbers. v1 read `fs.statfs` and used *three*
+# distinct fields — `blocks`, `bfree` and `bavail` — because free space and used
+# space are deliberately computed from different ones (`bavail` is quota- and
+# root-reservation-aware; `bfree` is not). `fs4` is the only maintained crate
+# that exposes all three shapes behind one safe cross-platform API, which
+# matters because `unsafe_code = "deny"` rules out calling `statvfs` /
+# `GetDiskFreeSpaceExW` directly. `sysinfo` (already pinned for Phase 16) was
+# the obvious alternative and cannot do it: it reports total and available only,
+# so `usedBytes` would silently switch from a `bfree` basis to a `bavail` one.
+#
+# `default-features = false` drops the file-locking half of the crate, which
+# nothing here uses.
+fs4 = { version = "0.13", default-features = false }
+
+# Scan telemetry. v1 sampled `process.memoryUsage().rss` either side of a scan
+# and logged `rssDeltaMB`, because the whole point of its `utilityProcess`
+# migration was that killing the child returned RSS to the OS; Phase 10's
+# done-criteria keep the measurement even though v2 has no child to kill, since
+# it is the signal that would catch a scan that leaks. `sysinfo` is the Appendix
+# B pin for exactly this and Phase 16 already needs it for the debug panel;
+# `system` is the only feature either use wants.
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
+
+# Phase 11 (`shiranami-downloader`).
+#
+# `zip` is the one genuinely new dependency, and it pays for two things at once
+# (architecture §2.2 #19). On Windows it deletes v1's three-tier extraction
+# fallback — a worker thread trying adm-zip, then `tar`, then PowerShell — and on
+# macOS it deletes the `unzip` child process, so ffmpeg installation stops
+# shelling out to a tool that may not be on a Finder-launched PATH at all (R19).
+# `deflate` is the only compression method the evermeet and gyan.dev archives
+# use; the rest are decoders we would be exposing for no reason. Entry paths are
+# validated through `enclosed_name()`, which v1's PowerShell path could not do.
+zip = { version = "6", default-features = false, features = ["deflate"] }
+# `regex` is also used by the downloader's six ported patterns — the
+# version-segment scan, ffmpeg's version line, yt-dlp's `Destination:` and
+# `[download] N%` progress lines, the `__NEXT_DATA__` script tag, and the
+# Spotify title/artists fallback — via the featured pin above (metadata's
+# feature set covers them; the downloader's own tests prove it).
+# `normalizeForMatch` opens with `.normalize('NFKD')` before stripping combining
+# marks, which is what makes "Söng" and "song" compare equal in the Spotify
+# matcher. Without it the diacritic strip has nothing decomposed to strip.
+unicode-normalization = "0.1"
+# The process seam is an `Arc<dyn ProcessRunner>` so the queue's state machine
+# can be driven without a real yt-dlp. Native `async fn` in traits is not
+# dyn-compatible, and this is the standard way to get there without hand-writing
+# `Pin<Box<dyn Future>>` at every implementation site.
+async-trait = "0.1"
+
+# Phase 12 lane B (`shiranami-integrations`: scrobbling, Discord Rich Presence).
+#
+# `md-5` is the crate architecture §2.2 row 25 names, and it is not a choice:
+# Last.fm's `api_sig` is defined as md5 of the signature base string, so the
+# algorithm is fixed by their API. Pinned to the 0.10 RustCrypto line so it
+# shares one `digest` version with `sha2` above. md5 is used here strictly as a
+# request signature Last.fm dictates, never for anything security-bearing.
+md-5 = "0.10"
+
+# The Discord IPC client, pinned by Appendix B. Its transport is blocking
+# (a `UnixStream` on macOS, a named pipe on Windows), so every call it makes
+# runs inside `spawn_blocking` behind the `PresenceSocket` trait seam, which is
+# also what lets the reconnect state machine be tested with no Discord running.
+discord-rich-presence = "1.1"
+
+tempfile = "3"
+
+# Phase 13 (`shiranami-media-controls`). `default-features = false` drops
+# `use_dbus`, whose `dbus`/`dbus-crossroads` pull in a `libdbus-1-dev` system
+# dependency. Only the MPRIS backend needs them and we ship no Linux target, but
+# the leaf crate additionally gates the whole dependency behind
+# `cfg(any(windows, macos))` so an ubuntu clippy job never has to install it —
+# which is exactly why Appendix B's CI table makes `rust-cross-check` required.
+souvlaki = { version = "0.8", default-features = false }
+
+# ── Phase 16 (app shell & boot) ──────────────────────────────────────────────
+#
+# Everything below is reached from the composition root only. None of it is a
+# workspace-wide capability: a crate that wanted to configure logging or read a
+# consent flag would be reaching past the layer that owns boot.
+
+# The subscriber half of `tracing`, which the workspace has had a facade for
+# since Phase 2 and no subscriber for — meaning every `tracing::warn!` written
+# across eleven crates has so far gone nowhere. `env-filter` is what makes the
+# level live-reloadable through a `reload::Handle`.
+#
+# `ansi` is **required**, and the reason is a trap: `with_ansi(bool)` exists
+# without the feature and **panics** when passed `true` rather than failing to
+# compile. So the two layers here — a console layer that wants colour and a file
+# layer that must not have it — cannot be expressed at all without it, and the
+# build that lacks it dies at `logging::install`, before there is a subscriber to
+# report the death. Found by the first `pnpm tauri:dev` boot.
+#
+# `json` is deliberately absent: v1's file format is one JSON object per line
+# written by hand, and matching it is `logging`'s job rather than a formatter's.
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "fmt",
+  "ansi",
+  "env-filter",
+  "registry",
+  "std",
+] }
+# The non-blocking writer and the daily roll behind
+# `<app data>/logs/shiranami-YYYY-MM-DD.log` (architecture §2.2 #4). The guard
+# it returns has to outlive the app, or the last buffered lines — which are the
+# ones describing a crash — are dropped on the way out.
+tracing-appender = "0.2"
+
+# R19: a Finder or Dock launch inherits launchd's minimal PATH, which is how the
+# ffmpeg-on-PATH fallback and a user-installed yt-dlp die on exactly the machines
+# hardest to debug on. Run single-threaded before anything spawns (§2.8 step 1).
+# Git rather than crates.io because Appendix B pins it that way — the published
+# `fix-path-env` is a different, unmaintained crate.
+fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+
+# The remaining §2.8 step 4 plugins.
+#
+# `updater` fills the `seam::Updater` written in Phase 14; `deep-link` claims
+# `shiranami://` and must be registered *after* single-instance, since a cold
+# Windows launch delivers the URL as an argv entry the single-instance handler
+# forwards. `os` gives the shim an exact `platform` string in place of the
+# user-agent sniff `bridge/environment.ts` documents as a stand-in.
+# `global-shortcut` is the media-key path on non-macOS (§2.7 keeps souvlaki's
+# remote-command surface as the primary route and v1 registered these four
+# accelerators on Windows/Linux only). `autostart` writes the OS login item
+# behind `media_controls::AutostartBackend`.
+tauri-plugin-updater = "2.10"
+tauri-plugin-deep-link = "2.4"
+tauri-plugin-os = "2.3"
+tauri-plugin-global-shortcut = "2.3"
+tauri-plugin-autostart = "2"
+
+# Phase 18 ring 3, behind the shell's `e2e` feature and compiled into no other
+# build. An embedded W3C WebDriver server, which §8 records as the *only* way to
+# drive the app on macOS: `_electron.launch` has no Tauri equivalent and
+# `tauri-driver` is Windows/Linux-only because WKWebView exposes no CDP and no
+# WebDriver of its own. Version-locked to the `@wdio/tauri-service` npm package
+# that speaks to it — both are published from one repository at one version, and
+# a mismatch surfaces as a session that never starts.
+tauri-plugin-wdio-webdriver = "1.2"
+
+# Opt-in crash reporting (§2.2 #5), by the `@sentry/electron` author. The plugin
+# auto-injects a browser-side Sentry, which is precisely why consent has to be
+# read *before* `tauri::Builder` and the plugin skipped entirely when it is
+# absent — a no-op DSN is not enough (§2.8 step 3).
+tauri-plugin-sentry = "0.5"
+# **0.42, not Appendix B's 0.49.** `tauri-plugin-sentry` 0.5 depends on sentry
+# 0.42 and its `init` takes *its* `sentry::Client`, so the two pins Appendix B
+# lists side by side cannot both hold: cargo resolves them as two distinct
+# crates and the plugin refuses a client built from the other one. Matching the
+# plugin keeps both halves of §2.2 #5 — the plugin and the Rust SDK — where
+# keeping 0.49 would mean dropping the plugin entirely.
+sentry = { version = "0.42", default-features = false, features = [
+  # `rustls` rather than native-tls, feature-unified with `reqwest` above.
+  "reqwest",
+  "rustls",
+  "backtrace",
+  "contexts",
+  "panic",
+] }
+
+# Lints are declared once and inherited by every member via `[lints] workspace
+# = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
+[workspace.lints.rust]
+unsafe_code = "deny"
+# A group, so it needs a lower priority than the single lints around it.
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+# Holding a std lock across an await deadlocks the tokio worker — the reason
+# `tokio::sync::Mutex` is reserved for exactly that case (architecture §2.3).
+await_holding_lock = "warn"
+# `.unwrap()` in a desktop app is a user-visible crash; propagate instead.
+unwrap_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[profile.dev]
+# Rebuild surface is already split by the crate boundaries; keep incremental on
+# so a one-crate edit does not rebuild the workspace (architecture §6.1, R9).
+incremental = true
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+# Phase 19. `strip = true` above keeps the shipped binary small, and these two
+# put the symbols in a sidecar next to it rather than throwing them away —
+# `.dSYM` on macOS, `.pdb` on Windows MSVC — for the release workflow to upload
+# to Sentry.
+#
+# Without them the minidump handler Phase 16 wired (`sentry-rust-minidump`)
+# reports crashes as bare addresses that no one can resolve. `1` is line tables
+# only, which is all a symbolicated stack trace needs; full `debug = true` would
+# pay for variable info nothing reads.
+#
+# The shipped bytes are unchanged: `strip` runs after the sidecar is produced.
+debug = 1
+split-debuginfo = "packed"

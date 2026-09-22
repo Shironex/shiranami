@@ -1,0 +1,2897 @@
+{
+  "_generatedBy": "packages/recommendation (TypeScript) @ v1 — every `stats` / `pool` / `mixTracks` entry below is the recorded INPUT and every score/order the recorded OUTPUT. Regenerate by replaying the inputs through affinityScore / rankByAffinity / similarityScore / rankBySimilarity / buildSmartMixes with `now: nowMs`.",
+  "nowMs": 1779537600000,
+  "affinity": [
+    {
+      "stats": {
+        "trackId": "t1",
+        "title": "Track 1",
+        "artist": "Artist 1",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t2",
+        "title": "Track 2",
+        "artist": "Artist 2",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t3",
+        "title": "Track 3",
+        "artist": "Artist 3",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t4",
+        "title": "Track 4",
+        "artist": "Artist 4",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t5",
+        "title": "Track 5",
+        "artist": "Artist 5",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t6",
+        "title": "Track 6",
+        "artist": "Artist 6",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0.25,
+      "score": 0.13888888888888887
+    },
+    {
+      "stats": {
+        "trackId": "t7",
+        "title": "Track 7",
+        "artist": "Artist 0",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 2,
+      "score": 0.07930792941755163
+    },
+    {
+      "stats": {
+        "trackId": "t8",
+        "title": "Track 8",
+        "artist": "Artist 1",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": null,
+      "score": 0.16666666666666666
+    },
+    {
+      "stats": {
+        "trackId": "t9",
+        "title": "Track 9",
+        "artist": "Artist 2",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0,
+      "score": 0.13056275200850848
+    },
+    {
+      "stats": {
+        "trackId": "t10",
+        "title": "Track 10",
+        "artist": "Artist 3",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0.25,
+      "score": 1.5757069869349707e-9
+    },
+    {
+      "stats": {
+        "trackId": "t11",
+        "title": "Track 11",
+        "artist": "Artist 4",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 2,
+      "score": 0.1875
+    },
+    {
+      "stats": {
+        "trackId": "t12",
+        "title": "Track 12",
+        "artist": "Artist 5",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": null,
+      "score": 1.070657047136947
+    },
+    {
+      "stats": {
+        "trackId": "t13",
+        "title": "Track 13",
+        "artist": "Artist 6",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0,
+      "score": 0.1875
+    },
+    {
+      "stats": {
+        "trackId": "t14",
+        "title": "Track 14",
+        "artist": "Artist 0",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0.25,
+      "score": 0.19584412801276274
+    },
+    {
+      "stats": {
+        "trackId": "t15",
+        "title": "Track 15",
+        "artist": "Artist 1",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 2,
+      "score": 7.977016621358291e-9
+    },
+    {
+      "stats": {
+        "trackId": "t16",
+        "title": "Track 16",
+        "artist": "Artist 2",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": null,
+      "score": 1
+    },
+    {
+      "stats": {
+        "trackId": "t17",
+        "title": "Track 17",
+        "artist": "Artist 3",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0,
+      "score": 0.4758475765053098
+    },
+    {
+      "stats": {
+        "trackId": "t18",
+        "title": "Track 18",
+        "artist": "Artist 4",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0.25,
+      "score": 0.20833333333333331
+    },
+    {
+      "stats": {
+        "trackId": "t19",
+        "title": "Track 19",
+        "artist": "Artist 5",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 2,
+      "score": 0.19584412801276274
+    },
+    {
+      "stats": {
+        "trackId": "t20",
+        "title": "Track 20",
+        "artist": "Artist 6",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": null,
+      "score": 1.4181362882414737e-8
+    },
+    {
+      "stats": {
+        "trackId": "t21",
+        "title": "Track 21",
+        "artist": "Artist 0",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0,
+      "score": 0.5
+    },
+    {
+      "stats": {
+        "trackId": "t22",
+        "title": "Track 22",
+        "artist": "Artist 1",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0.25,
+      "score": 0.3172317176702065
+    },
+    {
+      "stats": {
+        "trackId": "t23",
+        "title": "Track 23",
+        "artist": "Artist 2",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 2,
+      "score": 0.125
+    },
+    {
+      "stats": {
+        "trackId": "t24",
+        "title": "Track 24",
+        "artist": "Artist 3",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": null,
+      "score": 1.1750647680765764
+    },
+    {
+      "stats": {
+        "trackId": "t25",
+        "title": "Track 25",
+        "artist": "Artist 4",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0,
+      "score": 7.0906814412073685e-9
+    },
+    {
+      "stats": {
+        "trackId": "t26",
+        "title": "Track 26",
+        "artist": "Artist 5",
+        "album": "Album 1",
+        "plays": 1,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t27",
+        "title": "Track 27",
+        "artist": "Artist 6",
+        "album": "Album 2",
+        "plays": 1,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t28",
+        "title": "Track 28",
+        "artist": "Artist 0",
+        "album": "Album 3",
+        "plays": 1,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t29",
+        "title": "Track 29",
+        "artist": "Artist 1",
+        "album": "Album 4",
+        "plays": 1,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": true,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t30",
+        "title": "Track 30",
+        "artist": "Artist 2",
+        "album": "Album 0",
+        "plays": 1,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t31",
+        "title": "Track 31",
+        "artist": "Artist 3",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t32",
+        "title": "Track 32",
+        "artist": "Artist 4",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t33",
+        "title": "Track 33",
+        "artist": "Artist 5",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t34",
+        "title": "Track 34",
+        "artist": "Artist 6",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t35",
+        "title": "Track 35",
+        "artist": "Artist 0",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t36",
+        "title": "Track 36",
+        "artist": "Artist 1",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": null,
+      "score": 8.5
+    },
+    {
+      "stats": {
+        "trackId": "t37",
+        "title": "Track 37",
+        "artist": "Artist 2",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0,
+      "score": 2.696469600196755
+    },
+    {
+      "stats": {
+        "trackId": "t38",
+        "title": "Track 38",
+        "artist": "Artist 3",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0.25,
+      "score": 0.9444444444444443
+    },
+    {
+      "stats": {
+        "trackId": "t39",
+        "title": "Track 39",
+        "artist": "Artist 4",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 2,
+      "score": 3.329350176216966
+    },
+    {
+      "stats": {
+        "trackId": "t40",
+        "title": "Track 40",
+        "artist": "Artist 5",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": null,
+      "score": 8.03610563336835e-8
+    },
+    {
+      "stats": {
+        "trackId": "t41",
+        "title": "Track 41",
+        "artist": "Artist 6",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0,
+      "score": 6.375
+    },
+    {
+      "stats": {
+        "trackId": "t42",
+        "title": "Track 42",
+        "artist": "Artist 0",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0.25,
+      "score": 5.055880500368916
+    },
+    {
+      "stats": {
+        "trackId": "t43",
+        "title": "Track 43",
+        "artist": "Artist 1",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 2,
+      "score": 1.59375
+    },
+    {
+      "stats": {
+        "trackId": "t44",
+        "title": "Track 44",
+        "artist": "Artist 2",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": null,
+      "score": 9.9880505286509
+    },
+    {
+      "stats": {
+        "trackId": "t45",
+        "title": "Track 45",
+        "artist": "Artist 3",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0,
+      "score": 9.040618837539395e-8
+    },
+    {
+      "stats": {
+        "trackId": "t46",
+        "title": "Track 46",
+        "artist": "Artist 4",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0.25,
+      "score": 5.666666666666666
+    },
+    {
+      "stats": {
+        "trackId": "t47",
+        "title": "Track 47",
+        "artist": "Artist 5",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 2,
+      "score": 4.044704400295133
+    },
+    {
+      "stats": {
+        "trackId": "t48",
+        "title": "Track 48",
+        "artist": "Artist 6",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": null,
+      "score": 12.75
+    },
+    {
+      "stats": {
+        "trackId": "t49",
+        "title": "Track 49",
+        "artist": "Artist 0",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0,
+      "score": 6.658700352433933
+    },
+    {
+      "stats": {
+        "trackId": "t50",
+        "title": "Track 50",
+        "artist": "Artist 1",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0.25,
+      "score": 8.03610563336835e-8
+    },
+    {
+      "stats": {
+        "trackId": "t51",
+        "title": "Track 51",
+        "artist": "Artist 2",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 2,
+      "score": 12.75
+    },
+    {
+      "stats": {
+        "trackId": "t52",
+        "title": "Track 52",
+        "artist": "Artist 3",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": null,
+      "score": 16.178817601180533
+    },
+    {
+      "stats": {
+        "trackId": "t53",
+        "title": "Track 53",
+        "artist": "Artist 4",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0,
+      "score": 4.25
+    },
+    {
+      "stats": {
+        "trackId": "t54",
+        "title": "Track 54",
+        "artist": "Artist 5",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0.25,
+      "score": 5.548916960361611
+    },
+    {
+      "stats": {
+        "trackId": "t55",
+        "title": "Track 55",
+        "artist": "Artist 6",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 2,
+      "score": 6.027079225026263e-8
+    },
+    {
+      "stats": {
+        "trackId": "t56",
+        "title": "Track 56",
+        "artist": "Artist 0",
+        "album": "Album 1",
+        "plays": 17,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t57",
+        "title": "Track 57",
+        "artist": "Artist 1",
+        "album": "Album 2",
+        "plays": 17,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t58",
+        "title": "Track 58",
+        "artist": "Artist 2",
+        "album": "Album 3",
+        "plays": 17,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": true,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t59",
+        "title": "Track 59",
+        "artist": "Artist 3",
+        "album": "Album 4",
+        "plays": 17,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t60",
+        "title": "Track 60",
+        "artist": "Artist 4",
+        "album": "Album 0",
+        "plays": 17,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t61",
+        "title": "Track 61",
+        "artist": "Artist 5",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t62",
+        "title": "Track 62",
+        "artist": "Artist 6",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t63",
+        "title": "Track 63",
+        "artist": "Artist 0",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t64",
+        "title": "Track 64",
+        "artist": "Artist 1",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t65",
+        "title": "Track 65",
+        "artist": "Artist 2",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": 0,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t66",
+        "title": "Track 66",
+        "artist": "Artist 3",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0.25,
+      "score": 555.6944444444443
+    },
+    {
+      "stats": {
+        "trackId": "t67",
+        "title": "Track 67",
+        "artist": "Artist 4",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 2,
+      "score": 317.31102559962403
+    },
+    {
+      "stats": {
+        "trackId": "t68",
+        "title": "Track 68",
+        "artist": "Artist 5",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": null,
+      "score": 666.8333333333333
+    },
+    {
+      "stats": {
+        "trackId": "t69",
+        "title": "Track 69",
+        "artist": "Artist 6",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0,
+      "score": 522.3815707860424
+    },
+    {
+      "stats": {
+        "trackId": "t70",
+        "title": "Track 70",
+        "artist": "Artist 0",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": 0.3333333333333333,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0.25,
+      "score": 0.000006304403654726817
+    },
+    {
+      "stats": {
+        "trackId": "t71",
+        "title": "Track 71",
+        "artist": "Artist 1",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 2,
+      "score": 750.1875
+    },
+    {
+      "stats": {
+        "trackId": "t72",
+        "title": "Track 72",
+        "artist": "Artist 2",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": null,
+      "score": 4283.698845594925
+    },
+    {
+      "stats": {
+        "trackId": "t73",
+        "title": "Track 73",
+        "artist": "Artist 3",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0,
+      "score": 750.1875
+    },
+    {
+      "stats": {
+        "trackId": "t74",
+        "title": "Track 74",
+        "artist": "Artist 4",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0.25,
+      "score": 783.5723561790637
+    },
+    {
+      "stats": {
+        "trackId": "t75",
+        "title": "Track 75",
+        "artist": "Artist 5",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": 0.75,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 2,
+      "score": 0.00003191604350205452
+    },
+    {
+      "stats": {
+        "trackId": "t76",
+        "title": "Track 76",
+        "artist": "Artist 6",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": null,
+      "score": 4001
+    },
+    {
+      "stats": {
+        "trackId": "t77",
+        "title": "Track 77",
+        "artist": "Artist 0",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0,
+      "score": 1903.8661535977444
+    },
+    {
+      "stats": {
+        "trackId": "t78",
+        "title": "Track 78",
+        "artist": "Artist 1",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 0.25,
+      "score": 833.5416666666666
+    },
+    {
+      "stats": {
+        "trackId": "t79",
+        "title": "Track 79",
+        "artist": "Artist 2",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 2,
+      "score": 783.5723561790637
+    },
+    {
+      "stats": {
+        "trackId": "t80",
+        "title": "Track 80",
+        "artist": "Artist 3",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": 1,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": null,
+      "score": 0.00005673963289254136
+    },
+    {
+      "stats": {
+        "trackId": "t81",
+        "title": "Track 81",
+        "artist": "Artist 4",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0,
+      "score": 2000.5
+    },
+    {
+      "stats": {
+        "trackId": "t82",
+        "title": "Track 82",
+        "artist": "Artist 5",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 0.25,
+      "score": 1269.2441023984961
+    },
+    {
+      "stats": {
+        "trackId": "t83",
+        "title": "Track 83",
+        "artist": "Artist 6",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": 2,
+      "score": 500.125
+    },
+    {
+      "stats": {
+        "trackId": "t84",
+        "title": "Track 84",
+        "artist": "Artist 0",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": null,
+      "score": 4701.434137074382
+    },
+    {
+      "stats": {
+        "trackId": "t85",
+        "title": "Track 85",
+        "artist": "Artist 1",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": 1.5,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0,
+      "score": 0.00002836981644627068
+    },
+    {
+      "stats": {
+        "trackId": "t86",
+        "title": "Track 86",
+        "artist": "Artist 2",
+        "album": "Album 1",
+        "plays": 4001,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": 1,
+      "favoriteBoost": 0.25,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t87",
+        "title": "Track 87",
+        "artist": "Artist 3",
+        "album": "Album 2",
+        "plays": 4001,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-23T00:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": true,
+        "artistDislikes": 3
+      },
+      "halfLifeDays": 7,
+      "favoriteBoost": 2,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t88",
+        "title": "Track 88",
+        "artist": "Artist 4",
+        "album": "Album 3",
+        "plays": 4001,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-05-09T12:00:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 0
+      },
+      "halfLifeDays": 14,
+      "favoriteBoost": null,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t89",
+        "title": "Track 89",
+        "artist": "Artist 5",
+        "album": "Album 4",
+        "plays": 4001,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2026-04-21T19:12:00.000Z",
+        "isFavorite": false,
+        "isDisliked": false,
+        "artistDislikes": 1
+      },
+      "halfLifeDays": 90,
+      "favoriteBoost": 0,
+      "score": 0
+    },
+    {
+      "stats": {
+        "trackId": "t90",
+        "title": "Track 90",
+        "artist": "Artist 6",
+        "album": "Album 0",
+        "plays": 4001,
+        "avgCompletion": -0.2,
+        "lastPlayedAt": "2025-05-23T12:00:00.000Z",
+        "isFavorite": true,
+        "isDisliked": false,
+        "artistDislikes": 2
+      },
+      "halfLifeDays": null,
+      "favoriteBoost": 0.25,
+      "score": 0
+    }
+  ],
+  "ranking": [
+    {
+      "trackId": "t72",
+      "score": 4391.066381458889
+    },
+    {
+      "trackId": "t76",
+      "score": 4001
+    },
+    {
+      "trackId": "t81",
+      "score": 3000.75
+    },
+    {
+      "trackId": "t77",
+      "score": 1951.5850584261727
+    },
+    {
+      "trackId": "t82",
+      "score": 1301.0567056174484
+    },
+    {
+      "trackId": "t84",
+      "score": 1249.2285229559172
+    },
+    {
+      "trackId": "t78",
+      "score": 1000.25
+    },
+    {
+      "trackId": "t71",
+      "score": 750.1875
+    },
+    {
+      "trackId": "t73",
+      "score": 750.1875
+    },
+    {
+      "trackId": "t66",
+      "score": 666.8333333333333
+    },
+    {
+      "trackId": "t68",
+      "score": 666.8333333333333
+    },
+    {
+      "trackId": "t83",
+      "score": 500.125
+    },
+    {
+      "trackId": "t67",
+      "score": 325.26417640436205
+    },
+    {
+      "trackId": "t79",
+      "score": 208.20475382598622
+    },
+    {
+      "trackId": "t69",
+      "score": 208.2047538259862
+    },
+    {
+      "trackId": "t74",
+      "score": 208.2047538259862
+    },
+    {
+      "trackId": "t52",
+      "score": 16.584326914893744
+    },
+    {
+      "trackId": "t48",
+      "score": 12.75
+    },
+    {
+      "trackId": "t36",
+      "score": 8.5
+    },
+    {
+      "trackId": "t41",
+      "score": 6.375
+    },
+    {
+      "trackId": "t51",
+      "score": 6.375
+    },
+    {
+      "trackId": "t42",
+      "score": 6.219122593085154
+    },
+    {
+      "trackId": "t46",
+      "score": 5.666666666666666
+    },
+    {
+      "trackId": "t53",
+      "score": 4.25
+    },
+    {
+      "trackId": "t47",
+      "score": 4.146081728723436
+    },
+    {
+      "trackId": "t37",
+      "score": 2.764054485815624
+    },
+    {
+      "trackId": "t44",
+      "score": 2.653947124500199
+    },
+    {
+      "trackId": "t49",
+      "score": 1.7692980830001328
+    },
+    {
+      "trackId": "t54",
+      "score": 1.7692980830001326
+    },
+    {
+      "trackId": "t43",
+      "score": 1.59375
+    },
+    {
+      "trackId": "t12",
+      "score": 1.0974922223091448
+    },
+    {
+      "trackId": "t16",
+      "score": 1
+    },
+    {
+      "trackId": "t38",
+      "score": 0.9444444444444443
+    },
+    {
+      "trackId": "t21",
+      "score": 0.75
+    },
+    {
+      "trackId": "t17",
+      "score": 0.4877743210262866
+    },
+    {
+      "trackId": "t39",
+      "score": 0.44232452075003315
+    },
+    {
+      "trackId": "t22",
+      "score": 0.32518288068419104
+    },
+    {
+      "trackId": "t24",
+      "score": 0.3122290734706117
+    },
+    {
+      "trackId": "t18",
+      "score": 0.25
+    },
+    {
+      "trackId": "t11",
+      "score": 0.1875
+    },
+    {
+      "trackId": "t13",
+      "score": 0.1875
+    },
+    {
+      "trackId": "t6",
+      "score": 0.16666666666666666
+    },
+    {
+      "trackId": "t8",
+      "score": 0.16666666666666666
+    },
+    {
+      "trackId": "t23",
+      "score": 0.125
+    },
+    {
+      "trackId": "t7",
+      "score": 0.08129572017104776
+    },
+    {
+      "trackId": "t9",
+      "score": 0.05203817891176861
+    },
+    {
+      "trackId": "t14",
+      "score": 0.05203817891176861
+    },
+    {
+      "trackId": "t19",
+      "score": 0.05203817891176861
+    },
+    {
+      "trackId": "t80",
+      "score": 0.00005673963289254136
+    },
+    {
+      "trackId": "t85",
+      "score": 0.00002836981644627068
+    },
+    {
+      "trackId": "t75",
+      "score": 0.00001595802175102726
+    },
+    {
+      "trackId": "t70",
+      "score": 0.000006304403654726817
+    },
+    {
+      "trackId": "t45",
+      "score": 1.3560928256309093e-7
+    },
+    {
+      "trackId": "t40",
+      "score": 8.03610563336835e-8
+    },
+    {
+      "trackId": "t50",
+      "score": 8.03610563336835e-8
+    },
+    {
+      "trackId": "t55",
+      "score": 6.027079225026263e-8
+    },
+    {
+      "trackId": "t20",
+      "score": 1.4181362882414737e-8
+    },
+    {
+      "trackId": "t25",
+      "score": 7.0906814412073685e-9
+    },
+    {
+      "trackId": "t15",
+      "score": 3.9885083106791455e-9
+    },
+    {
+      "trackId": "t10",
+      "score": 1.5757069869349707e-9
+    }
+  ],
+  "similarity": {
+    "pool": [
+      {
+        "trackId": "seed",
+        "artist": "Nujabes",
+        "album": "Modal Soul"
+      },
+      {
+        "trackId": "a",
+        "artist": "Nujabes",
+        "album": "Spiritual State"
+      },
+      {
+        "trackId": "b",
+        "artist": "Cise Starr",
+        "album": "Modal Soul"
+      },
+      {
+        "trackId": "c",
+        "artist": "Nujabes",
+        "album": "Modal Soul"
+      },
+      {
+        "trackId": "d",
+        "artist": "Unknown Artist",
+        "album": "Unknown Album"
+      },
+      {
+        "trackId": "e",
+        "artist": "",
+        "album": ""
+      },
+      {
+        "trackId": "f",
+        "artist": "Random",
+        "album": "Random Album"
+      },
+      {
+        "trackId": "g",
+        "artist": "Cise Starr",
+        "album": "Spiritual State"
+      }
+    ],
+    "sharedPlaylists": {
+      "f": 5,
+      "b": 2,
+      "d": 3,
+      "g": 1
+    },
+    "scores": [
+      {
+        "trackId": "seed",
+        "score": 0
+      },
+      {
+        "trackId": "a",
+        "score": 3
+      },
+      {
+        "trackId": "b",
+        "score": 4
+      },
+      {
+        "trackId": "c",
+        "score": 5
+      },
+      {
+        "trackId": "d",
+        "score": 3
+      },
+      {
+        "trackId": "e",
+        "score": 0
+      },
+      {
+        "trackId": "f",
+        "score": 5
+      },
+      {
+        "trackId": "g",
+        "score": 1
+      }
+    ],
+    "ranked": [
+      {
+        "trackId": "c",
+        "similarity": 5
+      },
+      {
+        "trackId": "f",
+        "similarity": 5
+      },
+      {
+        "trackId": "b",
+        "similarity": 4
+      },
+      {
+        "trackId": "a",
+        "similarity": 3
+      },
+      {
+        "trackId": "d",
+        "similarity": 3
+      },
+      {
+        "trackId": "g",
+        "similarity": 1
+      }
+    ]
+  },
+  "mixTracks": [
+    {
+      "trackId": "m0",
+      "genre": "Lofi",
+      "year": 1987,
+      "playCount": 0
+    },
+    {
+      "trackId": "m1",
+      "genre": "lo-fi hip hop",
+      "year": 1994,
+      "playCount": 14
+    },
+    {
+      "trackId": "m2",
+      "genre": "Ambient",
+      "year": 2003,
+      "playCount": 5
+    },
+    {
+      "trackId": "m3",
+      "genre": "Dance",
+      "year": 2011,
+      "playCount": 19
+    },
+    {
+      "trackId": "m4",
+      "genre": "ROCK",
+      "year": 2017,
+      "playCount": 10
+    },
+    {
+      "trackId": "m5",
+      "genre": "metal",
+      "year": 2024,
+      "playCount": 1
+    },
+    {
+      "trackId": "m6",
+      "genre": null,
+      "year": null,
+      "playCount": 15
+    },
+    {
+      "trackId": "m7",
+      "genre": "",
+      "year": 12,
+      "playCount": 6
+    },
+    {
+      "trackId": "m8",
+      "genre": "jazzy",
+      "year": 1987,
+      "playCount": 20
+    },
+    {
+      "trackId": "m9",
+      "genre": "Lofi",
+      "year": 1994,
+      "playCount": 11
+    },
+    {
+      "trackId": "m10",
+      "genre": "lo-fi hip hop",
+      "year": 2003,
+      "playCount": 2
+    },
+    {
+      "trackId": "m11",
+      "genre": "Ambient",
+      "year": 2011,
+      "playCount": 16
+    },
+    {
+      "trackId": "m12",
+      "genre": "Dance",
+      "year": 2017,
+      "playCount": 7
+    },
+    {
+      "trackId": "m13",
+      "genre": "ROCK",
+      "year": 2024,
+      "playCount": 21
+    },
+    {
+      "trackId": "m14",
+      "genre": "metal",
+      "year": null,
+      "playCount": 12
+    },
+    {
+      "trackId": "m15",
+      "genre": null,
+      "year": 12,
+      "playCount": 3
+    },
+    {
+      "trackId": "m16",
+      "genre": "",
+      "year": 1987,
+      "playCount": 17
+    },
+    {
+      "trackId": "m17",
+      "genre": "jazzy",
+      "year": 1994,
+      "playCount": 8
+    },
+    {
+      "trackId": "m18",
+      "genre": "Lofi",
+      "year": 2003,
+      "playCount": 22
+    },
+    {
+      "trackId": "m19",
+      "genre": "lo-fi hip hop",
+      "year": 2011,
+      "playCount": 13
+    },
+    {
+      "trackId": "m20",
+      "genre": "Ambient",
+      "year": 2017,
+      "playCount": 4
+    },
+    {
+      "trackId": "m21",
+      "genre": "Dance",
+      "year": 2024,
+      "playCount": 18
+    },
+    {
+      "trackId": "m22",
+      "genre": "ROCK",
+      "year": null,
+      "playCount": 9
+    },
+    {
+      "trackId": "m23",
+      "genre": "metal",
+      "year": 12,
+      "playCount": 0
+    }
+  ],
+  "mixes": [
+    {
+      "hour": 2,
+      "weather": null,
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": null,
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": null,
+      "mixes": [
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": null,
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "clear",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "clear",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "clear",
+      "mixes": [
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "clear",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "partly_cloudy",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "partly_cloudy",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "partly_cloudy",
+      "mixes": [
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "partly_cloudy",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "sunny-day",
+          "kind": "sunny-day",
+          "titleKey": "smart.sunnyDay",
+          "descKey": "smart.sunnyDayDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "cloudy",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "cloudy",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "cloudy",
+      "mixes": [
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "cloudy",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "rain",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "rain",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "rain",
+      "mixes": [
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "rain",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "snow",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "snow",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "snowy-day",
+          "kind": "snowy-day",
+          "titleKey": "smart.snowyDay",
+          "descKey": "smart.snowyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "snow",
+      "mixes": [
+        {
+          "id": "snowy-day",
+          "kind": "snowy-day",
+          "titleKey": "smart.snowyDay",
+          "descKey": "smart.snowyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "snow",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "thunderstorm",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "thunderstorm",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "thunderstorm",
+      "mixes": [
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "thunderstorm",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "fog",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "fog",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "fog",
+      "mixes": [
+        {
+          "id": "rainy-day",
+          "kind": "rainy-day",
+          "titleKey": "smart.rainyDay",
+          "descKey": "smart.rainyDayDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "fog",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 2,
+      "weather": "unknown",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 8,
+      "weather": "unknown",
+      "mixes": [
+        {
+          "id": "morning",
+          "kind": "morning",
+          "titleKey": "smart.morning",
+          "descKey": "smart.morningDesc",
+          "trackIds": ["m13", "m3", "m21", "m4", "m22", "m12"]
+        },
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 14,
+      "weather": "unknown",
+      "mixes": [
+        {
+          "id": "focus",
+          "kind": "focus",
+          "titleKey": "smart.focus",
+          "descKey": "smart.focusDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    },
+    {
+      "hour": 23,
+      "weather": "unknown",
+      "mixes": [
+        {
+          "id": "late-night",
+          "kind": "late-night",
+          "titleKey": "smart.lateNight",
+          "descKey": "smart.lateNightDesc",
+          "trackIds": ["m18", "m8", "m11", "m1", "m19", "m9", "m17", "m2", "m20", "m10", "m0"]
+        },
+        {
+          "id": "decade-2010",
+          "kind": "decade",
+          "titleKey": "smart.decade",
+          "descKey": "smart.decadeDesc",
+          "decade": 2010,
+          "trackIds": ["m3", "m11", "m19", "m4", "m12", "m20"]
+        }
+      ]
+    }
+  ]
+}

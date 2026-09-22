@@ -1,0 +1,10 @@
+{
+  "naming": {
+    "title": "Może już czas na imię?",
+    "line": "Maluch rośnie razem z twoim słuchaniem, a wciąż nie ma imienia. Kiedy poczujesz, że pora — bez pośpiechu.",
+    "placeholder": "{{fallback}} też ujdzie",
+    "inputLabel": "Imię towarzysza",
+    "confirm": "Nadaj imię",
+    "later": "Może później"
+  }
+}

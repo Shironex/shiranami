@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   CloudSun,
   MonitorCog,
+  Keyboard,
 } from 'lucide-react';
 import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
@@ -43,6 +44,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
 import { WeatherSection } from '@/components/settings/WeatherSection';
 import { ScrobbleSection } from '@/components/settings/ScrobbleSection';
+import { ShortcutsSection } from '@/components/settings/ShortcutsSection';
 import { SystemSection } from '@/components/settings/SystemSection';
 import type {
   ISectionGroup,
@@ -168,6 +170,13 @@ const SECTIONS: ISettingsSectionEntry[] = [
     group: 'system',
   },
   {
+    id: 'shortcuts',
+    labelKey: 'shortcuts',
+    subtitleKey: 'subtitles.shortcuts',
+    Icon: Keyboard,
+    group: 'system',
+  },
+  {
     id: 'scrobble',
     labelKey: 'scrobble',
     subtitleKey: 'subtitles.scrobble',
@@ -221,6 +230,7 @@ const SECTION_PANEL: Record<ISettingsSection, ComponentType> = {
   sidebar: SidebarSection,
   weather: WeatherSection,
   system: SystemSection,
+  shortcuts: ShortcutsSection,
   scrobble: ScrobbleSection,
   discord: DiscordSection,
   updates: UpdatesSection,

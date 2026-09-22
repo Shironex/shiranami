@@ -13,6 +13,7 @@ const EMPTY_LYRICS_VIEW: ReturnType<typeof useLyricsView> = {
   activeLine: -1,
   isLoading: false,
   isError: false,
+  retry: () => {},
   handleLineClick: () => {},
 };
 

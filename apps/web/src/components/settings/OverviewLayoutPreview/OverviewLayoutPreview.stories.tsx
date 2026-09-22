@@ -38,12 +38,12 @@ export default meta;
 
 type Story = StoryObj<typeof OverviewLayoutPreview>;
 
-/** Shipping defaults — every widget on, so all seven blocks are expanded. */
+/** Shipping defaults — every widget on, so all nine blocks are expanded. */
 export const AllWidgets: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('img', { name: 'Overview preview' })).toBeInTheDocument();
-    await expect(canvasElement.querySelectorAll(BLOCK)).toHaveLength(7);
+    await expect(canvasElement.querySelectorAll(BLOCK)).toHaveLength(9);
   },
 };
 
@@ -53,11 +53,12 @@ export const StatsHidden: Story = {
     useInterfaceStore.setState({ ...INTERFACE_DEFAULTS, overviewStats: false });
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll(BLOCK)[0]).toHaveClass('max-h-0', 'opacity-0');
+    // Blocks 0–1 are the recap and memories cards; the stats strip sits third.
+    await expect(canvasElement.querySelectorAll(BLOCK)[2]).toHaveClass('max-h-0', 'opacity-0');
   },
 };
 
-/** Week-grid widgets all off — the grid row unmounts, leaving four shelves. */
+/** Week-grid widgets all off — the grid row unmounts, leaving six shelves. */
 export const WeekGridHidden: Story = {
   beforeEach: () => {
     useInterfaceStore.setState({
@@ -68,7 +69,7 @@ export const WeekGridHidden: Story = {
     });
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll(BLOCK)).toHaveLength(4);
+    await expect(canvasElement.querySelectorAll(BLOCK)).toHaveLength(6);
   },
 };
 
@@ -77,6 +78,6 @@ export const SpotlightedWidget: Story = {
   args: { highlightedKey: 'overviewMixes' },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('.ring-1')).toHaveLength(1);
-    await expect(canvasElement.querySelectorAll(BLOCK)[4]).toHaveClass('ring-1');
+    await expect(canvasElement.querySelectorAll(BLOCK)[6]).toHaveClass('ring-1');
   },
 };

@@ -42,11 +42,21 @@ function p95(values: number[]): number {
 }
 
 export function useDebugInstrumentation(active: boolean): void {
-  // Main-process sampler bridge: start sampling on open, stop on close.
+  // Backend sampler bridge: start sampling on open, stop on close.
   useEffect(() => {
     if (!active || !IS_ELECTRON) return;
     const setMain = useDebugStore.getState().setMain;
-    const unsubscribe = window.electronAPI.debug.onMetrics(setMain);
+    // `electronAPI.debug` is typed by v1's frozen `DebugApi`, whose snapshot
+    // still carries `cpu`, `heap` and a Chromium process `type`. v2 sends
+    // `{ ts, procs: [{ kind, … }] }` — an accepted §2.2 loss, not a gap — and
+    // the bridge validates that shape at runtime before this callback ever
+    // runs (`lib/bridge/narrowers.ts`). This is one half of the pair of
+    // assertions that carry the payload across the frozen contract; the other
+    // is in `lib/bridge/namespaces/debug.ts`. Both disappear with the contract
+    // at cutover.
+    const unsubscribe = window.electronAPI.debug.onMetrics(
+      setMain as unknown as Parameters<typeof window.electronAPI.debug.onMetrics>[0]
+    );
     void window.electronAPI.debug.start();
     return () => {
       unsubscribe();

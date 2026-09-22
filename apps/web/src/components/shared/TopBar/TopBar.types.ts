@@ -20,12 +20,14 @@ export interface ITopBarView {
   readonly isLibraryView: boolean;
   /** Whether the Add/Rescan dropdown is open. */
   readonly dropdownOpen: boolean;
-  /** Toggle the Add/Rescan dropdown. */
-  readonly toggleDropdown: () => void;
+  /** Open/close the Add/Rescan dropdown (wired to the popover). */
+  readonly onDropdownOpenChange: (open: boolean) => void;
   /** Close the Add/Rescan dropdown. */
   readonly closeDropdown: () => void;
-  /** Ref for the dropdown wrapper — drives click-outside dismissal. */
-  readonly dropdownRef: React.RefObject<HTMLDivElement | null>;
+  /** Ref for the dropdown's menu — receives focus when the popover opens. */
+  readonly addMenuRef: React.RefObject<HTMLDivElement | null>;
+  /** Redirects the popover's open auto-focus onto the menu itself. */
+  readonly onDropdownAutoFocus: (event: Event) => void;
   /** Add/Rescan actions are blocked while any scan is in progress. */
   readonly scanBlocked: boolean;
   /** A library rescan is currently running. */
@@ -40,6 +42,8 @@ export interface ITopBarView {
   readonly currentLanguage: string;
   /** Switch language and persist the choice. */
   readonly onLanguageChange: (lang: SupportedLanguage) => void;
+  /** Radiogroup arrow-key handling — moves selection and focus together. */
+  readonly onLanguageKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
   /** Add a folder (gated by the host), then close the dropdown. */
   readonly onAddFolder: () => void;
   /** Add a single file (gated by the host), then close the dropdown. */

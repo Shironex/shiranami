@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useWeatherStore } from '@/stores/useWeatherStore';
+import { useWindDownStore, shouldShowDriftNote } from '@/stores/useWindDownStore';
 import { useWeatherQuery } from '@/hooks/queries/useWeather';
 import {
   formatListeningDuration,
@@ -54,11 +55,41 @@ function useSessionSummary() {
   return { active: hasTrack, startedAt: startRef.current, elapsedMin };
 }
 
+/**
+ * The morning-after acknowledgement of a completed wind-down: "you drifted off
+ * at HH:MM". Shows at most once per completion (the store acknowledgement is
+ * permanent), but keeps showing for the rest of this session once revealed so
+ * a re-render doesn't snatch the line away mid-read.
+ */
+function useDriftNote(locale: string): string | undefined {
+  const { t } = useTranslation('overview');
+  const lastCompletion = useWindDownStore(s => s.lastCompletion);
+  const noteAcknowledged = useWindDownStore(s => s.noteAcknowledged);
+  const acknowledgeDriftNote = useWindDownStore(s => s.acknowledgeDriftNote);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (shown) return;
+    if (shouldShowDriftNote(lastCompletion, noteAcknowledged, Date.now())) {
+      setShown(true);
+      acknowledgeDriftNote();
+    }
+  }, [shown, lastCompletion, noteAcknowledged, acknowledgeDriftNote]);
+
+  if (!shown || !lastCompletion) return undefined;
+  const time = new Date(lastCompletion.at).toLocaleTimeString(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return t('driftNote', { time });
+}
+
 export function useGreetingHero(): IGreetingHeroView {
   const { t, i18n } = useTranslation('overview');
   const reducedMotion = useReducedMotion();
   const timeOfDay = getTimeOfDay(new Date().getHours());
   const session = useSessionSummary();
+  const driftNote = useDriftNote(i18n.language);
 
   const weatherEnabled = useWeatherStore(s => s.enabled);
   const weatherCoords = useWeatherStore(s => s.coords);
@@ -87,6 +118,7 @@ export function useGreetingHero(): IGreetingHeroView {
     greeting: getGreeting(),
     greetingSubline: getGreetingSubline(),
     subtitle,
+    driftNote,
     watermark: WATERMARK[timeOfDay],
     reducedMotion,
     weatherActive,

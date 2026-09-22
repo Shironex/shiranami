@@ -5,6 +5,7 @@
   "eq": "Equalizer",
   "findingLyrics": "Finding lyrics...",
   "noLyrics": "No lyrics available",
+  "lyricsError": "Couldn't load lyrics",
   "showLyrics": "Show lyrics",
   "hideLyrics": "Hide lyrics",
   "showQueue": "Show queue",

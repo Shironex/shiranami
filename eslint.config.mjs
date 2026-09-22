@@ -24,6 +24,7 @@ const PROCESS_EXIT_ALLOWLIST = [
 // The Tier C architecture rules apply as `error` only to these; add one entry per
 // migration PR to widen the scope. Everything else keeps the recommended `off`.
 const MIGRATED_COMPONENT_FEATURES = [
+  'companion',
   'downloads',
   'debug',
   'favorites',
@@ -153,8 +154,13 @@ export default defineConfig(
       // loose `.tsx` at a feature root — which otherwise escape every body rule.
       'shiranami/no-state-in-component-body': ['error', { includeNestedComponents: true }],
       'shiranami/no-jsx-computation': 'error',
-      // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir).
-      'shiranami/no-cross-feature-imports': ['error', { sharedFeatures: ['shared', 'ui'] }],
+      // shared = cross-feature escape hatch; ui = shadcn primitives (skipped dir);
+      // companion = the resident sprite, perched across player/now-playing/
+      // sanctuary by design (research-visual Part 2).
+      'shiranami/no-cross-feature-imports': [
+        'error',
+        { sharedFeatures: ['shared', 'ui', 'companion'] },
+      ],
       'shiranami/max-hooks-per-file': 'error',
       'shiranami/interface-prefix-i': 'error',
     },
@@ -194,8 +200,18 @@ export default defineConfig(
       '**/.astro/**',
       '**/coverage/**',
       '**/generated/**',
+      // Rust tier: cargo build output and Tauri's regenerated permission
+      // schemas. Nothing in either is authored here.
+      '**/target/**',
+      'apps/desktop-tauri/src-tauri/gen/**',
       'packages/eslint-plugin/dist/**',
       '.design-sync/**',
+      // Agent worktrees are whole checkouts of this repo nested inside it. They
+      // have their own `eslint.config.mjs` and their own (often unbuilt)
+      // `node_modules`, so `eslint .` at the root tries to load a plugin from a
+      // sibling checkout and dies before it lints anything of ours. Never
+      // authored here, and never present in CI.
+      '.claude/worktrees/**',
       '**/*.js',
     ],
   }

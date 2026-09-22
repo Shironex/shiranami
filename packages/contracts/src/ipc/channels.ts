@@ -78,6 +78,13 @@ export const IPC_CHANNELS = {
   },
   lyrics: {
     fetch: 'lyrics:fetch',
+    // Write-back (v2-only): fetch synced lyrics for a set of tracks and save
+    // each as a `.lrc` beside its audio file, so they survive going offline.
+    // Gated on the `settings.saveFetchedLyrics` opt-in; never overwrites a lyric
+    // file the user already has.
+    saveBatch: 'lyrics:save-batch',
+    saveCancel: 'lyrics:save-cancel',
+    saveProgress: 'lyrics:save-progress',
   },
   weather: {
     geocode: 'weather:geocode',
@@ -98,6 +105,7 @@ export const IPC_CHANNELS = {
       exists: 'db:tracks:exists',
       existsMany: 'db:tracks:exists-many',
       getIdByPath: 'db:tracks:get-id-by-path',
+      search: 'db:tracks:search',
     },
     history: {
       recordPlay: 'db:history:record-play',
@@ -167,6 +175,8 @@ export const IPC_CHANNELS = {
     enqueue: 'downloader:queue-enqueue',
     cancel: 'downloader:queue-cancel',
     cancelAll: 'downloader:queue-cancel-all',
+    retry: 'downloader:queue-retry',
+    retryAll: 'downloader:queue-retry-all',
     clearCompleted: 'downloader:queue-clear-completed',
     pause: 'downloader:queue-pause',
     resume: 'downloader:queue-resume',
@@ -187,6 +197,18 @@ export const IPC_CHANNELS = {
       remove: 'radio:favorites:remove',
       isFavorite: 'radio:favorites:is-favorite',
     },
+    // What the station says it is playing (v2-only). v1 declined ICY metadata
+    // outright, so there was nothing to carry; the stream proxy now de-frames
+    // it and emits one payload per *change* — stations re-send the same title
+    // every few seconds and the de-framer debounces that.
+    nowPlaying: 'radio:now-playing',
+    // The diary of what a station played (v2-only, same reason). `record` is
+    // called once per title *change* — there is no timer behind it — and `get`
+    // reads one station's entries back, newest first.
+    log: {
+      record: 'radio:log:record',
+      get: 'radio:log:get',
+    },
   },
   playlist: {
     extract: 'playlist:extract',
@@ -202,6 +224,32 @@ export const IPC_CHANNELS = {
     // Manual tag editor: write user-edited tags back to the file and update the
     // DB row. Distinct from the automatic enrichment flow above.
     writeTags: 'metadata:write-tags',
+  },
+  analysis: {
+    // One-pass analysis engine (F1/F2, v2-only): a single decode per track
+    // feeds waveform peaks, loudness and tempo/key; results persist on the
+    // track row. The batch skips tracks that already carry everything.
+    analyze: 'analysis:analyze',
+    cancel: 'analysis:cancel',
+    progress: 'analysis:progress',
+  },
+  doctor: {
+    // The Library Doctor (F8, v2-only): decode-truth health findings —
+    // truncation, damaged packets, duration lies, clipping, silence.
+    scan: 'doctor:scan',
+    cancel: 'doctor:cancel',
+    progress: 'doctor:progress',
+  },
+  companion: {
+    // The desk companion's ledger (v2-only): singleton state hatched from
+    // play history, the naming ceremony, the Shio/Hotaru switch, and the
+    // worn keepsake accessories. The event streams XP accrued by
+    // db:history:record-play.
+    getState: 'companion:get-state',
+    setName: 'companion:set-name',
+    setSpecies: 'companion:set-species',
+    setAccessories: 'companion:set-accessories',
+    xp: 'companion:xp',
   },
   loudness: {
     // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
@@ -298,3 +346,34 @@ export const ALL_IPC_CHANNELS: readonly IpcChannelName[] = (() => {
   collectChannels(IPC_CHANNELS, channels);
   return Object.freeze(channels) as readonly IpcChannelName[];
 })();
+
+/**
+ * Channels born in v2 with no v1 counterpart. They live in the manifest tree
+ * above so consumers address them normally, but they are NOT part of the
+ * frozen 155-channel port surface: the v1 Electron preload implements them as
+ * optional members and the renderer feature-detects. The Rust era pin
+ * (`events.rs` / the registry counts) parses this list — a v2-born channel
+ * missing here, or a v1 channel appearing here, fails the build's era tests.
+ */
+export const V2_ONLY_CHANNELS = [
+  'analysis:analyze',
+  'analysis:cancel',
+  'analysis:progress',
+  'db:tracks:search',
+  'doctor:scan',
+  'doctor:cancel',
+  'doctor:progress',
+  'downloader:queue-retry',
+  'downloader:queue-retry-all',
+  'companion:get-state',
+  'companion:set-name',
+  'companion:set-species',
+  'companion:set-accessories',
+  'companion:xp',
+  'lyrics:save-batch',
+  'lyrics:save-cancel',
+  'lyrics:save-progress',
+  'radio:now-playing',
+  'radio:log:record',
+  'radio:log:get',
+] as const;

@@ -30,6 +30,20 @@ describe('applyPersistedTheme', () => {
     expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
   });
 
+  /**
+   * I3, pre-paint half. Every other theme's image is a committed asset that is
+   * certain to exist; `custom` names a file on disk that this module cannot
+   * check and must not block on. Setting the attribute anyway would light up all
+   * eight attribute-keyed chrome rules over a bare `--background` with no photo
+   * behind them, for as long as the backend round trip takes — and permanently
+   * if the file turned out to be gone.
+   */
+  it('refuses to restore the custom theme, which has no bundled image', () => {
+    persist('custom');
+    applyPersistedTheme();
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+
   it('ignores a corrupt bucket', () => {
     localStorage.setItem(THEME_STORE_KEY, '{not json');
     applyPersistedTheme();

@@ -1,0 +1,100 @@
+{
+  "_generator": "scripts/verify-art-baseline.mjs — regenerate with `pnpm verify:art-baseline --write`. Do not edit by hand.",
+  "_what": "What v1's two album-art pipelines produce for the covers in fixtures/covers/. Pipeline A is Electron nativeImage (main process), pipeline B is sharp (scan utility). v2 reproduces the geometry, the hash construction and the URL shape exactly, and deliberately reproduces neither pipeline's bytes — see architecture.md §3.3 (D16, R14).",
+  "maxDimension": 512,
+  "jpegQuality": 85,
+  "hashLength": 32,
+  "albumArtUrlPrefix": "shiranami-art://art/",
+  "nativeImage": {
+    "_capturedWith": "electron 41.7.0",
+    "entries": {
+      "cover-small.png": {
+        "decoded": true,
+        "hash": "6a854f64f48a24ef90bd208c0063aea7",
+        "fileName": "6a854f64f48a24ef90bd208c0063aea7.jpg",
+        "byteLength": 1863,
+        "width": 100,
+        "height": 80
+      },
+      "cover-square.png": {
+        "decoded": true,
+        "hash": "1e234aa44502261d404cdd571132ee04",
+        "fileName": "1e234aa44502261d404cdd571132ee04.jpg",
+        "byteLength": 33459,
+        "width": 512,
+        "height": 512
+      },
+      "cover-tall.png": {
+        "decoded": true,
+        "hash": "44a16a1683e20a56c5151b0f45b65620",
+        "fileName": "44a16a1683e20a56c5151b0f45b65620.jpg",
+        "byteLength": 23418,
+        "width": 228,
+        "height": 512
+      },
+      "cover-wide.png": {
+        "decoded": true,
+        "hash": "a8507736b6226d967bf6316093f9006c",
+        "fileName": "a8507736b6226d967bf6316093f9006c.jpg",
+        "byteLength": 25097,
+        "width": 512,
+        "height": 256
+      }
+    }
+  },
+  "sharp": {
+    "_capturedWith": "sharp 0.35.3",
+    "entries": {
+      "cover-small.png": {
+        "hash": "c5608abb8c6018deef7b3e513151079b",
+        "fileName": "c5608abb8c6018deef7b3e513151079b.jpg",
+        "byteLength": 1371,
+        "width": 100,
+        "height": 80,
+        "albumArtUrl": "shiranami-art://art/c5608abb8c6018deef7b3e513151079b.jpg"
+      },
+      "cover-square.png": {
+        "hash": "16ebbe26b691d4932e54e04b4a87de3d",
+        "fileName": "16ebbe26b691d4932e54e04b4a87de3d.jpg",
+        "byteLength": 32668,
+        "width": 512,
+        "height": 512,
+        "albumArtUrl": "shiranami-art://art/16ebbe26b691d4932e54e04b4a87de3d.jpg"
+      },
+      "cover-tall.png": {
+        "hash": "d16607829ffe96c8bec4455c20a8a693",
+        "fileName": "d16607829ffe96c8bec4455c20a8a693.jpg",
+        "byteLength": 22877,
+        "width": 228,
+        "height": 512,
+        "albumArtUrl": "shiranami-art://art/d16607829ffe96c8bec4455c20a8a693.jpg"
+      },
+      "cover-wide.png": {
+        "hash": "a669a51dc27b20f24a7101e46e298562",
+        "fileName": "a669a51dc27b20f24a7101e46e298562.jpg",
+        "byteLength": 24502,
+        "width": 512,
+        "height": 256,
+        "albumArtUrl": "shiranami-art://art/a669a51dc27b20f24a7101e46e298562.jpg"
+      }
+    }
+  },
+  "divergence": {
+    "cover-small.png": {
+      "geometryAgrees": true,
+      "hashAgrees": false
+    },
+    "cover-square.png": {
+      "geometryAgrees": true,
+      "hashAgrees": false
+    },
+    "cover-tall.png": {
+      "geometryAgrees": true,
+      "hashAgrees": false
+    },
+    "cover-wide.png": {
+      "geometryAgrees": true,
+      "hashAgrees": false
+    }
+  }
+}

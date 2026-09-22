@@ -11,19 +11,6 @@ export class IpcError extends Error {
 }
 
 /**
- * Structural check for IpcError on the renderer side.
- * Electron strips the prototype across IPC; instanceof won't work renderer-side.
- */
-export function isIpcError(e: unknown): e is { code: string; message: string; details?: unknown } {
-  return (
-    typeof e === 'object' &&
-    e !== null &&
-    'code' in e &&
-    typeof (e as Record<string, unknown>).code === 'string'
-  );
-}
-
-/**
  * Wire format for an IpcError carried across `ipcMain.handle` → renderer.
  *
  * Electron's `invoke` only serializes a rejected error's `name`/`message`; the
@@ -73,8 +60,12 @@ export function decodeIpcError(
 
 // Error-code constants now live in @shiranami/contracts so the renderer can
 // reference the same literals; re-exported here for the existing main-process
-// import sites (share/playlist/shell handlers).
+// import sites (share/playlist/shell handlers). `isIpcError` followed them for
+// the same reason once the v2 bridge shim needed it too — `apps/web` cannot
+// import from `apps/desktop`, and two copies of one predicate is the drift this
+// package exists to prevent.
 export {
+  isIpcError,
   SHARE_ERROR_CODES,
   PLAYLIST_ERROR_CODES,
   VALIDATION_ERROR_CODES,

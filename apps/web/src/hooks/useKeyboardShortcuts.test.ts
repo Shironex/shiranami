@@ -7,6 +7,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useViewStore } from '@/stores/useViewStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
+import { useKeymapStore } from '@/stores/useKeymapStore';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
 vi.mock('@/lib/platform', () => ({
@@ -60,6 +61,10 @@ describe('useKeyboardShortcuts', () => {
       selectedTrackIds: new Set(),
       lastClickedIndex: null,
     });
+
+    // Every spec above asserts the DEFAULT keymap behavior; make sure no
+    // remap test leaks its overrides into them.
+    useKeymapStore.getState().resetAllBindings();
   });
 
   // Vitest 4 returns the same spy instance when vi.spyOn is called twice on
@@ -510,6 +515,46 @@ describe('useKeyboardShortcuts', () => {
       expect(handler).toHaveBeenCalledOnce();
 
       window.removeEventListener('open-shortcut-help', handler);
+    });
+  });
+
+  // --- Remapped bindings (keymap store) ---
+
+  describe('remapped bindings', () => {
+    it('fires a single-key action on its remapped key and not the old one', () => {
+      setup();
+      useKeymapStore.getState().setBinding('muteUnmute', { key: 'k', mod: false, shift: false });
+
+      pressKey('k');
+      expect(usePlaybackStore.getState().isMuted).toBe(true);
+
+      // The legacy chord is inert once remapped.
+      pressKey('m');
+      expect(usePlaybackStore.getState().isMuted).toBe(true);
+    });
+
+    it('fires a mod action on its remapped chord and not the old one', () => {
+      setup();
+      useKeymapStore.getState().setBinding('toggleSidebar', { key: 'j', mod: true, shift: false });
+      const toggleSpy = vi.spyOn(useUIStore.getState(), 'toggleSidebarCollapsed');
+
+      pressKey('b', { ctrlKey: true });
+      expect(toggleSpy).not.toHaveBeenCalled();
+
+      pressKey('j', { ctrlKey: true });
+      expect(toggleSpy).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the Shift seek step on a remapped seek binding', () => {
+      setup();
+      useKeymapStore.getState().setBinding('seekForward', { key: 'End', mod: false, shift: false });
+      const seekSpy = vi.spyOn(usePlaybackStore.getState(), 'seek');
+
+      pressKey('End');
+      expect(seekSpy).toHaveBeenCalledWith(105); // 100 + 5
+
+      pressKey('End', { shiftKey: true });
+      expect(seekSpy).toHaveBeenCalledWith(110); // 100 + 10
     });
   });
 

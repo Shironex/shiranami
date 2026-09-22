@@ -19,6 +19,23 @@
 const THEME_STORE_KEY = 'shiranami.theme';
 const DEFAULT_THEME = 'none';
 
+/**
+ * The one theme this module will not restore, also inlined from `useThemeStore`.
+ *
+ * Every other theme's image is a bundled asset that is certain to exist, so
+ * setting the attribute pre-paint is free. `custom` is the exception: its image
+ * is a file on disk named by the settings document, which this module cannot
+ * read (it is a Rust-side settings file, not localStorage) and must not block on.
+ *
+ * Writing `data-theme="custom"` here would light up all eight attribute-keyed
+ * chrome rules — the translucent topbar, sidebar and hero surfaces — over a bare
+ * `--background`, with no photo behind them, for as long as the round trip
+ * takes. Skipping it costs one frame of the default background on a launch with
+ * a custom image set, and makes cold start default-safe: nothing can paint a
+ * theme whose image turns out not to exist.
+ */
+const CUSTOM_THEME = 'custom';
+
 interface PersistedThemeBucket {
   state?: { theme?: unknown };
 }
@@ -36,7 +53,12 @@ export function applyPersistedTheme(): void {
     if (raw === null) return;
     const bucket = JSON.parse(raw) as PersistedThemeBucket | null;
     const theme = bucket?.state?.theme;
-    if (typeof theme === 'string' && theme !== '' && theme !== DEFAULT_THEME) {
+    if (
+      typeof theme === 'string' &&
+      theme !== '' &&
+      theme !== DEFAULT_THEME &&
+      theme !== CUSTOM_THEME
+    ) {
       document.documentElement.dataset.theme = theme;
     }
   } catch {

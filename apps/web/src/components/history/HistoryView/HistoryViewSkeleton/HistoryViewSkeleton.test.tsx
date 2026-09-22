@@ -7,7 +7,7 @@ const HERO_PILLS = 3;
 const STAT_CARDS = 4;
 const PANELS = 4;
 const LIST_ROWS = 14;
-const TOTAL_PLACEHOLDERS = 65;
+const TOTAL_PLACEHOLDERS = 67;
 
 describe('HistoryViewSkeleton', () => {
   it('marks its root aria-busy so assistive tech knows the dashboard is still loading', () => {
@@ -33,7 +33,7 @@ describe('HistoryViewSkeleton', () => {
   it('reserves the activity, top-tracks, top-artists and recent panels', () => {
     const { container } = render(<HistoryViewSkeleton />);
 
-    expect(container.querySelectorAll('.rounded-\\[24px\\]')).toHaveLength(PANELS);
+    expect(container.querySelectorAll('.rounded-panel')).toHaveLength(PANELS);
   });
 
   it('reserves four rows in each list panel plus six recent-play rows', () => {

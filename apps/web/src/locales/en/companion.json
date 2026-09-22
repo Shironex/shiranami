@@ -1,0 +1,10 @@
+{
+  "naming": {
+    "title": "Time for a name?",
+    "line": "The little one has been growing with your listening, and it still doesn't have a name. Whenever it feels right — no rush.",
+    "placeholder": "{{fallback}} is fine too",
+    "inputLabel": "Companion name",
+    "confirm": "Name it",
+    "later": "Maybe later"
+  }
+}

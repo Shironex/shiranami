@@ -127,6 +127,19 @@ export function useCreatePlaylistMutation() {
   });
 }
 
+export function useCreatePlaylistWithTracksMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { name: string; trackIds: string[] }) => {
+      return await window.electronAPI.db.playlists.createWithTracks(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: playlistKeys.all });
+    },
+  });
+}
+
 export function useUpdatePlaylistMutation() {
   const queryClient = useQueryClient();
 
