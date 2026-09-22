@@ -118,8 +118,11 @@ impl YtDlpManager {
                 .tag_name
                 .map(|tag| tag.trim().to_owned())
                 .filter(|tag| !tag.is_empty()),
+            // Offline, or GitHub's unauthenticated rate limit: both expected,
+            // and the caller already treats `None` as "unknown". A warning, not
+            // an error, so a clean shutdown's log stays free of ERROR lines.
             Err(error) => {
-                tracing::error!(%error, "could not read the latest yt-dlp release");
+                tracing::warn!(%error, "could not read the latest yt-dlp release");
                 None
             }
         }

@@ -58,7 +58,7 @@ function v1Migrations(): { name: string; sql: string }[] {
 }
 
 /**
- * Build `<home>/Library/Application Support/Shiranami` with a real v1 database.
+ * Build `<home>/Library/Application Support/@shiranami/desktop` with a real v1 database.
  *
  * `audioDir` is where the playable files go. It sits outside the profile on
  * purpose: v1 stored absolute paths to wherever a user's music actually lived,
