@@ -54,10 +54,12 @@ mod tests {
     }
 
     /// The other half: the literals really are baked into migration SQL that has
-    /// already run on user databases, which is *why* they are frozen.
+    /// already run on user databases, which is *why* they are frozen. Read from
+    /// the copy of v1's baseline that `shiranami-db` vendors for adoption — v1's
+    /// own migration folder left the repo with the Electron app.
     #[test]
     fn the_sentinels_are_baked_into_shipped_migration_sql() {
-        let sql = repo_file("packages/database/drizzle/20260101000000_baseline/migration.sql");
+        let sql = repo_file("crates/shiranami-db/src/adopt/v1_sql/20260101000000_baseline.sql");
         assert!(
             sql.contains(&format!("DEFAULT '{UNKNOWN_ARTIST}'")),
             "the baseline migration no longer defaults `artist` to the mirrored literal"

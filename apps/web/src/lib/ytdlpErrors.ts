@@ -1,9 +1,9 @@
 import i18n from '@/lib/i18n';
 
 /**
- * Stable error codes emitted by the Electron main process's downloader
- * when yt-dlp fails with a recognized pattern. These match the constants
- * in apps/desktop/src/main/ipc/downloader.ts (YT_DLP_ERROR_CODES) and
+ * Stable error codes emitted by the downloader when yt-dlp fails with a
+ * recognized pattern. These match `codes::yt_dlp` in
+ * crates/shiranami-core/src/error/codes.rs, whose test reads this file, and
  * map 1:1 to translation keys in locales/{en,pl}/toast.json.
  *
  * Unknown failures are returned to the renderer as raw (English)

@@ -212,15 +212,24 @@ mod tests {
         );
     }
 
+    /// v1's main-process classifier that produced these codes is gone with the
+    /// Electron app; what still matters is that the renderer recognises them.
+    /// `ytdlpErrors.ts` lists them as bare string literals, not `KEY: 'value'`
+    /// pairs, so this checks for the quoted literal alone.
     #[test]
-    fn yt_dlp_codes_mirror_the_desktop_classifier() {
-        assert_mirrors(
-            "apps/desktop/src/main/utils/ytdlp-spawn.ts",
-            &[
-                (super::yt_dlp::AGE_RESTRICTED, "AGE_RESTRICTED"),
-                (super::yt_dlp::VIDEO_UNAVAILABLE, "VIDEO_UNAVAILABLE"),
-                (super::yt_dlp::NO_AUDIO_FORMAT, "NO_AUDIO_FORMAT"),
-            ],
-        );
+    fn yt_dlp_codes_mirror_the_renderer_classifier() {
+        let source = "apps/web/src/lib/ytdlpErrors.ts";
+        let ts = repo_file(source);
+        for rust_value in [
+            super::yt_dlp::AGE_RESTRICTED,
+            super::yt_dlp::VIDEO_UNAVAILABLE,
+            super::yt_dlp::NO_AUDIO_FORMAT,
+        ] {
+            assert!(
+                ts.contains(&format!("'{rust_value}'")),
+                "{source} no longer lists `{rust_value}` — the Rust mirror has drifted \
+                 from the literal the renderer matches on"
+            );
+        }
     }
 }

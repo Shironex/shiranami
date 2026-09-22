@@ -3,9 +3,9 @@
 //!
 //! Tauri derives its app directories from the **bundle identifier**. Electron
 //! derives `userData` from `app.name`, which is the bundled `package.json`'s
-//! `productName`, else its `name` — and `apps/desktop/package.json` has always
-//! had no `productName` and the scoped name `@shiranami/desktop`, whose `/`
-//! becomes a directory level. So the two do not coincide:
+//! `productName`, else its `name` — and v1's `package.json` always had no
+//! `productName` and the scoped name `@shiranami/desktop`, whose `/` becomes a
+//! directory level. So the two do not coincide:
 //!
 //! |         | Electron (v1)                                      | Tauri (v2)                                             |
 //! | ------- | -------------------------------------------------- | ------------------------------------------------------ |
@@ -25,6 +25,11 @@ use std::path::PathBuf;
 
 /// v1's `package.json` `name`, and so its `userData` directory: `@shiranami`
 /// then `desktop`, one level each.
+///
+/// A frozen historical value. The v1 Electron app is gone from this repo, and
+/// `apps/desktop` is now v2's shell, whose `package.json` has nothing to do with
+/// where v1 wrote its data. This is a directory on users' machines, not a repo
+/// path: never derive it from anything in the tree.
 pub const V1_DIRECTORY_SEGMENTS: [&str; 2] = ["@shiranami", "desktop"];
 
 /// The Tauri bundle identifier, and so the v2 directory name.
@@ -114,26 +119,22 @@ mod tests {
         );
     }
 
-    /// Likewise for the v1 side, pinned to what Electron actually reads.
+    /// Likewise for the v1 side, pinned to what Electron actually derived.
     ///
     /// `app.getPath('userData')` is `<appData>/<app.name>`, and `app.name` is
-    /// the bundled `package.json`'s `productName`, else its `name`. So the
-    /// invariant is two facts about that file: the name, and the *absence* of a
-    /// `productName` that would override it. This test used to read
-    /// `electron-builder.json`'s `productName` instead — the installer's name —
-    /// and passed while pointing continuity at a directory no v1 had written.
+    /// the bundled `package.json`'s `productName`, else its `name`. Every v1
+    /// that ever shipped, v0.1.0 through the final v1.0.1, was built from a
+    /// `package.json` named `@shiranami/desktop` with no `productName`, so its
+    /// data lives in `<appData>/@shiranami/desktop`.
+    ///
+    /// This test used to read that `package.json` from the repo. The v1 app is
+    /// gone and `apps/desktop` is now v2's shell, so the fact is pinned here as
+    /// the historical value it is. A change to this constant sends continuity
+    /// looking for v1's library in a directory no v1 ever wrote.
     #[test]
-    fn the_v1_directory_matches_what_electron_derives_from_package_json() {
-        let package = repo_file("apps/desktop/package.json");
-        let name = format!("\"name\": \"{}\"", V1_DIRECTORY_SEGMENTS.join("/"));
-        assert!(
-            package.contains(&name),
-            "apps/desktop/package.json no longer declares {name}; v1's userData              directory moved and the legacy lookup would miss the user's data"
-        );
-        assert!(
-            !package.contains("\"productName\""),
-            "apps/desktop/package.json now declares productName, which Electron              prefers over name for userData; the legacy lookup must follow it"
-        );
+    fn the_v1_directory_is_what_every_shipped_v1_derived() {
+        assert_eq!(V1_DIRECTORY_SEGMENTS, ["@shiranami", "desktop"]);
+        assert_eq!(V1_DIRECTORY_SEGMENTS.join("/"), "@shiranami/desktop");
     }
 
     #[test]

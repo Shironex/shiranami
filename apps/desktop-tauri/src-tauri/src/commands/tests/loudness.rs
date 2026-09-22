@@ -26,23 +26,6 @@ fn album_track(id: &str, album: &str, album_artist: Option<&str>) -> LoudnessAna
 
 // ── the busy contract ────────────────────────────────────────────────────
 
-/// `apps/web` matches this literal to distinguish "already running" from a
-/// real failure. If v1's constant moves, this test is the only thing that
-/// notices before a user sees the wrong toast.
-#[test]
-fn the_busy_code_still_matches_the_typescript_literal() {
-    let source = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../apps/desktop/src/main/ipc/loudness.ts"
-    ))
-    .expect("read v1's loudness handler");
-
-    assert!(
-        source.contains(&format!("'{LOUDNESS_BUSY_CODE}'")),
-        "LOUDNESS_BUSY_ERROR_CODE no longer appears in v1's handler"
-    );
-}
-
 #[test]
 fn a_second_run_is_refused_under_v1s_busy_code() {
     let runs = LoudnessRuns::default();

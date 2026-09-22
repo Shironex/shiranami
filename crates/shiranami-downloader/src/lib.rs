@@ -48,7 +48,4 @@ pub mod queue;
 pub mod search;
 pub mod spawn;
 
-#[cfg(test)]
-pub(crate) mod testing;
-
 pub use error::{DownloaderError, Result};
