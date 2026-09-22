@@ -110,7 +110,7 @@ jobs:
       # version still stamps here and leaves `Cargo.lock` stale for the
       # workspace's own crates, which is why no step below passes `--locked`.
       - name: Stamp the release version
-        run: node scripts/set-version-v2.mjs "${{ inputs.version }}"
+        run: node scripts/set-version.mjs "${{ inputs.version }}"
 
       # Import the Authenticode certificate into the user store so
       # `certificateThumbprint` below can find it. The cert is pending, same as

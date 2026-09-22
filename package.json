@@ -29,6 +29,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:e2e": "pnpm --filter @shiranami/desktop-tauri test:e2e",
+    "version:set": "node scripts/set-version.mjs",
     "canary:analyser": "node scripts/analyser-canary.mjs",
     "check:mock-mode": "node scripts/check-mock-mode.mjs",
     "visual:windows": "node scripts/visual-check-windows.mjs",

@@ -1,19 +1,14 @@
 #!/usr/bin/env node
 /**
- * Stamps an explicit version across v2's release surfaces.
+ * Stamps an explicit version across every release surface: the root
+ * `package.json`, the desktop shell's `package.json` and `tauri.conf.json`, and
+ * the Cargo workspace.
  *
- * ## Why this is not `bump-version.mjs`, and not `set-version-ci.sh`
- *
- * Those two own the *v1* version line: root `package.json`, `apps/desktop`,
- * `apps/landing`, `apps/web`, `packages/*`. That line is at 1.x and keeps
- * moving — architecture §4.4 commits to ~6 months of v1 patches *after* v2
- * ships, so for the whole handover window the two versions are independent and
- * a shared stamper would drag one along with the other. A v1.0.1 patch release
- * must not set the Rust workspace to 1.0.1.
- *
- * Phase 20 collapses the two lines when `desktop-tauri` is renamed to `desktop`
- * and the Electron app is deleted; this file is what gets folded into the other
- * two at that point, not before.
+ * This is the only version stamper. v1 kept its own (`bump-version.mjs` and
+ * `set-version-ci.sh`) for the Electron line; both went with the Electron app
+ * once v1.0.1 shipped as the final v1. `apps/web` and `packages/*` are not
+ * stamped: the renderer asks the shell for its version, and the landing page
+ * announces releases through its own `public/v2.json`.
  *
  * ## Cargo.lock
  *
@@ -22,7 +17,7 @@
  * without `--locked` so cargo refreshes those entries itself, and the result is
  * never committed.
  *
- * Usage: node scripts/set-version-v2.mjs 2.0.0
+ * Usage: node scripts/set-version.mjs 2.0.0
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -35,6 +30,7 @@ const SEMVER_RE =
   /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
 
 const JSON_TARGETS = [
+  'package.json',
   'apps/desktop-tauri/package.json',
   'apps/desktop-tauri/src-tauri/tauri.conf.json',
 ];
@@ -42,7 +38,7 @@ const JSON_TARGETS = [
 const version = process.argv[2];
 
 if (!version) {
-  console.error('Usage: node scripts/set-version-v2.mjs <version>');
+  console.error('Usage: node scripts/set-version.mjs <version>');
   process.exit(1);
 }
 
@@ -74,4 +70,4 @@ if (!workspacePackage.test(cargo)) {
 writeFileSync(cargoPath, cargo.replace(workspacePackage, `$1${version}$2`));
 console.log(`  Updated ${relative(root, cargoPath)}`);
 
-console.log(`v2 release surfaces set to ${version}`);
+console.log(`Release surfaces set to ${version}`);

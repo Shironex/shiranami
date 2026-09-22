@@ -47,7 +47,7 @@ jobs:
               - 'vitest.config.ts'
             ci:
               - '.github/**'
-              - 'scripts/set-version-v2.mjs'
+              - 'scripts/set-version.mjs'
             shared:
               - 'packages/shared/**'
             contracts:
