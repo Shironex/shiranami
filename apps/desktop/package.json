@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "e2e:build": "pnpm -w run build:packages && pnpm -w --filter @shiranami/web build && cargo build -p shiranami-desktop --features e2e --bin shiranami-desktop",
+    "e2e:build": "pnpm -w run build:packages && pnpm --filter @shiranami/web build && cargo build -p shiranami-desktop --features e2e --bin shiranami-desktop",
     "test:e2e": "node e2e/run.mjs",
     "test:e2e:build": "pnpm run e2e:build && pnpm run test:e2e"
   },

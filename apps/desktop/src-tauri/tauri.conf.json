@@ -7,7 +7,7 @@
     "devUrl": "http://localhost:15175",
     "frontendDist": "../../web/dist",
     "beforeDevCommand": "pnpm -w run build:packages && pnpm -w run dev:web",
-    "beforeBuildCommand": "pnpm -w run build:packages && pnpm -w --filter @shiranami/web build"
+    "beforeBuildCommand": "pnpm -w run build:packages && pnpm --filter @shiranami/web build"
   },
   "app": {
     "windows": [
