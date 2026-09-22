@@ -1,5 +1,7 @@
 # Shiranami v2 — Feature Ideation: Delight, Ritual & Companionship
 
+> **Paths in this report are pre-rename (Phase 20, 2026-09-22).** `apps/desktop-tauri/src-tauri` is now `apps/desktop/src-tauri`, and `packages/database` / `packages/recommendation` were deleted with the Electron app. Left as written, because this is a record of what was read at the time.
+
 **Lens:** the soft product surface — what makes someone open the app every evening and
 tell a friend about it. Explicitly _not_ visuals-for-visuals (that is a separate lens) and
 _not_ engine power (crossfade/EQ/gapless).

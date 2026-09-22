@@ -1,5 +1,7 @@
 # Shiranami v2 — Companion Research: Prior Art & Progression Mechanics
 
+> **Paths in this report are pre-rename (Phase 20, 2026-09-22).** `apps/desktop-tauri/src-tauri` is now `apps/desktop/src-tauri`, and `packages/database` / `packages/recommendation` were deleted with the Electron app. Left as written, because this is a record of what was read at the time.
+
 **Lens:** the desktop pet / companion that grows as you listen — what the genre has
 learned in 35 years, what an in-house reference already exists, and which progression
 mechanics fit a calm, local-first music player without corrupting its own data.
