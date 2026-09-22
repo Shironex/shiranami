@@ -19,7 +19,7 @@ use shiranami_db::repo::recommendations as repo;
 use shiranami_recommendation::core::TrackStats;
 use shiranami_recommendation::service;
 use sqlx::pool::PoolConnection;
-use sqlx::{Sqlite, SqliteConnection, SqlitePool};
+use sqlx::{Connection, Sqlite, SqliteConnection, SqlitePool};
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -219,8 +219,16 @@ async fn assert_aggregates_back_to(expected: &TrackStats) {
     let artist = (!expected.artist.is_empty()).then_some(expected.artist.as_str());
     let album = (!expected.album.is_empty()).then_some(expected.album.as_str());
 
+    // One commit per case, not one per row. The sweep seeds ~120,000 rows across
+    // its 90 cases and the pool runs `synchronous = FULL`, so autocommit flushed
+    // the WAL once per row: seconds on Linux and macOS, but 8 to 28 minutes on
+    // the Windows runner, where each flush cost 4-14 ms. The assertion is about
+    // what the SQL aggregates, not about durability, so committing once changes
+    // nothing it proves.
+    let mut seed = fixture.conn().begin().await.expect("begin the seed");
+
     track(
-        fixture.conn(),
+        &mut seed,
         &expected.track_id,
         &expected.title,
         artist,
@@ -244,7 +252,7 @@ async fn assert_aggregates_back_to(expected: &TrackStats) {
             )
         };
         play(
-            fixture.conn(),
+            &mut seed,
             &format!("{}-{play_index}", expected.track_id),
             &expected.track_id,
             &at,
@@ -255,7 +263,7 @@ async fn assert_aggregates_back_to(expected: &TrackStats) {
 
     if expected.is_disliked {
         repo::add_negative_signal(
-            fixture.conn(),
+            &mut seed,
             "sig-self",
             &expected.track_id,
             artist,
@@ -268,20 +276,11 @@ async fn assert_aggregates_back_to(expected: &TrackStats) {
     for decoy in 0..expected.artist_dislikes {
         let decoy_id = format!("decoy-{decoy}");
         track(
-            fixture.conn(),
-            &decoy_id,
-            &decoy_id,
-            artist,
-            album,
-            None,
-            false,
-            None,
-            None,
-            0,
+            &mut seed, &decoy_id, &decoy_id, artist, album, None, false, None, None, 0,
         )
         .await;
         repo::add_negative_signal(
-            fixture.conn(),
+            &mut seed,
             &format!("sig-{decoy_id}"),
             &decoy_id,
             artist,
@@ -290,6 +289,8 @@ async fn assert_aggregates_back_to(expected: &TrackStats) {
         .await
         .expect("dislike the decoy");
     }
+
+    seed.commit().await.expect("commit the seed");
 
     let produced = service::library_stats(fixture.conn())
         .await
