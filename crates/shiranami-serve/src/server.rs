@@ -11,6 +11,7 @@
 //! [`crate::token`].
 
 use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::Mutex;
 
 use axum::Router;
 use axum::routing::get;
@@ -36,12 +37,23 @@ pub enum StartError {
 }
 
 /// A running server: where it is, how to address it, and how to stop it.
+///
+/// # Why the two stop-halves sit behind mutexes
+///
+/// [`Self::shutdown`] takes `&self`, and it has to: the shell keeps this handle
+/// in an `Arc` so a command can read the origin and the token, which means the
+/// only reference available at exit is a shared one. An owned `shutdown(self)`
+/// forced the caller to unwrap that `Arc` first, and unwrapping an `Arc` the
+/// app's own state still holds can never succeed — so the graceful path was
+/// unreachable in the shipped binary, and said so in the log every time. The
+/// mutexes buy `&self` for the two fields that must be consumed exactly once;
+/// nothing else about the handle needs them.
 #[derive(Debug)]
 pub struct ServeHandle {
     address: SocketAddr,
     token: SessionToken,
-    shutdown: Option<oneshot::Sender<()>>,
-    task: JoinHandle<()>,
+    shutdown: Mutex<Option<oneshot::Sender<()>>>,
+    task: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl ServeHandle {
@@ -81,14 +93,33 @@ impl ServeHandle {
 
     /// Stop accepting, let in-flight responses finish, and wait for the task.
     ///
-    /// Called from `ExitRequested`. Idempotent by construction — the sender is
-    /// taken, so a second call has nothing to send and simply awaits the task.
-    pub async fn shutdown(mut self) {
-        if let Some(shutdown) = self.shutdown.take() {
+    /// Called from `ExitRequested`, through a shared reference — see the type's
+    /// own docs for why that is not negotiable. Idempotent by construction: both
+    /// halves are *taken*, so a second call finds nothing to send and no task to
+    /// await and returns immediately.
+    pub async fn shutdown(&self) {
+        // Both guards are released before the await below. Holding a
+        // `std::sync::MutexGuard` across an await point would make this future
+        // `!Send`, and `block_on` from the exit handler needs it to be `Send`.
+        if let Some(shutdown) = take(&self.shutdown) {
             let _ = shutdown.send(());
         }
-        let _ = (&mut self.task).await;
+        if let Some(task) = take(&self.task) {
+            let _ = task.await;
+        }
     }
+}
+
+/// Take the contents of a mutex, recovering from a poisoned one.
+///
+/// A panic elsewhere that poisoned either lock is not a reason to skip the
+/// shutdown it was holding — the value behind it is still exactly what needs
+/// consuming, and refusing to read it would leak the listener the process is
+/// about to drop anyway.
+fn take<T>(slot: &Mutex<Option<T>>) -> Option<T> {
+    slot.lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .take()
 }
 
 /// Bind the loopback server and start serving.
@@ -125,8 +156,8 @@ pub async fn start(config: ServeConfig) -> Result<ServeHandle, StartError> {
     Ok(ServeHandle {
         address,
         token,
-        shutdown: Some(sender),
-        task,
+        shutdown: Mutex::new(Some(sender)),
+        task: Mutex::new(Some(task)),
     })
 }
 

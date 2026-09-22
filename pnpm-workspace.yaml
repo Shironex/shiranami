@@ -7,6 +7,14 @@ packages:
   - 'packages/*'
 
 overrides:
+  # `@wdio/tauri-service@1.2.0` ships a dist that imports
+  # `installMockSyncOverride` from `@wdio/native-utils` but pins that dependency
+  # to an exact `2.4.0`, which does not export it — the pin lags the code it was
+  # published alongside. Without this the service cannot even be loaded:
+  # "SyntaxError: The requested module '@wdio/native-utils' does not provide an
+  # export named 'installMockSyncOverride'". 2.5.0 is the first version that
+  # does. Drop this the moment the service repins.
+  '@wdio/native-utils': 2.5.0
   h3: 1.15.9
   undici: 6.27.0
   jsdom: ^27.4.0
