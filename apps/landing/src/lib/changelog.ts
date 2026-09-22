@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '2.0.0': '二', // "two" — Shiranami 2, the Rust/Tauri rewrite
   '1.0.0': '一', // "one" — the 1.0 milestone; the 0.x series graduates
   '0.24.0': '探', // "search / seek / find" — local-first lyrics resolution
   '0.23.0': '彩', // "coloring / hue" — custom accent color, dockable panels, the customization pass
@@ -137,6 +138,129 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '2.0.0',
+    date: '2026-09-22',
+    title: l('Shiranami 2', 'Shiranami 2'),
+    description: l(
+      'Shiranami 2.0 is a new app underneath the one you already know. The core has been rewritten in Rust and the shell moved from Electron to Tauri, so the download is a fraction of the size, it uses much less memory, and it starts almost instantly. Your library, playlists, favorites, history and settings come with you — your 1.x data is copied, never moved, so reinstalling 1.x would still find everything where it left it. 1.0.1 was the final 1.x release; upgrade to 2.0 to keep getting updates and fixes.',
+      'Shiranami 2.0 to nowa aplikacja pod spodem tej, którą już znasz. Rdzeń został przepisany w języku Rust, a powłoka przeniesiona z Electrona na Tauri, więc plik do pobrania jest kilka razy mniejszy, aplikacja zużywa znacznie mniej pamięci i uruchamia się niemal natychmiast. Twoja biblioteka, playlisty, ulubione, historia i ustawienia przechodzą razem z Tobą — dane z wersji 1.x są kopiowane, nigdy przenoszone, więc po ponownej instalacji 1.x wszystko nadal byłoby na swoim miejscu. 1.0.1 było ostatnim wydaniem linii 1.x; zaktualizuj do 2.0, aby dalej otrzymywać aktualizacje i poprawki.'
+    ),
+    categories: [
+      {
+        label: l('Upgrading from 1.x', 'Aktualizacja z 1.x'),
+        entries: [
+          l(
+            'If you are on 1.0.1, Shiranami tells you when 2.0 is available and links you to the download. Install it and your library carries over on first launch; on Windows the 2.0 installer also removes 1.x for you.',
+            'Jeśli masz wersję 1.0.1, Shiranami poinformuje Cię o dostępności 2.0 i wskaże stronę pobierania. Zainstaluj ją, a Twoja biblioteka zostanie przeniesiona przy pierwszym uruchomieniu; w systemie Windows instalator 2.0 dodatkowo usunie wersję 1.x.'
+          ),
+          l(
+            'On 1.0.0 or older? Download 2.0 and install it — your library still carries over.',
+            'Masz 1.0.0 lub starszą? Pobierz 2.0 i zainstaluj — Twoja biblioteka i tak zostanie przeniesiona.'
+          ),
+        ],
+      },
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Sanctuary, a full-screen listening room with clock faces. It can open on its own when you have been still for a while, follow the time of day, and rotate between cover, clock and record. Press F to toggle it.',
+            'Sanktuarium — pełnoekranowy pokój do słuchania z tarczami zegara. Może otwierać się samo po chwili bezczynności, dopasowywać się do pory dnia i przełączać między okładką, zegarem a płytą. Klawisz F włącza je i wyłącza.'
+          ),
+          l(
+            'Lyric Focus, for following along line by line.',
+            'Tryb skupienia na tekście, aby śledzić utwór linijka po linijce.'
+          ),
+          l(
+            'Wind down: in the sleep timer’s final minutes the room dims and the calmest tracks play first. The sleep timer can also stop at the end of the current track or album, and remembers when you drifted off.',
+            'Wyciszenie: w ostatnich minutach wyłącznika czasowego pokój przygasa, a najspokojniejsze utwory grają jako pierwsze. Wyłącznik może też zatrzymać odtwarzanie po bieżącym utworze lub albumie i pamięta, kiedy zasnąłeś.'
+          ),
+          l(
+            'Album leveling mode: volume leveling can now work per album, so a record’s quiet moments stay quiet, and a true-peak guard keeps boosts from clipping.',
+            'Tryb wyrównywania albumów: wyrównywanie głośności może teraz działać dla całego albumu, dzięki czemu ciche momenty płyty pozostają ciche, a ochrona szczytu rzeczywistego nie pozwala, by podbicie powodowało przesterowanie.'
+          ),
+          l(
+            'Vinyl in Now Playing and Sanctuary: the record can replace the cover art, with finishes (black, clear, marble, picture disc), 33/45/78 RPM, a tonearm and a reactive ring.',
+            'Winyl w widoku odtwarzania i Sanktuarium: płyta może zastąpić okładkę, z wykończeniami (czarny, przezroczysty, marmurkowy, obrazkowy), prędkościami 33/45/78 obr./min, ramieniem gramofonu i reagującym pierścieniem.'
+          ),
+          l(
+            'Radio “Caught on air”: a log of the songs each station plays, with one-click “Get this track”. The player bar also shows the song title instead of just the station name.',
+            'Radio „Złapane w eterze”: dziennik utworów granych przez każdą stację z opcją „Pobierz ten utwór” jednym kliknięciem. Pasek odtwarzacza pokazuje też tytuł utworu, a nie tylko nazwę stacji.'
+          ),
+          l(
+            'Tempo and key detected for every track, locally, and shown in Now Playing.',
+            'Tempo i tonacja wykrywane lokalnie dla każdego utworu i widoczne w widoku odtwarzania.'
+          ),
+          l(
+            'Smarter smart playlists: new rules for BPM, key, loudness, duration and “not played in the last N days”, plus sort order and track limits like “top 25 most played”.',
+            'Mądrzejsze inteligentne playlisty: nowe reguły dla BPM, tonacji, głośności, długości i „nieodtwarzane od N dni”, a także kolejność sortowania i limity utworów, np. „25 najczęściej odtwarzanych”.'
+          ),
+          l(
+            'Library health: decodes every file and reports missing, truncated, damaged, clipping or silent tracks.',
+            'Kondycja biblioteki: dekoduje każdy plik i zgłasza brakujące, ucięte, uszkodzone, przesterowane lub ciche utwory.'
+          ),
+          l(
+            'The week, in short: a gentle weekly recap, with past weeks kept in History.',
+            'Tydzień w skrócie: spokojne podsumowanie tygodnia, a poprzednie tygodnie zostają w Historii.'
+          ),
+          l(
+            'On this night: an Overview card with what you were listening to a year ago tonight.',
+            'Tej nocy: karta w Przeglądzie z tym, czego słuchałeś tej samej nocy rok temu.'
+          ),
+          l(
+            'Lyrics can be saved as .lrc files next to your music so they work offline, with a one-click run over your whole library.',
+            'Teksty można zapisywać jako pliki .lrc obok muzyki, aby działały offline — także dla całej biblioteki jednym kliknięciem.'
+          ),
+          l(
+            'Save the queue as a playlist; clearing the queue now asks first. Failed downloads can be retried from the queue.',
+            'Zapisz kolejkę jako playlistę; czyszczenie kolejki wymaga teraz potwierdzenia. Nieudane pobrania można ponowić z kolejki.'
+          ),
+          l(
+            'A companion: choose Shio the tide-cat or Hotaru the star jelly. It grows with your listening hours, dresses for the weather and the seasons, unlocks little keepsakes, and keeps watch asleep in Sanctuary.',
+            'Towarzysz: wybierz Shio, kota przypływów, albo Hotaru, gwiezdną meduzę. Rośnie razem z godzinami słuchania, ubiera się stosownie do pogody i pory roku, odblokowuje drobne pamiątki i czuwa, śpiąc w Sanktuarium.'
+          ),
+          l(
+            'Follow the record: the accent colour follows the album art. Plus bloom, room light (time-of-day presets, intensity and lamp warmth), a cover crossfade between records, and tempo breathing that pulses the visuals to each track’s BPM.',
+            'Podążaj za płytą: kolor akcentu dopasowuje się do okładki. Do tego poświata, światło w pokoju (ustawienia dla pory dnia, intensywność i ciepło lampy), płynne przejście okładek między płytami oraz oddech w rytm tempa, który pulsuje oprawą w takt BPM utworu.'
+          ),
+          l(
+            'Custom backgrounds: use your own images or GIFs, save up to 12, and rotate them per launch, hourly, daily or by time of day.',
+            'Własne tła: używaj własnych obrazów lub GIF-ów, zapisz do 12 i zmieniaj je przy każdym uruchomieniu, co godzinę, codziennie albo zależnie od pory dnia.'
+          ),
+          l(
+            'A reorderable Overview, remappable keyboard shortcuts, and context menus that work with the keyboard (arrow keys and type to find).',
+            'Przegląd z możliwością zmiany kolejności, konfigurowalne skróty klawiszowe i menu kontekstowe obsługiwane klawiaturą (strzałki i wyszukiwanie przez pisanie).'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'The Windows installer shrinks from 110 MB to 12.5 MB and the macOS download from 134 MB to 17 MB.',
+            'Instalator dla Windows zmniejsza się ze 110 MB do 12,5 MB, a plik dla macOS ze 134 MB do 17 MB.'
+          ),
+          l(
+            'Memory use at idle is roughly half of what 1.x used, and the app starts almost instantly. Search is faster in large libraries.',
+            'Zużycie pamięci w spoczynku to mniej więcej połowa tego, co w 1.x, a aplikacja uruchamia się niemal natychmiast. Wyszukiwanie w dużych bibliotekach jest szybsze.'
+          ),
+        ],
+      },
+      {
+        label: l('Notes', 'Uwagi'),
+        entries: [
+          l(
+            'Windows and macOS builds are unsigned, as in 1.x, so Windows SmartScreen and macOS Gatekeeper will warn on first launch.',
+            'Wersje dla Windows i macOS nie są podpisane, tak jak w 1.x, więc Windows SmartScreen i macOS Gatekeeper wyświetlą ostrzeżenie przy pierwszym uruchomieniu.'
+          ),
+          l(
+            'Windows gets 2.x updates inside the app. On macOS, in-app updates arrive once the app is signed; until then, download new versions from the site.',
+            'Windows otrzymuje aktualizacje 2.x w aplikacji. Na macOS aktualizacje w aplikacji pojawią się, gdy aplikacja zostanie podpisana; do tego czasu nowe wersje pobieraj ze strony.'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '1.0.1',
     date: '2026-09-10',
