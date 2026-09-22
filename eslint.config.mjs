@@ -9,16 +9,9 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import shiranami from '@shiranami/eslint-plugin';
 
-// Files where a hard process exit is legitimate (Electron main, native
-// bindings, the server entrypoints, and repo scripts).
-const PROCESS_EXIT_ALLOWLIST = [
-  'apps/desktop/src/main/**',
-  'apps/desktop/src/native/**',
-  'apps/server/**',
-  'scripts/**',
-  '**/scripts/**',
-  'tools/**',
-];
+// Files where a hard process exit is legitimate (the server entrypoints and
+// repo scripts).
+const PROCESS_EXIT_ALLOWLIST = ['apps/server/**', 'scripts/**', '**/scripts/**', 'tools/**'];
 
 // Feature folders migrated to the per-component (folder-per-component) convention.
 // The Tier C architecture rules apply as `error` only to these; add one entry per
@@ -203,7 +196,7 @@ export default defineConfig(
       // Rust tier: cargo build output and Tauri's regenerated permission
       // schemas. Nothing in either is authored here.
       '**/target/**',
-      'apps/desktop-tauri/src-tauri/gen/**',
+      'apps/desktop/src-tauri/gen/**',
       'packages/eslint-plugin/dist/**',
       '.design-sync/**',
       // Agent worktrees are whole checkouts of this repo nested inside it. They

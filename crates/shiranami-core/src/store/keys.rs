@@ -218,44 +218,51 @@ impl MainStoreKey {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bindings::repo_file;
 
-    /// Parse the `RENDERER_STORE_KEYS` tuple out of the TypeScript source.
-    fn typescript_allowlist() -> Vec<String> {
-        let source = repo_file("apps/desktop/src/main/ipc/schemas/store.ts");
-        let start = source
-            .find("const RENDERER_STORE_KEYS = [")
-            .expect("the allowlist tuple must still exist");
-        let body = &source[start..];
-        let end = body
-            .find("] as const;")
-            .expect("the tuple must be terminated");
+    /// v1's `RENDERER_STORE_KEYS` tuple, in its declared order. The v1 Electron
+    /// app is gone from this repo, so this is a frozen historical value copied
+    /// from its final release (v1.0.1) rather than a mirror of anything live.
+    /// It is the set of keys the renderer was ever allowed to touch.
+    const V1_RENDERER_STORE_KEYS: &[&str] = &[
+        "settings",
+        "music-folders",
+        "player-state",
+        "player.volume",
+        "player.isMuted",
+        "theme",
+        "window-bounds",
+        "app.language",
+        "app.onboardingCompleted",
+        "app.supportBannerSeen",
+        "app.telemetryEnabled",
+        "app.performanceMonitoringEnabled",
+        "metadata-enrich.skippedIds",
+        "system.launchAtStartup",
+        "system.minimizeToTray",
+        "system.closeToTray",
+        "lyrics.preferSyncedFromLrclib",
+    ];
 
-        body[..end]
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim().trim_end_matches(',');
-                trimmed
-                    .strip_prefix('\'')
-                    .and_then(|rest| rest.strip_suffix('\''))
-                    .map(str::to_owned)
-            })
+    fn v1_allowlist() -> Vec<String> {
+        V1_RENDERER_STORE_KEYS
+            .iter()
+            .map(|key| (*key).to_owned())
             .collect()
     }
 
     /// The whole security property is that this list matches. A key the Rust
-    /// enum gained but TypeScript never allowed would widen the renderer's
+    /// enum gained but v1 never allowed would widen the renderer's
     /// reach; one it lost would break a working renderer call.
     #[test]
-    fn the_renderer_allowlist_matches_the_typescript_tuple_exactly() {
+    fn the_renderer_allowlist_matches_the_v1_tuple_exactly() {
         let rust: Vec<String> = RendererStoreKey::ALL
             .iter()
             .map(|key| key.path().to_owned())
             .collect();
         assert_eq!(
             rust,
-            typescript_allowlist(),
-            "the Rust allowlist has drifted from RENDERER_STORE_KEYS"
+            v1_allowlist(),
+            "the Rust allowlist has drifted from v1's RENDERER_STORE_KEYS"
         );
     }
 
@@ -264,7 +271,7 @@ mod tests {
     /// hand the renderer a Last.fm session key.
     #[test]
     fn no_main_only_key_appears_in_the_renderer_allowlist() {
-        let allowlist = typescript_allowlist();
+        let allowlist = v1_allowlist();
         for key in MainStoreKey::ALL {
             assert!(
                 !allowlist.contains(&key.path().to_owned()),

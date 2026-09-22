@@ -5,7 +5,7 @@ import micromatch from 'micromatch';
 
 /*
  * Allowlist globs are written relative to the monorepo root (e.g.
- * `apps/desktop/src/main/**`), but ESLint may be invoked from a nested
+ * `apps/server/**`), but ESLint may be invoked from a nested
  * directory (lint-staged), making `path.relative` against context.cwd yield a
  * path the globs never match. Resolve every file against the workspace root
  * (nearest ancestor with pnpm-workspace.yaml) so the same glob matches no

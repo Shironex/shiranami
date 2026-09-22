@@ -1,10 +1,9 @@
 //! v1's drizzle migration chain, frozen into this crate.
 //!
 //! The `.sql` files under `v1_sql/` are byte-for-byte copies of
-//! `packages/database/drizzle/*/migration.sql`. They are copied rather than
-//! read from there for two reasons: `packages/database` is deleted at cutover
-//! (Phase 20), and a runtime path into a sibling package would not survive
-//! bundling anyway.
+//! v1's `drizzle/*/migration.sql`. v1's database package was deleted with the
+//! Electron app (Phase 20), so these copies are now the only ones — and a
+//! runtime path into a sibling package would not have survived bundling anyway.
 //!
 //! This set is **frozen at nine**. v2 does not track v1's chain forward — a
 //! tenth migration appearing in a user's ledger is a hard error
@@ -140,8 +139,8 @@ pub(crate) const STRANDED_BPM_KEY_NAME: &str = "20260101000008_track_bpm_key";
 mod tests {
     use super::*;
 
-    /// The fixture is generated from `packages/database` by
-    /// `pnpm verify:db-baseline`, so this is the copies-versus-original diff.
+    /// The fixture was generated from v1's own migration folder before it was
+    /// deleted, so this is the copies-versus-original diff.
     /// It covers name, order, ledger timestamp and — through the hash — the SQL
     /// bytes themselves.
     #[test]

@@ -2,7 +2,7 @@
 #
 #  Lives inside the existing pnpm workspace (docs/v2/architecture.md §2.1): the
 #  domain crates under `crates/` own all backend logic, and
-#  `apps/desktop-tauri/src-tauri` is a thin composition root that wires them
+#  `apps/desktop/src-tauri` is a thin composition root that wires them
 #  into a Tauri v2 shell. The dependency spine runs one way only —
 #  core → net → { db, serve, metadata, integrations }, core → audio,
 #  { db, metadata } → library, { net, db } → downloader,
@@ -11,7 +11,7 @@
 
 [workspace]
 resolver = "3"
-members = ["crates/*", "apps/desktop-tauri/src-tauri"]
+members = ["crates/*", "apps/desktop/src-tauri"]
 
 [workspace.package]
 version = "2.0.0"

@@ -16,7 +16,7 @@ import type { IMetaContext, IMetaRule, IViolation } from '../../types';
 // Past it, the module is doing more than one thing and belongs in siblings.
 const MAX_CODE_LINES = 400;
 
-const COMMANDS_DIR = 'apps/desktop-tauri/src-tauri/src/commands/';
+const COMMANDS_DIR = 'apps/desktop/src-tauri/src/commands/';
 
 /*
  * The dependency spine, as ranks. A crate may only reference a crate of a
@@ -62,7 +62,7 @@ function crateOf(file: string): string | null {
     return crateMatch[1];
   }
 
-  return normalized.includes('/apps/desktop-tauri/') ? 'desktop' : null;
+  return normalized.includes('/apps/desktop/') ? 'desktop' : null;
 }
 
 /**

@@ -190,26 +190,16 @@ mod tests {
     use super::*;
 
     /// The `downloader.*` codes never lived in `packages/contracts` — v1 built
-    /// them at the `new IpcError(...)` call site. They are renderer-visible
-    /// contract all the same, so they get the same mirror test core gives the
-    /// registries it does own: rename one on either side and this fails rather
-    /// than shipping a code with no translation behind it.
+    /// them at the `new IpcError(...)` call site in its Electron main process.
+    /// That app is gone from this repo, so these are frozen historical values
+    /// copied from its final release (v1.0.1). They are renderer-visible
+    /// contract all the same: renaming one ships a code with no translation.
     #[test]
-    fn the_downloader_codes_mirror_the_v1_throw_sites() {
-        let source = crate::testing::repo_file("apps/desktop/src/main/ipc/downloader.ts");
-
-        for expected in [
-            code::INVALID_URL,
-            code::STREAM_URL_FAILED,
-            code::NO_STREAM_URL,
-            code::INSTALL_FAILED,
-        ] {
-            assert!(
-                source.contains(&format!("'{expected}'")),
-                "apps/desktop/src/main/ipc/downloader.ts no longer throws `{expected}` — \
-                 the Rust mirror has drifted from the literal the renderer matches on"
-            );
-        }
+    fn the_downloader_codes_keep_v1s_literals() {
+        assert_eq!(code::INVALID_URL, "downloader.invalid_url");
+        assert_eq!(code::STREAM_URL_FAILED, "downloader.stream_url_failed");
+        assert_eq!(code::NO_STREAM_URL, "downloader.no_stream_url");
+        assert_eq!(code::INSTALL_FAILED, "downloader.install_failed");
     }
 
     #[test]

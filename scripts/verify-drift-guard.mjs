@@ -36,7 +36,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const CRATE = path.join(ROOT, 'apps', 'desktop-tauri', 'src-tauri');
+const CRATE = path.join(ROOT, 'apps', 'desktop', 'src-tauri');
 
 /** The directory the real gate guards, repo-relative (as git pathspecs want it). */
 const GENERATED = 'packages/contracts/src/generated';

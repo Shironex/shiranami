@@ -221,13 +221,15 @@ mod tests {
     #[test]
     fn the_enrich_busy_code_still_matches_the_typescript_literal() {
         // `apps/web` matches this string to distinguish "already running" from
-        // a real failure. If v1's constant moves, this test is the only thing
-        // that notices before a user sees the wrong toast.
-        let source = repo_file("apps/desktop/src/main/ipc/metadata-enrich.ts");
+        // a real failure. If either side renames it, this test is the only
+        // thing that notices before a user sees the wrong toast.
+        let source = repo_file(
+            "apps/web/src/components/shared/TrackEnrichDialog/TrackEnrichDialog.hooks.ts",
+        );
 
         assert!(
             source.contains(&format!("'{ENRICH_BUSY_CODE}'")),
-            "ENRICH_BUSY_CODE no longer appears in v1's enrich handler"
+            "ENRICH_BUSY_CODE no longer appears where the renderer matches on it"
         );
     }
 

@@ -95,12 +95,10 @@ mod tests {
 
     /// The floor is only "frozen at v1's value" if it is still v1's value.
     ///
-    /// The fixture is generated from `packages/database/src/migrate.ts` by
-    /// `pnpm verify:db-baseline`, which derives the stamp the same way v1 does
-    /// rather than copying a number. If v1 ever ships a breaking migration, the
-    /// regenerated fixture disagrees with this constant and the decision to
-    /// raise the floor — which ends the rollback window — has to be made
-    /// deliberately instead of inherited.
+    /// The fixture was generated from v1's `migrate.ts`, deriving the stamp the
+    /// same way v1 did rather than copying a number. v1 is gone and will ship no
+    /// further migrations, so the fixture is frozen; raising the floor — which
+    /// ends the rollback window — is a deliberate change to this constant.
     #[test]
     fn the_floor_matches_the_one_v1_stamps() {
         let fixture: serde_json::Value =

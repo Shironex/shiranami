@@ -26,8 +26,8 @@ const MANIFEST_EXTENSIONS = new Set(['.toml']);
  * Where first-party Rust lives: the domain crates and the Tauri shell's own
  * sources. `target/` is excluded by SKIP_DIRS below.
  */
-const RUST_SOURCE_ROOTS = ['crates', join('apps', 'desktop-tauri', 'src-tauri', 'src')] as const;
-const RUST_MANIFEST_ROOTS = ['crates', join('apps', 'desktop-tauri', 'src-tauri')] as const;
+const RUST_SOURCE_ROOTS = ['crates', join('apps', 'desktop', 'src-tauri', 'src')] as const;
+const RUST_MANIFEST_ROOTS = ['crates', join('apps', 'desktop', 'src-tauri')] as const;
 
 // Per-workspace subdirs holding first-party source worth scanning.
 const WORKSPACE_SOURCE_SUBDIRS = ['src', 'test', 'tests'] as const;
@@ -36,9 +36,9 @@ const WORKSPACE_SOURCE_SUBDIRS = ['src', 'test', 'tests'] as const;
 const WORKSPACE_GROUPS = ['apps', 'packages'] as const;
 
 /*
- * apps/mobile is excluded from the pnpm workspace (its React Native deps break
- * electron-builder packaging), so it is not linted by ESLint either; keep the
- * meta-lint scan in lockstep so it never flags files no other gate covers.
+ * apps/mobile is excluded from the pnpm workspace, so it is not linted by
+ * ESLint either; keep the meta-lint scan in lockstep so it never flags files no
+ * other gate covers.
  */
 const SKIP_WORKSPACES = new Set(['mobile']);
 

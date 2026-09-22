@@ -43,10 +43,6 @@ updates:
           - patch
           - minor
     ignore:
-      # electron majors are coordinated with native-module rebuilds; bump manually
-      - dependency-name: 'electron'
-        update-types:
-          - 'version-update:semver-major'
       # React 19 lands with the mobile/web upgrade; desktop stays on 18 for now
       - dependency-name: 'react'
         update-types:

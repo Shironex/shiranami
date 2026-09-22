@@ -5,7 +5,7 @@
  * ## Why this is Windows-only
  *
  * v1 drove visual checks by launching Electron with `--remote-debugging-port=9222`
- * and attaching Playwright over CDP (`scripts/screenshot-app.mjs`). That workflow
+ * and attaching Playwright over CDP (a script removed with the Electron app). That workflow
  * dies on macOS in v2: WKWebView has no CDP and never will. It survives on
  * Windows, because WebView2 is Chromium and accepts `--remote-debugging-port`
  * through the webview's additional browser arguments (architecture §8, risk R5).
@@ -48,7 +48,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
-const CONFIG_PATH = resolve(process.cwd(), 'apps/desktop-tauri/src-tauri/tauri.conf.json');
+const CONFIG_PATH = resolve(process.cwd(), 'apps/desktop/src-tauri/tauri.conf.json');
 const OUT_ROOT = resolve(process.cwd(), 'test-results/visual-windows');
 const CDP_PORT = Number(process.env.CDP_PORT ?? 9222);
 const CDP_URL = process.env.CDP_URL ?? `http://127.0.0.1:${String(CDP_PORT)}`;
@@ -95,7 +95,7 @@ export function inspectConfig(base, args) {
   return { app: { windows } };
 }
 
-/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx and screenshot-app.mjs. */
+/** Views worth walking — mirrors NAV_ITEMS in Sidebar.tsx. */
 const VIEWS = [
   'library',
   'playlists',
@@ -154,7 +154,7 @@ async function waitForCdp(timeoutMs) {
 
 const app = spawn(
   'pnpm',
-  ['--filter', '@shiranami/desktop-tauri', 'exec', 'tauri', 'dev', '--config', overlayPath],
+  ['--filter', '@shiranami/desktop', 'exec', 'tauri', 'dev', '--config', overlayPath],
   { stdio: ['ignore', 'inherit', 'inherit'], shell: process.platform === 'win32' }
 );
 

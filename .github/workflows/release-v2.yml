@@ -66,9 +66,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # arm64 only, matching what v1 actually shipped: electron-builder's
-          # `dmg` target with no `arch` builds for the host, and the host has
-          # been arm64 since macos-latest moved. Intel Macs have never had a
+          # arm64 only, matching what v1 actually shipped: v1's `dmg` target
+          # had no `arch`, so it built for the host, and the host has been
+          # arm64 since macos-latest moved. Intel Macs have never had a
           # Shiranami build; a universal binary is a deliberate future change,
           # not something to slip in with the bundle config.
           - os: macos-latest
@@ -110,7 +110,7 @@ jobs:
       # version still stamps here and leaves `Cargo.lock` stale for the
       # workspace's own crates, which is why no step below passes `--locked`.
       - name: Stamp the release version
-        run: node scripts/set-version-v2.mjs "${{ inputs.version }}"
+        run: node scripts/set-version.mjs "${{ inputs.version }}"
 
       # Import the Authenticode certificate into the user store so
       # `certificateThumbprint` below can find it. The cert is pending, same as
@@ -354,7 +354,7 @@ jobs:
           # wants both back in their original form.
           node -e '
             const fs = require("fs");
-            const conf = JSON.parse(fs.readFileSync("../apps/desktop-tauri/src-tauri/tauri.conf.json", "utf8"));
+            const conf = JSON.parse(fs.readFileSync("../apps/desktop/src-tauri/tauri.conf.json", "utf8"));
             const pub = Buffer.from(conf.plugins.updater.pubkey, "base64").toString("utf8");
             fs.writeFileSync("updater.pub", pub.endsWith("\n") ? pub : pub + "\n");
 

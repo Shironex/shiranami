@@ -10,9 +10,9 @@
 //!
 //! Three comparisons, each closing a different gap:
 //!
-//! 1. **the baseline against the committed fixture** — the fixture is generated
-//!    from `packages/database/drizzle/*/migration.sql` by
-//!    `pnpm verify:db-baseline`, so this is v2's schema against v1's, with the
+//! 1. **the baseline against the committed fixture** — the fixture was
+//!    generated from v1's `drizzle/*/migration.sql` before the Electron app was
+//!    deleted, so this is v2's schema against v1's, with the
 //!    node/`better-sqlite3` side of the port in the loop;
 //! 2. **the same, structurally** — `pragma_table_info` and friends, which catch
 //!    a difference in *meaning* that a text diff can normalize away;
@@ -124,7 +124,7 @@ async fn the_baseline_reproduces_the_sqlite_master_v1_produces() {
 
     assert!(
         !expected.is_empty(),
-        "the fixture is empty — regenerate it with `pnpm verify:db-baseline --write`"
+        "the fixture is empty — restore the committed v1 schema record from git history"
     );
     assert_same_schema(&expected, &actual, "baseline vs the v1 fixture");
 }

@@ -6,8 +6,8 @@
  * substitutes a localized display string at the mapper boundary, so these
  * literals must never be shown directly in the UI — only compared against.
  *
- * The drizzle schema defaults (`packages/database/src/schema/tracks.ts`) and the
- * already-shipped migration SQL embed these exact strings; changing the literal
+ * v1's drizzle schema defaults and the already-shipped migration SQL (vendored
+ * in crates/shiranami-db/src/adopt/v1_sql) embed these exact strings; changing the literal
  * here would diverge from on-disk databases, so treat the value as frozen.
  */
 export const UNKNOWN_ARTIST = 'Unknown Artist';

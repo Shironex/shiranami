@@ -4,24 +4,15 @@
 //! for this phase, and §8 lists it among the golden fixtures. Every expectation
 //! below is the one v1's `playlist.test.ts` asserted against the same bytes.
 //!
-//! # Why the file is copied into this crate
+//! # Why the file lives in this crate
 //!
-//! `apps/desktop` is deleted at cutover (Phase 20) and this test has to keep
-//! working afterwards — the same reasoning that put `v1-schema.json` in
-//! `shiranami-db`'s fixtures. The copy is guarded: while v1's file still
-//! exists, a test asserts the two are byte-identical, so the copy cannot drift
-//! from the original during the handover window.
+//! It is v1's `__fixtures__/spotify-embed-playlist.html`, copied here before the
+//! Electron app was deleted — the same reasoning that put `v1-schema.json` in
+//! `shiranami-db`'s fixtures. v1 is gone, so the copy is now the only one.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use shiranami_downloader::extract::{parse_embed_html, parse_playlist_name};
-
-/// The repo root, from this crate's manifest.
-fn repo_root() -> PathBuf {
-    Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."))
-        .canonicalize()
-        .expect("resolve the repo root")
-}
 
 /// The fixture, from this crate's own copy.
 fn fixture() -> String {
@@ -29,28 +20,6 @@ fn fixture() -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|error| {
         panic!("read {}: {error}", path.display());
     })
-}
-
-#[test]
-fn the_crate_fixture_is_byte_identical_to_v1s() {
-    let v1 = repo_root().join("apps/desktop/src/main/ipc/__fixtures__/spotify-embed-playlist.html");
-
-    // Absent only after Phase 20 deletes `apps/desktop`, at which point there
-    // is no original left to drift from.
-    let Ok(original) = std::fs::read(&v1) else {
-        return;
-    };
-
-    let copy = std::fs::read(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures/spotify-embed-playlist.html"),
-    )
-    .expect("read this crate's copy of the fixture");
-
-    assert_eq!(
-        original, copy,
-        "this crate's fixture has drifted from v1's — the port's parity claim \
-         rests on the two being the same bytes"
-    );
 }
 
 #[test]

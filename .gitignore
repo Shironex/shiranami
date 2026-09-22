@@ -5,7 +5,7 @@ build/
 # tracked — it doubles as the lockfile-drift guard for the Rust tier.
 target/
 # Tauri regenerates these permission schemas from the plugin set on every build.
-apps/desktop-tauri/src-tauri/gen/
+apps/desktop/src-tauri/gen/
 # Runtime-downloaded yt-dlp/ffmpeg binaries land in the repo-root bin/ during
 # dev. Anchored: an unanchored `bin/` silently swallowed a Rust module
 # (crates/shiranami-downloader/src/bin/) out of a pushed commit once.
@@ -28,17 +28,11 @@ coverage
 docs/*
 # docs/v2 is the tracked home of the Rust/Tauri rewrite plan, not agent scratch.
 !docs/v2/
-# Versioned migration folders under packages/database/drizzle/ ARE tracked
-# (they are the canonical migration ledger). Only ignore local dev databases.
-packages/database/data/
-packages/database/drizzle/**/*.db
-packages/database/drizzle/**/*.db-*
 playwright-report/
 test-results/
-apps/desktop/e2e/.tmp/
 # Isolated HOMEs, staged v1 profiles and generated audio for the Tauri E2E
 # suite. Rebuilt from scratch by every run's onPrepare.
-apps/desktop-tauri/e2e/.tmp/
+apps/desktop/e2e/.tmp/
 /design/
 # Storybook static build output
 apps/web/storybook-static/

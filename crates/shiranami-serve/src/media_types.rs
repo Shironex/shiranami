@@ -1,5 +1,5 @@
-//! The extension allowlists and MIME tables, ported from
-//! `apps/desktop/src/main/shared/media-types.ts`.
+//! The extension allowlists and MIME tables, ported from v1's
+//! `src/main/shared/media-types.ts`.
 //!
 //! These are a security boundary before they are a convenience. The audio route
 //! checks the extension *before* it checks containment, so a path that is inside
@@ -7,9 +7,8 @@
 //! settings file — is refused on the way in rather than served with a guessed
 //! content type.
 //!
-//! The tables are mirrored rather than moved: `apps/desktop` is the frozen v1
-//! Electron app and still ships from them, so a test below asserts the two have
-//! not drifted. If a later phase needs the same set for the library scan, this
+//! The v1 Electron app is gone from this repo; a test below pins these tables
+//! to a frozen copy of what its final release served. If a later phase needs the same set for the library scan, this
 //! module moves down to `shiranami-core` — it is here for now because the serve
 //! routes are its only consumer.
 
@@ -100,58 +99,62 @@ pub fn is_image_path(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
-    /// The v1 table this module mirrors.
-    fn v1_media_types() -> String {
-        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .expect("crates/shiranami-serve sits two levels below the repo root")
-            .to_owned();
-        std::fs::read_to_string(repo_root.join("apps/desktop/src/main/shared/media-types.ts"))
-            .expect("the frozen v1 app still ships its media-type table")
+    /// v1's `AUDIO_MIME` table, extension for extension. The v1 Electron app
+    /// is gone from this repo, so this is a frozen historical value copied from
+    /// its final release (v1.0.1), not a mirror of anything live.
+    const V1_AUDIO_MIME: [(&str, &str); 10] = [
+        (".mp3", "audio/mpeg"),
+        (".flac", "audio/flac"),
+        (".wav", "audio/wav"),
+        (".ogg", "audio/ogg"),
+        (".aac", "audio/aac"),
+        (".m4a", "audio/mp4"),
+        (".opus", "audio/opus"),
+        (".wma", "audio/x-ms-wma"),
+        (".weba", "audio/webm"),
+        (".webm", "audio/webm"),
+    ];
+
+    /// v1's `IMAGE_MIME` table, frozen the same way.
+    const V1_IMAGE_MIME: [(&str, &str); 6] = [
+        (".jpg", "image/jpeg"),
+        (".jpeg", "image/jpeg"),
+        (".png", "image/png"),
+        (".webp", "image/webp"),
+        (".gif", "image/gif"),
+        (".bmp", "image/bmp"),
+    ];
+
+    /// An extension this server refuses that v1 played is a track that stops
+    /// playing after the upgrade — with a 403 that looks like a permissions
+    /// bug, not a table drift. One it accepts that v1 refused widens what the
+    /// server reads off disk.
+    #[test]
+    fn the_extension_allowlists_match_v1() {
+        let v1_audio: Vec<&str> = V1_AUDIO_MIME.iter().map(|(ext, _)| *ext).collect();
+        let v1_image: Vec<&str> = V1_IMAGE_MIME.iter().map(|(ext, _)| *ext).collect();
+
+        assert_eq!(AUDIO_EXTENSIONS.to_vec(), v1_audio);
+        assert_eq!(IMAGE_EXTENSIONS.to_vec(), v1_image);
     }
 
-    /// The mirror half. v1 is frozen but still shipping, and an extension this
-    /// server refuses that v1 played is a track that stops playing after the
-    /// upgrade — with a 403 that looks like a permissions bug, not a table drift.
+    /// Every content type is the literal v1 sent. A cover art `<img>` tolerates
+    /// a wrong type; `MediaElementAudioSource` does not.
     #[test]
-    fn the_extension_allowlists_mirror_v1() {
-        let source = v1_media_types();
-
-        for extension in AUDIO_EXTENSIONS {
-            assert!(
-                source.contains(&format!("'{extension}'")),
-                "v1 no longer lists {extension} as audio — the mirror has drifted"
+    fn the_mime_tables_match_v1() {
+        for (extension, mime) in V1_AUDIO_MIME {
+            assert_eq!(
+                audio_mime(extension),
+                mime,
+                "v1 mapped {extension} to {mime}"
             );
         }
-        for extension in IMAGE_EXTENSIONS {
-            assert!(
-                source.contains(&format!("'{extension}'")),
-                "v1 no longer lists {extension} as an image — the mirror has drifted"
-            );
-        }
-    }
-
-    /// The other half: every content type is the literal v1 sent. A cover art
-    /// `<img>` tolerates a wrong type; `MediaElementAudioSource` does not.
-    #[test]
-    fn the_mime_tables_mirror_v1() {
-        let source = v1_media_types();
-
-        for extension in AUDIO_EXTENSIONS {
-            let entry = format!("'{extension}': '{}'", audio_mime(extension));
-            assert!(
-                source.contains(&entry),
-                "v1 does not map {extension} that way"
-            );
-        }
-        for extension in IMAGE_EXTENSIONS {
-            let entry = format!("'{extension}': '{}'", image_mime(extension));
-            assert!(
-                source.contains(&entry),
-                "v1 does not map {extension} that way"
+        for (extension, mime) in V1_IMAGE_MIME {
+            assert_eq!(
+                image_mime(extension),
+                mime,
+                "v1 mapped {extension} to {mime}"
             );
         }
     }
@@ -199,19 +202,11 @@ mod tests {
     /// `application/octet-stream`, which WKWebView will not decode.
     #[test]
     fn the_two_audio_fallbacks_are_v1s_and_are_not_the_same() {
-        let source = v1_media_types();
-
+        // Both are v1's literals (`DEFAULT_AUDIO_MIME` and `audioMime`'s
+        // `?? 'application/octet-stream'`), frozen with the tables above.
         assert_eq!(DEFAULT_AUDIO_MIME, "audio/mpeg");
         assert_eq!(UNKNOWN_AUDIO_MIME, "application/octet-stream");
         assert_ne!(DEFAULT_AUDIO_MIME, UNKNOWN_AUDIO_MIME);
-
-        assert!(
-            source.contains(&format!("DEFAULT_AUDIO_MIME = '{DEFAULT_AUDIO_MIME}'")),
-            "v1's DEFAULT_AUDIO_MIME is no longer {DEFAULT_AUDIO_MIME}"
-        );
-        assert!(
-            source.contains(&format!("?? '{UNKNOWN_AUDIO_MIME}'")),
-            "v1's audioMime no longer falls back to {UNKNOWN_AUDIO_MIME}"
-        );
+        assert_eq!(audio_mime(".xyz"), UNKNOWN_AUDIO_MIME);
     }
 }

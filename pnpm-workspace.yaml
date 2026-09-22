@@ -1,8 +1,7 @@
 packages:
   - 'apps/*'
-  # Mobile excluded: its React Native deps break electron-builder packaging
-  # (pnpm list --depth Infinity exceeds Node.js string limits).
-  # Re-add when mobile is ready for release + upgrade web to React 19.
+  # Mobile excluded: it manages its own dependencies until it is ready for
+  # release (#403).
   - '!apps/mobile'
   - 'packages/*'
 
@@ -57,6 +56,4 @@ overrides:
   'brace-expansion@5': '>=5.0.9'
 
 onlyBuiltDependencies:
-  - electron
   - esbuild
-  - better-sqlite3
