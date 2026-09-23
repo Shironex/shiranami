@@ -136,11 +136,11 @@ pub fn run() {
         // Only when consent, packaging and a DSN all agreed.
         //
         // `init_with_no_injection` rather than `init`: the injecting variant
-        // installs a browser-side Sentry SDK into the webview, which would
-        // report the renderer's errors under the same consent the user gave for
-        // *crash* reporting, and would do it through a second client this
-        // process does not scrub through `core::scrub`. The Rust client covers
-        // the backend, which is what §2.2 #5 asks for.
+        // installs its own browser-side Sentry SDK into the webview, a second,
+        // unscrubbed client. The renderer instead runs its own consent-gated,
+        // scrubbed `@sentry/react` (`apps/web/src/lib/sentry.ts`) whose
+        // transport hands envelopes to this plugin's `envelope` command, so
+        // they are captured by this client and pass `core::scrub` again.
         builder = builder.plugin(tauri_plugin_sentry::init_with_no_injection(client.as_ref()));
     }
 

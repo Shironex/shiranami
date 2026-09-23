@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Baseline permissions for the main window. Plugin permissions are added here as each phase registers its plugin — never wholesale.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "sentry:default"]
 }
