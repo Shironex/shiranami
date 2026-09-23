@@ -1,5 +1,7 @@
 # Shiranami v2 — feature ideation through the "what the Rust engine makes newly possible or cheap" lens
 
+> **Paths in this report are pre-rename (Phase 20, 2026-09-22).** `apps/desktop-tauri/src-tauri` is now `apps/desktop/src-tauri`, and `packages/database` / `packages/recommendation` were deleted with the Electron app. Left as written, because this is a record of what was read at the time.
+
 Research date: 2026-08-03. Read-only pass over `crates/`, `docs/v2/architecture.md`,
 `apps/desktop-tauri/src-tauri/src/commands/`, `apps/web/src/hooks|components`, plus crate/licence
 research on crates.io and the vendored sources in `~/.cargo/registry`.

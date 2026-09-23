@@ -1,5 +1,7 @@
 # Shiranami v2 — music companion / desk pet: technical feasibility & architecture
 
+> **Paths in this report are pre-rename (Phase 20, 2026-09-22).** `apps/desktop-tauri/src-tauri` is now `apps/desktop/src-tauri`, and `packages/database` / `packages/recommendation` were deleted with the Electron app. Left as written, because this is a record of what was read at the time.
+
 Research date: 2026-08-05. Read-only pass over `crates/`, `apps/desktop-tauri/src-tauri/src/`,
 `apps/web/src/{lib/bridge,stores,hooks}`, `docs/v2/architecture.md`, the feature-wave research
 docs, plus Tauri v2 web research (docs, `tauri-apps/tauri` issues/discussions) on second-window

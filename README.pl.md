@@ -145,20 +145,21 @@ Pobierz najnowszą wersję z [Releases](https://github.com/Shironex/shiranami/re
 
 ### Zbudowane na
 
-|             |                                     |
-| ----------- | ----------------------------------- |
-| Desktop     | Electron 41                         |
-| Frontend    | React 19, Vite 8, Tailwind CSS 4    |
-| Baza danych | SQLite, better-sqlite3, Drizzle ORM |
-| Landing     | Astro 6, Tailwind CSS 4             |
-| UI          | Radix UI, Lucide Icons              |
-| Stan        | Zustand                             |
-| Jakość      | ESLint, Prettier, Husky             |
-| CI/CD       | GitHub Actions                      |
+|             |                                  |
+| ----------- | -------------------------------- |
+| Desktop     | Tauri 2, Rust                    |
+| Frontend    | React 19, Vite 8, Tailwind CSS 4 |
+| Baza danych | SQLite przez sqlx                |
+| Landing     | Astro 7, Tailwind CSS 4          |
+| UI          | Radix UI, Lucide Icons           |
+| Stan        | Zustand                          |
+| Jakość      | ESLint, Prettier, Husky          |
+| CI/CD       | GitHub Actions                   |
 
 ### Budowanie ze źródeł
 
-Potrzebujesz [Node.js](https://nodejs.org/) >= 22 i [pnpm](https://pnpm.io/) >= 10.
+Potrzebujesz [Node.js](https://nodejs.org/) >= 22, [pnpm](https://pnpm.io/) >= 10 oraz
+[Rusta](https://rustup.rs/).
 
 ```bash
 git clone https://github.com/Shironex/shiranami.git
@@ -167,29 +168,32 @@ pnpm install
 pnpm dev
 ```
 
-#### Natywne narzędzia do budowania
+#### Wymagania Rusta i Tauri
 
-`apps/desktop` zależy od `better-sqlite3`, czyli natywnego modułu Node, który musi pasować do ABI V8 używanego przez Electron. Gdy gotowa paczka binarna nie jest dostępna dla bieżącej wersji Electrona (zdarza się to często przy dużych aktualizacjach Electrona — na przykład Electron 42 nie ma obecnie gotowej paczki `better-sqlite3`), hook `electron-builder install-app-deps` uruchamiany po instalacji przechodzi na kompilację ze źródeł przez `node-gyp`. Do takiej kompilacji potrzebny jest działający toolchain C++ na danym systemie:
+Wersja Rusta jest przypięta w `rust-toolchain.toml`, więc `rustup` zainstaluje
+właściwą przy pierwszym poleceniu `cargo` — nie wybierasz jej sam. Poza tym Tauri
+potrzebuje systemowego webview i toolchainu C:
 
+- **Windows** — [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) z pakietem **Desktop development with C++**. WebView2 jest częścią Windows 11 i nowszych wydań Windows 10.
 - **macOS** — Xcode Command Line Tools: `xcode-select --install`
-- **Windows** — [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) z pakietem **Desktop development with C++** oraz Python 3.x w `PATH`
-- **Linux** — `build-essential` (Debian/Ubuntu) albo odpowiednik dla Twojej dystrybucji, plus Python 3
 
-Jeśli `pnpm install` zatrzyma się na kroku `apps/desktop postinstall` z błędem `node-gyp` / `make`, brakuje jednego z powyższych narzędzi. Zainstaluj je i uruchom `pnpm install` ponownie.
+Pierwsze budowanie kompiluje całe drzewo zależności Rusta i trochę trwa; kolejne
+są przyrostowe. Jeśli czegoś brakuje, zajrzyj do
+[wymagań Tauri](https://v2.tauri.app/start/prerequisites/).
 
 <details>
 <summary>Wszystkie komendy</summary>
 
 ```bash
-pnpm dev             # Desktop + web
-pnpm dev:web         # Tylko renderer
+pnpm dev             # Powłoka Tauri + web (tauri dev)
+pnpm dev:web         # Tylko renderer, w przeglądarce
 pnpm dev:landing     # Tylko landing page
 pnpm lint            # Uruchom linter
 pnpm typecheck       # Sprawdź typy
-pnpm build           # Zbuduj aplikację
+pnpm test            # Uruchom testy TypeScriptu
+pnpm build           # Zbuduj i spakuj aplikację (tauri build)
 pnpm build:landing   # Zbuduj landing page
-pnpm package:win     # Spakuj wersję dla Windows
-pnpm package:mac     # Spakuj wersję dla macOS
+pnpm version:set     # Ustaw wersję we wszystkich miejscach wydania
 ```
 
 </details>
@@ -199,18 +203,18 @@ pnpm package:mac     # Spakuj wersję dla macOS
 ```
 shiranami/
 ├── apps/
-│   ├── desktop/          # Proces główny Electrona i pakowanie
+│   ├── desktop/          # Powłoka Tauri (Rust) i pakowanie
 │   ├── landing/          # Landing page w Astro
 │   ├── mobile/           # Aplikacja mobilna w Expo
 │   ├── server/           # Backend API i schemat Prisma
 │   └── web/              # Renderer React używany przez aplikację desktopową
 ├── assets/
 │   └── screenshots/      # Zrzuty ekranu do README po angielsku i polsku
+├── crates/               # Workspace Rusta — backend, który spina powłoka
 ├── docs/                 # Notatki projektu, CI, audyty i materiały release'owe
 ├── packages/
-│   ├── contracts/        # Wspólne kontrakty API
-│   ├── database/         # Schemat Drizzle i pomocniki bazy danych
-│   ├── recommendation/   # Pakiet silnika rekomendacji
+│   ├── contracts/        # Wspólne kontrakty API, generowane z Rusta
+│   ├── eslint-plugin/    # Własne reguły lintera
 │   └── shared/           # Wspólne typy i stałe
 └── scripts/              # Skrypty wersjonowania i budowania
 ```

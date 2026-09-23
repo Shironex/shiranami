@@ -145,20 +145,21 @@ Grab the latest build from [Releases](https://github.com/Shironex/shiranami/rele
 
 ### Built with
 
-|          |                                     |
-| -------- | ----------------------------------- |
-| Desktop  | Electron 41                         |
-| Frontend | React 19, Vite 8, Tailwind CSS 4    |
-| Database | SQLite, better-sqlite3, Drizzle ORM |
-| Landing  | Astro 6, Tailwind CSS 4             |
-| UI       | Radix UI, Lucide Icons              |
-| State    | Zustand                             |
-| Quality  | ESLint, Prettier, Husky             |
-| CI/CD    | GitHub Actions                      |
+|          |                                  |
+| -------- | -------------------------------- |
+| Desktop  | Tauri 2, Rust                    |
+| Frontend | React 19, Vite 8, Tailwind CSS 4 |
+| Database | SQLite via sqlx                  |
+| Landing  | Astro 7, Tailwind CSS 4          |
+| UI       | Radix UI, Lucide Icons           |
+| State    | Zustand                          |
+| Quality  | ESLint, Prettier, Husky          |
+| CI/CD    | GitHub Actions                   |
 
 ### Building from source
 
-You'll need [Node.js](https://nodejs.org/) >= 22 and [pnpm](https://pnpm.io/) >= 10.
+You'll need [Node.js](https://nodejs.org/) >= 22, [pnpm](https://pnpm.io/) >= 10 and
+[Rust](https://rustup.rs/).
 
 ```bash
 git clone https://github.com/Shironex/shiranami.git
@@ -167,37 +168,32 @@ pnpm install
 pnpm dev
 ```
 
-#### Native build toolchain
+#### Rust and Tauri prerequisites
 
-`apps/desktop` depends on `better-sqlite3`, a native node module that needs
-to match Electron's V8 ABI. When a prebuilt binary isn't available for the
-current Electron release (which happens often around major Electron bumps
-— e.g. Electron 42 currently has no `better-sqlite3` prebuilt), the
-`electron-builder install-app-deps` postinstall hook falls back to
-compiling from source via `node-gyp`. That source build needs a working
-C++ toolchain on the host:
+The Rust toolchain is pinned in `rust-toolchain.toml`, so `rustup` installs the
+right version on the first `cargo` command — you don't pick one. On top of that,
+Tauri needs its platform webview and a C toolchain:
 
+- **Windows** — [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) with the **Desktop development with C++** workload. WebView2 ships with Windows 11 and recent Windows 10.
 - **macOS** — Xcode Command Line Tools: `xcode-select --install`
-- **Windows** — [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022) with the **Desktop development with C++** workload, plus Python 3.x in `PATH`
-- **Linux** — `build-essential` (Debian/Ubuntu) or the distro equivalent, plus Python 3
 
-If `pnpm install` fails during the `apps/desktop postinstall` step with a
-`node-gyp` / `make` error, you're missing one of the above. Install it,
-then re-run `pnpm install`.
+The first build compiles the whole Rust dependency tree and takes a while;
+later builds are incremental. See [Tauri's prerequisites](https://v2.tauri.app/start/prerequisites/)
+if something is missing.
 
 <details>
 <summary>All commands</summary>
 
 ```bash
-pnpm dev             # Desktop + web
-pnpm dev:web         # Renderer only
+pnpm dev             # Tauri shell + web (tauri dev)
+pnpm dev:web         # Renderer only, in the browser
 pnpm dev:landing     # Landing page only
 pnpm lint            # Run linter
 pnpm typecheck       # Type check
-pnpm build           # Build the app
+pnpm test            # Run the TypeScript tests
+pnpm build           # Build and bundle the app (tauri build)
 pnpm build:landing   # Build landing page
-pnpm package:win     # Package for Windows
-pnpm package:mac     # Package for macOS
+pnpm version:set     # Stamp a version across every release surface
 ```
 
 </details>
@@ -207,18 +203,18 @@ pnpm package:mac     # Package for macOS
 ```
 shiranami/
 ├── apps/
-│   ├── desktop/          # Electron main process and packaging
+│   ├── desktop/          # Tauri shell (Rust) and packaging
 │   ├── landing/          # Astro landing page
 │   ├── mobile/           # Expo mobile app
 │   ├── server/           # Backend API and Prisma schema
 │   └── web/              # React renderer used by the desktop app
 ├── assets/
 │   └── screenshots/      # README screenshots in English and Polish
+├── crates/               # Rust workspace — the backend the shell wires together
 ├── docs/                 # Project notes, CI docs, audits, and release research
 ├── packages/
-│   ├── contracts/        # Shared API contracts
-│   ├── database/         # Drizzle schema and DB helpers
-│   ├── recommendation/   # Recommendation engine package
+│   ├── contracts/        # Shared API contracts, generated from Rust
+│   ├── eslint-plugin/    # In-house lint rules
 │   └── shared/           # Shared types and constants
 └── scripts/              # Versioning and build helpers
 ```

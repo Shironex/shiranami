@@ -86,7 +86,7 @@ A **cargo workspace at the repo root**, inside the existing pnpm workspace. Not 
 
 ```
 shiranami/
-├── Cargo.toml                     # [workspace] members = ["crates/*", "apps/desktop-tauri/src-tauri"]
+├── Cargo.toml                     # [workspace] members = ["crates/*", "apps/desktop/src-tauri"]
 ├── Cargo.lock  rust-toolchain.toml  rustfmt.toml  clippy.toml
 ├── crates/
 │   ├── shiranami-core/            # models · error taxonomy · paths+path-safety+folders-cache
@@ -103,14 +103,13 @@ shiranami/
 │   └── shiranami-media-controls/  # souvlaki: SMTC + MPNowPlayingInfoCenter + media keys
 ├── apps/
 │   ├── web/                       # UNCHANGED + src/lib/bridge/ (the only new folder)
-│   ├── desktop/                   # 🕯 Electron — frozen, carries the v1.x bridge release
-│   ├── desktop-tauri/src-tauri/   # thin shell: main.rs lib.rs setup.rs commands/ events.rs
+│   ├── desktop/src-tauri/         # thin shell: main.rs lib.rs setup.rs commands/ events.rs
 │   │                              #   tray.rs shortcuts.rs deep_link.rs window.rs bindings.rs
 │   └── landing/ server/ mobile/   # untouched
 ├── packages/
 │   ├── contracts/src/generated/   # ⭐ emitted by tauri-specta, committed + CI-diffed
 │   ├── shared/ eslint-plugin/     # stay
-│   └── database/ recommendation/  # 🕯 frozen; deleted at cutover
+│   └── ~~database/ recommendation/~~  # deleted in Phase 20
 └── tools/                         # stays; lint-meta gains Rust text-scan rules
 ```
 
@@ -560,8 +559,11 @@ Developer ID cert lands (~post-v1, per the deferred-signing plan), at which poin
 
 ### 4.4 Supporting measures
 
-- Keep publishing v1.x **security/compat patches for ~6 months** so stragglers are not abandoned;
-  this is also why §3.2 freezes the `user_version` floor.
+- ~~Keep publishing v1.x **security/compat patches for ~6 months** so stragglers are not
+  abandoned.~~ **Not what happened.** `v1.0.1` was the last v1 release: v2.0.0 shipped on
+  2026-09-22 and the handover carried the existing user base, so no v1 patch was ever needed.
+  §3.2 still freezes the `user_version` floor, which is now permanent rather than scoped to a
+  window — a v1 install that never updated still has to be adoptable whenever it arrives.
 - **Back up the minisign updater keypair out-of-band before the first v2 release.** Losing
   `TAURI_SIGNING_PRIVATE_KEY` means installed v2 users can never be updated again, ever.
 - Windows dual-signing order is fixed and encoded in one CI script: build → **Authenticode** →
@@ -679,32 +681,32 @@ checks are too slow for pre-commit and DB fixture tests can conflict with a held
 Merged and deduped across all three reports. "Retired in" = the phase whose done-criteria prove
 the risk is closed.
 
-| ID      | Risk                                                                                           | P×I            | Mitigation                                                                                                                                                                                                                      | Retired in    |
-| ------- | ---------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| **R1**  | electron-updater → Tauri handover strands users on v1                                          | 🔴 H×H         | Dormant hook in every v1.x release (§4.1); automatic Windows path with NSIS preinstall uninstall; macOS modal; copy-never-move data; 6-month v1 patches; frozen `user_version` floor; crossover telemetry to _measure_ the tail | 1b + 20       |
-| **R2**  | WKWebView Web Audio differs from Chromium (silent on CORS; `MediaElementSource` quality)       | 🔴 M-H×H       | Spike A with an explicit anti-vacuity check (A3); loopback server owns the CORS headers; permanent analyser-energy E2E test                                                                                                     | 0 (gate) + 18 |
-| **R3**  | wry#1778 — macOS 26.6 drops cross-scheme subresources                                          | 🟠 H×M         | Loopback HTTP for audio **and** art; no custom scheme anywhere. Track the issue; the scheme route returns as an optimisation if fixed                                                                                           | 8             |
-| **R4**  | Windows SMTC shows "Microsoft Edge WebView2"                                                   | 🟠 Certain×M   | souvlaki from day one + webview media session suppressed via browser args; budget souvlaki #67/#70/#77                                                                                                                          | 13            |
-| **R5**  | E2E suite dies; macOS CDP visual testing dies                                                  | 🟠 Certain×M   | `@wdio/tauri-service` (embedded WebDriver is the only macOS option); CDP visual workflow moves to WebView2/Windows; `:5173` mock mode for component checks; Storybook unaffected                                                | 18            |
-| **R6**  | Silent data loss — wrong directory, or non-idempotent ledger adoption re-runs baseline DDL     | 🔴 M×H         | Idempotent squash; `sqlite_master` diff test; backup-before-touch; `migrated_from_v1` marker; **refuse to start** rather than create an empty DB                                                                                | 6 + 17        |
-| **R7**  | Renderer `localStorage` resets — users get re-onboarded                                        | 🟡 Certain×L-M | v1.x bridge dumps `shiranami.*` to `renderer-state.json`; v2 seeds zustand pre-hydration; re-derive `onboardingComplete` from a populated library                                                                               | 1b + 17       |
-| **R8**  | Windows Authenticode invalidates the minisign `.sig`                                           | 🟡 M×M         | One CI script fixes the order (build → Authenticode → re-minisign → publish); post-publish verify job; `rust-toolchain.toml` pins against rustup host drift                                                                     | 19            |
-| **R9**  | Rust build times / CI cost                                                                     | 🟡 Certain×L-M | Workspace splits the rebuild surface; rust-cache per job; dev incremental; release-only LTO; cancel superseded runs                                                                                                             | 1             |
-| **R10** | Rust learning curve on ownership-heavy code                                                    | 🟡 M×M         | Port order is deliberately graded: pure scoring (4) → known DSP (5) → mechanical SQL (6/7) → I/O-heavy (9–12) → wiring last                                                                                                     | 4→12          |
-| **R11** | `tauri-specta` is perpetually pre-1.0                                                          | 🟢 L-M×L       | Exact `=2.0.0-rc.25` pin (as nuclear ships); generated output lives behind `@shiranami/contracts`, so a swap to stable `ts-rs` touches ~1 file + a hand-written invoke wrapper                                                  | 2             |
-| **R12** | Tauri v3 churn                                                                                 | 🟢 L×L         | v3 is driven by GTK3→GTK4 on Linux, which we don't ship. Note and move on                                                                                                                                                       | —             |
-| **R13** | Unplanned feature regressions in aggregate (museeks lost 6+ features)                          | 🟡 M×L each    | The 155-channel manifest **is** the parity checklist; 155/155 is a Phase 14 done-criterion. Known accepted losses: debug-panel shape (#31), output-device selection (never had it)                                              | 14            |
-| **R14** | Album-art hash change invalidates the cache / breaks `tracks.album_art`                        | 🟡 Certain×L   | Parity explicitly abandoned; copy files, serve by stored hash, regenerate only when missing; golden test pins v2's own hash function                                                                                            | 9 + 17        |
-| **R15** | Sync `#[tauri::command]` freezes the UI on the WKWebView main thread                           | 🟠 M×M         | All commands `async` + `spawn_blocking`; `SYNC_COMMAND_ALLOWLIST` ratchet test                                                                                                                                                  | 14            |
-| **R16** | Bare `tokio::spawn` from a sync/callback thread → SIGABRT across the extern-"C" boundary       | 🟠 L×H         | `tauri::async_runtime::spawn` only; source-grep regression test                                                                                                                                                                 | 2             |
-| **R17** | Drift guard silently becomes a no-op (nightcore #422 — vacuous for its entire life)            | 🟠 M×H         | Export path is a compile-time constant, not env-derived; `verify:drift-guard` perturbs a type and **requires failure**                                                                                                          | 2             |
-| **R18** | Boot-order regressions (Sentry after ready, migrations before backup, queue hydrate before DB) | 🟡 M×M         | Ordering is documented in §2.8, stamped by `BootTimer`, and asserted by a setup-sequence test                                                                                                                                   | 16            |
-| **R19** | macOS Finder launch has a minimal PATH → ffmpeg fallback and yt-dlp fail                       | 🟡 M×M         | `fix-path-env-rs` + `hydrate_login_path()` single-threaded at startup                                                                                                                                                           | 16            |
-| **R20** | Orphaned child processes (yt-dlp/ffmpeg) on abnormal exit, especially Windows                  | 🟡 M×L         | `kill_on_drop(true)` on every child + an `ExitRequested` sweep                                                                                                                                                                  | 11            |
-| **R21** | Two instances race the DB / settings file                                                      | 🟡 L×H         | `tauri-plugin-single-instance` registered **first**; second instance focuses the existing window                                                                                                                                | 16            |
-| **R22** | Secrets sit in plaintext JSON                                                                  | 🟡 Certain×M   | `create_owner_only` 0600 at creation (incl. the temp-file window) for v2.0; keychain deferred post-v2 with a deliberate rationale (§3.4)                                                                                        | 2             |
-| **R23** | `apps/server` share-DTO coupling / paused `apps/mobile` broken by the contracts rewrite        | 🟡 M×M         | Share DTOs stay hand-written zod in `packages/contracts`, **not** generated; a contracts-import smoke build for mobile stays in CI                                                                                              | 14            |
-| **R24** | High-frequency events flood the webview (scan/download progress)                               | 🟢 M×L         | Keep the 250 ms throttle + immediate-on-structural-change; coalescing pump; `RawValue` single-serialization for emit+persist paths                                                                                              | 10, 11        |
+| ID      | Risk                                                                                           | P×I            | Mitigation                                                                                                                                                                                                  | Retired in    |
+| ------- | ---------------------------------------------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| **R1**  | electron-updater → Tauri handover strands users on v1                                          | 🔴 H×H         | Dormant hook in every v1.x release (§4.1); automatic Windows path with NSIS preinstall uninstall; macOS modal; copy-never-move data; frozen `user_version` floor; crossover telemetry to _measure_ the tail | 1b + 20       |
+| **R2**  | WKWebView Web Audio differs from Chromium (silent on CORS; `MediaElementSource` quality)       | 🔴 M-H×H       | Spike A with an explicit anti-vacuity check (A3); loopback server owns the CORS headers; permanent analyser-energy E2E test                                                                                 | 0 (gate) + 18 |
+| **R3**  | wry#1778 — macOS 26.6 drops cross-scheme subresources                                          | 🟠 H×M         | Loopback HTTP for audio **and** art; no custom scheme anywhere. Track the issue; the scheme route returns as an optimisation if fixed                                                                       | 8             |
+| **R4**  | Windows SMTC shows "Microsoft Edge WebView2"                                                   | 🟠 Certain×M   | souvlaki from day one + webview media session suppressed via browser args; budget souvlaki #67/#70/#77                                                                                                      | 13            |
+| **R5**  | E2E suite dies; macOS CDP visual testing dies                                                  | 🟠 Certain×M   | `@wdio/tauri-service` (embedded WebDriver is the only macOS option); CDP visual workflow moves to WebView2/Windows; `:5173` mock mode for component checks; Storybook unaffected                            | 18            |
+| **R6**  | Silent data loss — wrong directory, or non-idempotent ledger adoption re-runs baseline DDL     | 🔴 M×H         | Idempotent squash; `sqlite_master` diff test; backup-before-touch; `migrated_from_v1` marker; **refuse to start** rather than create an empty DB                                                            | 6 + 17        |
+| **R7**  | Renderer `localStorage` resets — users get re-onboarded                                        | 🟡 Certain×L-M | v1.x bridge dumps `shiranami.*` to `renderer-state.json`; v2 seeds zustand pre-hydration; re-derive `onboardingComplete` from a populated library                                                           | 1b + 17       |
+| **R8**  | Windows Authenticode invalidates the minisign `.sig`                                           | 🟡 M×M         | One CI script fixes the order (build → Authenticode → re-minisign → publish); post-publish verify job; `rust-toolchain.toml` pins against rustup host drift                                                 | 19            |
+| **R9**  | Rust build times / CI cost                                                                     | 🟡 Certain×L-M | Workspace splits the rebuild surface; rust-cache per job; dev incremental; release-only LTO; cancel superseded runs                                                                                         | 1             |
+| **R10** | Rust learning curve on ownership-heavy code                                                    | 🟡 M×M         | Port order is deliberately graded: pure scoring (4) → known DSP (5) → mechanical SQL (6/7) → I/O-heavy (9–12) → wiring last                                                                                 | 4→12          |
+| **R11** | `tauri-specta` is perpetually pre-1.0                                                          | 🟢 L-M×L       | Exact `=2.0.0-rc.25` pin (as nuclear ships); generated output lives behind `@shiranami/contracts`, so a swap to stable `ts-rs` touches ~1 file + a hand-written invoke wrapper                              | 2             |
+| **R12** | Tauri v3 churn                                                                                 | 🟢 L×L         | v3 is driven by GTK3→GTK4 on Linux, which we don't ship. Note and move on                                                                                                                                   | —             |
+| **R13** | Unplanned feature regressions in aggregate (museeks lost 6+ features)                          | 🟡 M×L each    | The 155-channel manifest **is** the parity checklist; 155/155 is a Phase 14 done-criterion. Known accepted losses: debug-panel shape (#31), output-device selection (never had it)                          | 14            |
+| **R14** | Album-art hash change invalidates the cache / breaks `tracks.album_art`                        | 🟡 Certain×L   | Parity explicitly abandoned; copy files, serve by stored hash, regenerate only when missing; golden test pins v2's own hash function                                                                        | 9 + 17        |
+| **R15** | Sync `#[tauri::command]` freezes the UI on the WKWebView main thread                           | 🟠 M×M         | All commands `async` + `spawn_blocking`; `SYNC_COMMAND_ALLOWLIST` ratchet test                                                                                                                              | 14            |
+| **R16** | Bare `tokio::spawn` from a sync/callback thread → SIGABRT across the extern-"C" boundary       | 🟠 L×H         | `tauri::async_runtime::spawn` only; source-grep regression test                                                                                                                                             | 2             |
+| **R17** | Drift guard silently becomes a no-op (nightcore #422 — vacuous for its entire life)            | 🟠 M×H         | Export path is a compile-time constant, not env-derived; `verify:drift-guard` perturbs a type and **requires failure**                                                                                      | 2             |
+| **R18** | Boot-order regressions (Sentry after ready, migrations before backup, queue hydrate before DB) | 🟡 M×M         | Ordering is documented in §2.8, stamped by `BootTimer`, and asserted by a setup-sequence test                                                                                                               | 16            |
+| **R19** | macOS Finder launch has a minimal PATH → ffmpeg fallback and yt-dlp fail                       | 🟡 M×M         | `fix-path-env-rs` + `hydrate_login_path()` single-threaded at startup                                                                                                                                       | 16            |
+| **R20** | Orphaned child processes (yt-dlp/ffmpeg) on abnormal exit, especially Windows                  | 🟡 M×L         | `kill_on_drop(true)` on every child + an `ExitRequested` sweep                                                                                                                                              | 11            |
+| **R21** | Two instances race the DB / settings file                                                      | 🟡 L×H         | `tauri-plugin-single-instance` registered **first**; second instance focuses the existing window                                                                                                            | 16            |
+| **R22** | Secrets sit in plaintext JSON                                                                  | 🟡 Certain×M   | `create_owner_only` 0600 at creation (incl. the temp-file window) for v2.0; keychain deferred post-v2 with a deliberate rationale (§3.4)                                                                    | 2             |
+| **R23** | `apps/server` share-DTO coupling / paused `apps/mobile` broken by the contracts rewrite        | 🟡 M×M         | Share DTOs stay hand-written zod in `packages/contracts`, **not** generated; a contracts-import smoke build for mobile stays in CI                                                                          | 14            |
+| **R24** | High-frequency events flood the webview (scan/download progress)                               | 🟢 M×L         | Keep the 250 ms throttle + immediate-on-structural-change; coalescing pump; `RawValue` single-serialization for emit+persist paths                                                                          | 10, 11        |
 
 ---
 
@@ -760,7 +762,7 @@ and a committed `Cargo.lock` double as lockfile-drift guards.
 | D12 | Waveform peaks stay a plain `invoke`, not a `tauri::ipc::Channel` raw stream                                                                        | 2.9   |
 | D13 | Move to the Tauri-native data dir; **copy, never move**; refuse to start on migration failure                                                       | 3.1   |
 | D14 | Idempotent `0001_baseline` squash + synthetic `_sqlx_migrations` row; leave `__drizzle_migrations` in place                                         | 3.2   |
-| D15 | Freeze the `PRAGMA user_version` floor for the ~6-month handover window                                                                             | 3.2   |
+| D15 | Freeze the `PRAGMA user_version` floor (scoped to the handover window; now permanent — §4.4)                                                        | 3.2   |
 | D16 | Abandon art-hash parity; copy the cache, serve by stored hash, regenerate only when missing; `image` crate q85, no mozjpeg                          | 3.3   |
 | D17 | `core::atomic` JSON store instead of `tauri-plugin-store` (0600 secrets, quarantine, change-bus)                                                    | 3.4   |
 | D18 | Secrets stay in the settings file for v2.0; keychain post-v2                                                                                        | 3.4   |
@@ -916,9 +918,10 @@ A healed `tracks` also carries `disc_number` last rather than mid-table, because
 appends; v1 produces the same shape.
 
 **The `sqlite_master` diff test is fixture-based, and the fixture has its own guard.**
-`crates/shiranami-db/fixtures/v1-schema.json` is generated from `packages/database/drizzle/*` by
-`pnpm verify:db-baseline` and committed, because `packages/database` is deleted at cutover (Phase 20)
-and the cargo test has to keep working afterwards. The script's verifying mode is wired into
+`crates/shiranami-db/fixtures/v1-schema.json` was generated from `packages/database/drizzle/*` by
+`pnpm verify:db-baseline` and committed, precisely because `packages/database` would be deleted at
+cutover and the cargo test has to keep working afterwards. Phase 20 deleted it, so the committed
+fixture is now the only record of v1's schema and both the script and its CI step are gone. The script's verifying mode is wired into
 `rust-checks`, not `ci.yml` — that job already installs Node for `verify:drift-guard`, and the script
 uses `node:sqlite` and no `node_modules`. It derives the `user_version` floor from `migrate.ts`
 rather than hardcoding it, so a v1 that raised its floor fails the check instead of silently
@@ -985,7 +988,7 @@ so an entry inherited from v1 keeps v1's bytes even when v2 processes the identi
 rehashes, re-encodes or migrates the copied directory. The accepted cost — one duplicated file per
 cover that is re-extracted under v2 — is asserted rather than left to be discovered.
 
-**The art fixture's CI step lives in `lint`, not `rust-checks`,** unlike `verify:db-baseline`. It
+**The art fixture's CI step lived in `lint`, not `rust-checks`,** unlike `verify:db-baseline`. It
 executes v1's real `sharp`, which is a `node_modules` dependency, and `rust-checks` deliberately
 skips `pnpm install`. A pure-builtin reimplementation would be measuring the reimplementation instead
 of measuring v1. The Electron half is captured by hand (`--write --with-electron`) and carried
@@ -1171,7 +1174,7 @@ depending on metadata could be built in isolation.
 
 **Real-yt-dlp tests are gated on the binary's presence** so CI stays hermetic, and carry a `SHIRANAMI_YTDLP_PATH` override so the skip is provably a skip: pointing it at `/bin/echo` fails two of the three (R17's lesson, applied to a skipping test).
 
-**Fixtures.** `spotify-embed-playlist.html` is copied into `crates/shiranami-downloader/fixtures/` so the suite survives Phase 20 deleting `apps/desktop`, with a test asserting byte-identity while both exist — the treatment `shiranami-db` gave `v1-schema.json`. Both paths are prettier-ignored.
+**Fixtures.** `spotify-embed-playlist.html` is copied into `crates/shiranami-downloader/fixtures/` so the suite survives Phase 20 deleting the Electron app (then `apps/desktop`, now the name of the Tauri shell), with a test that asserted byte-identity while both existed — the treatment `shiranami-db` gave `v1-schema.json`. Both paths are prettier-ignored.
 
 ## Phase 12A implementation amendments (2026-08-01, merged to v2)
 
@@ -2592,6 +2595,11 @@ only uploads it as a release asset. Putting it at that URL is a Phase 20 step.
 
 ### `bump-version` was not extended, and that is deliberate
 
+> **Superseded by Phase 20.** The fold this entry predicted has happened:
+> `scripts/set-version.mjs` is now the only stamper, and `bump-version.mjs`,
+> `set-version-ci.sh` and `set-version-v2.mjs` are gone with the Electron app.
+> The reasoning below is kept because it explains why there were ever three.
+
 The phase table says "`bump-version` extended to `Cargo.toml` +
 `tauri.conf.json`". Instead there is a separate `scripts/set-version-v2.mjs`.
 `bump-version.mjs` and `set-version-ci.sh` own the _v1_ line — root
@@ -2769,3 +2777,29 @@ source has no embedded cover — v2's encoder cannot reproduce a sharp/nativeIma
 hash (see `art/mod.rs`). Regenerating those means re-extracting _and_ updating
 the row, which is the "regeneration happens only when the file is missing"
 clause D16 leaves open and which nothing implements yet.
+
+## Phase 20 — cutover (2026-09-22, shipped as `v2.0.0`)
+
+The last row of the §6 phase table, and the end of the port. `v2.0.0` is tagged,
+released and confirmed working by users who updated from v1.
+
+| Phase 20 scope                                                                 | Outcome                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rename `apps/desktop-tauri` → `apps/desktop`                                   | Done (#454). The path appears throughout this document in its pre-rename form; those are left as written, because they record the plan as it was executed.                                                                                     |
+| Freeze/delete the Electron app, `packages/database`, `packages/recommendation` | Deleted (#454), not frozen. `crates/shiranami-db/fixtures/v1-schema.json` and `crates/shiranami-downloader/fixtures/spotify-embed-playlist.html` are the copies that had to outlive them, exactly as §3.2 and the Phase 11 amendments planned. |
+| Flip `enabled` on the `v2.json` manifest                                       | Done.                                                                                                                                                                                                                                          |
+| Publish `v2.0.0`                                                               | Tagged and released.                                                                                                                                                                                                                           |
+| Watch crossover telemetry rise                                                 | Ongoing — the only item that outlives the phase.                                                                                                                                                                                               |
+
+**What the cutover changed about this document.** §4.4's six-month v1 patch
+window never opened: `v1.0.1` was the final v1 release, so R1's mitigation list
+and D15's scope are amended above. The `user_version` floor stays frozen
+permanently rather than for a window, because a v1 install that never updated
+still has to be adoptable whenever it shows up.
+
+**What is deliberately _not_ rewritten.** The phase table's scope column, the
+dated amendment sections above, and the `docs/v2/**/research-*.md` reports all
+name `apps/desktop-tauri` and the deleted packages. They are records of what was
+planned and what was read at the time, and editing them would falsify that
+record rather than correct it. Each research report now carries a dated note
+saying the paths are pre-rename.

@@ -1,5 +1,7 @@
 # Shiranami v2 — Feature Ideation: VISUAL & AMBIENT EXPERIENCE
 
+> **Paths in this report are pre-rename (Phase 20, 2026-09-22).** `apps/desktop-tauri/src-tauri` is now `apps/desktop/src-tauri`, and `packages/database` / `packages/recommendation` were deleted with the Electron app. Left as written, because this is a record of what was read at the time.
+
 Research lens: what makes a calm, local-first lofi player feel like a _place_ rather than an app.
 Grounded in a read-only pass over `apps/web/src` + `crates/` + `apps/desktop-tauri/src-tauri`.
 
