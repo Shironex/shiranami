@@ -382,8 +382,8 @@ importers:
         specifier: 5.4.0
         version: 5.4.0(encoding@0.1.13)(rollup@4.60.2)(webpack@5.106.0(esbuild@0.28.2))
       '@size-limit/file':
-        specifier: ^12.1.0
-        version: 12.1.0(size-limit@12.1.0(jiti@2.7.0))
+        specifier: ^14.0.0
+        version: 14.0.0(size-limit@14.0.0)
       '@storybook/addon-a11y':
         specifier: ^10.6.0
         version: 10.6.0(storybook@10.6.0(@types/react@19.3.0)(prettier@3.9.9)(react@19.3.0))
@@ -436,8 +436,8 @@ importers:
         specifier: ^1.63.0
         version: 1.63.0
       size-limit:
-        specifier: ^12.1.0
-        version: 12.1.0(jiti@2.7.0)
+        specifier: ^14.0.0
+        version: 14.0.0
       storybook:
         specifier: ^10.6.0
         version: 10.6.0(@types/react@19.3.0)(prettier@3.9.9)(react@19.3.0)
@@ -3413,11 +3413,11 @@ packages:
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
 
-  '@size-limit/file@12.1.0':
-    resolution: {integrity: sha512-eGwDcIufnNnvJRzv3liDOn6MAOGgmOTUdpeGQ2KuRTlgIgO54AJH1ilvktlJc6PIjNfwpYY0dOGyap1QgM1swQ==}
-    engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
+  '@size-limit/file@14.0.0':
+    resolution: {integrity: sha512-CzlXGYuzt+vZM70NxPwi5uFyYHhORrdpDCJtcH+G57oeUPrgnqdUhDoP4jRxa6i2HNBM5Htatw5X5TcDZ8uBWQ==}
+    engines: {node: ^22.19.0 || ^24.5.0 || >=26.0.0}
     peerDependencies:
-      size-limit: 12.1.0
+      size-limit: 14.0.0
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -4894,10 +4894,6 @@ packages:
   byte-counter@0.1.0:
     resolution: {integrity: sha512-jheRLVMeUKrDBjVw2O5+k4EvR4t9wtxHL+bo/LxfkxsVeuGMy3a5SEGgXdAFA4FSzTrU8rQXQIrsZ3oBq5a0pQ==}
     engines: {node: '>=20'}
-
-  bytes-iec@3.1.1:
-    resolution: {integrity: sha512-fey6+4jDK7TFtFg/klGSvNKJctyU7n2aQdnM+CO0ruLPbqqMOM8Tio0Pc+deqUeVKX1tL5DQep1zQ7+37aTAsA==}
-    engines: {node: '>= 0.8'}
 
   c12@3.3.4:
     resolution: {integrity: sha512-cM0ApFQSBXuourJejzwv/AuPRvAxordTyParRVcHjjtXirtkzM0uK2L9TTn9s0cXZbG7E55jCivRQzoxYmRAlA==}
@@ -8217,15 +8213,10 @@ packages:
     engines: {node: '>=20.19.5', npm: '>=10.8.2'}
     hasBin: true
 
-  size-limit@12.1.0:
-    resolution: {integrity: sha512-VnDS2fycANrJFVPQwjaD+h+hkISY7EB3LsPsYWje4lBCjQwwsZLxjwwRwVJKHrcj2ZqyG+DdXykWm9mbZklZrw==}
-    engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
+  size-limit@14.0.0:
+    resolution: {integrity: sha512-VqcTCDkYEi+yH6s03bDRWHdC70ipyhI7d8geYiso/rMtUJ5H3uo7bZFYOlUmdrH3N+DCZstBntBJWZBpHp1waQ==}
+    engines: {node: ^22.19.0 || ^24.5.0 || >=26.0.0}
     hasBin: true
-    peerDependencies:
-      jiti: ^2.0.0
-    peerDependenciesMeta:
-      jiti:
-        optional: true
 
   slash@3.0.0:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
@@ -12357,9 +12348,9 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@size-limit/file@12.1.0(size-limit@12.1.0(jiti@2.7.0))':
+  '@size-limit/file@14.0.0(size-limit@14.0.0)':
     dependencies:
-      size-limit: 12.1.0(jiti@2.7.0)
+      size-limit: 14.0.0
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -14317,8 +14308,6 @@ snapshots:
       load-tsconfig: 0.2.5
 
   byte-counter@0.1.0: {}
-
-  bytes-iec@3.1.1: {}
 
   c12@3.3.4(magicast@0.5.5):
     dependencies:
@@ -18030,15 +18019,10 @@ snapshots:
       arg: 5.0.2
       sax: 1.6.1
 
-  size-limit@12.1.0(jiti@2.7.0):
+  size-limit@14.0.0:
     dependencies:
-      bytes-iec: 3.1.1
       lilconfig: 3.1.3
       nanospinner: 1.2.2
-      picocolors: 1.1.1
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      jiti: 2.7.0
 
   slash@3.0.0: {}
 
