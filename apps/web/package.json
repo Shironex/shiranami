@@ -5,7 +5,8 @@
   "private": true,
   "sideEffects": [
     "**/*.css",
-    "**/lib/bridge/install.ts"
+    "**/lib/bridge/install.ts",
+    "**/src/e2e-bridge.ts"
   ],
   "type": "module",
   "scripts": {

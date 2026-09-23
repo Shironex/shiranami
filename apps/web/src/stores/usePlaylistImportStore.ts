@@ -2,12 +2,7 @@ import { create } from 'zustand';
 import type { SearchResult } from '@/types/electron';
 
 export type PlaylistTrackStatus =
-  | 'pending'
-  | 'downloading'
-  | 'converting'
-  | 'done'
-  | 'error'
-  | 'skipped';
+  'pending' | 'downloading' | 'converting' | 'done' | 'error' | 'skipped';
 
 export interface PlaylistTrack {
   id: string;

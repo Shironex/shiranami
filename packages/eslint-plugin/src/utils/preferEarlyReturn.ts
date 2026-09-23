@@ -4,9 +4,7 @@ const MIN_CONSEQUENT_STATEMENTS = 2;
 
 export function getFunctionBlockBody(
   node:
-    | TSESTree.FunctionDeclaration
-    | TSESTree.FunctionExpression
-    | TSESTree.ArrowFunctionExpression
+    TSESTree.FunctionDeclaration | TSESTree.FunctionExpression | TSESTree.ArrowFunctionExpression
 ): TSESTree.BlockStatement | null {
   if (node.body.type !== AST_NODE_TYPES.BlockStatement) {
     return null;
