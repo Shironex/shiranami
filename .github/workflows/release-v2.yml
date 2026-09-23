@@ -208,6 +208,8 @@ jobs:
 
       - name: Collect the bundles
         shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           mkdir -p dist-release
           shopt -s nullglob
@@ -220,6 +222,26 @@ jobs:
           do
             cp "$file" dist-release/
           done
+
+          # Tauri names the updater archive a bare `Shiranami.app.tar.gz`, and
+          # the manifest generator reads the arch from the file name. Renaming
+          # leaves the minisign signature valid: it covers the bytes, not the
+          # name.
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            case "$(uname -m)" in
+              arm64) arch=aarch64 ;;
+              x86_64) arch=x64 ;;
+              *) echo "::error::Unknown macOS runner arch $(uname -m)"; exit 1 ;;
+            esac
+            archives=(dist-release/*.app.tar.gz)
+            if [ ${#archives[@]} -ne 1 ]; then
+              echo "::error::Expected exactly one .app.tar.gz, found ${#archives[@]}"
+              exit 1
+            fi
+            target="dist-release/Shiranami_${VERSION}_${arch}.app.tar.gz"
+            mv "${archives[0]}" "$target"
+            mv "${archives[0]}.sig" "$target.sig"
+          fi
           ls -la dist-release
 
       - name: Upload the bundles
@@ -344,14 +366,15 @@ jobs:
           mkdir -p verify && cd verify
           gh release download "${{ needs.publish.outputs.tag }}" \
             --repo "${{ github.repository }}" \
-            --pattern 'latest.json' --pattern '*-setup.exe'
+            --pattern 'latest.json' --pattern '*-setup.exe' --pattern '*.app.tar.gz'
 
-      - name: Verify the installer against latest.json
+      - name: Verify every updater artifact against latest.json
         run: |
           cd verify
           # `pubkey` in tauri.conf.json is the base64 of the whole .pub file, and
           # each `signature` in the feed is the base64 of a .sig file; minisign(1)
-          # wants both back in their original form.
+          # wants both back in their original form. Every platform the feed must
+          # carry is checked: a platform left out here would ship unverified.
           node -e '
             const fs = require("fs");
             const conf = JSON.parse(fs.readFileSync("../apps/desktop/src-tauri/tauri.conf.json", "utf8"));
@@ -359,17 +382,22 @@ jobs:
             fs.writeFileSync("updater.pub", pub.endsWith("\n") ? pub : pub + "\n");
 
             const feed = JSON.parse(fs.readFileSync("latest.json", "utf8"));
-            const entry = feed.platforms["windows-x86_64"];
-            if (!entry) throw new Error("latest.json carries no windows-x86_64 entry");
-            const sig = Buffer.from(entry.signature, "base64").toString("utf8");
-            fs.writeFileSync("installer.sig", sig.endsWith("\n") ? sig : sig + "\n");
-
-            const name = new URL(entry.url).pathname.split("/").pop();
-            if (!fs.existsSync(name)) throw new Error(`latest.json points at ${name}, which is not in the release`);
-            fs.writeFileSync("installer.name", name);
+            const names = [];
+            for (const key of ["windows-x86_64", "darwin-aarch64"]) {
+              const entry = feed.platforms[key];
+              if (!entry) throw new Error(`latest.json carries no ${key} entry`);
+              const name = new URL(entry.url).pathname.split("/").pop();
+              if (!fs.existsSync(name)) throw new Error(`latest.json points at ${name}, which is not in the release`);
+              const sig = Buffer.from(entry.signature, "base64").toString("utf8");
+              fs.writeFileSync(`${name}.feed-sig`, sig.endsWith("\n") ? sig : sig + "\n");
+              names.push(name);
+            }
+            fs.writeFileSync("artifacts.list", names.join("\n") + "\n");
           '
-          minisign -V -m "$(cat installer.name)" -x installer.sig -p updater.pub
-          echo "minisign verification passed for $(cat installer.name)"
+          while read -r name; do
+            minisign -V -m "$name" -x "$name.feed-sig" -p updater.pub
+            echo "minisign verification passed for $name"
+          done < artifacts.list
 
   verify-authenticode:
     name: Verify Authenticode signature

@@ -1329,7 +1329,7 @@ export const commands = {
 	 *  Cannot fail. See the parent module: v1 catches its own check failure and
 	 *  still answers `{ enabled: true }`, so a failing check reaches the user as an
 	 *  `updater:error` event. An absent seam answers `{ enabled: false }`, which is
-	 *  v1's answer in dev and on macOS.
+	 *  v1's answer in dev (and, in v1, on macOS).
 	 */
 	updaterCheckForUpdates: () => __TAURI_INVOKE<UpdaterCheck>("updater_check_for_updates"),
 	/**  `updater:start-download` — download the update that was found. */

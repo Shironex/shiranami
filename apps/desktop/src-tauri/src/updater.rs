@@ -8,27 +8,28 @@
 //!
 //! This is that implementation. Nothing in `commands/updater` changes.
 //!
-//! # The three disabled cases are v1's, and they are not the same "dev"
+//! # The two disabled cases, and the one v1 had that v2 dropped
 //!
 //! v1 refused in three places and only one of them was about the build being a
 //! debug build:
 //!
-//! | Case  | v1                                          | Here                  |
-//! | ----- | ------------------------------------------- | --------------------- |
-//! | dev   | `!app.isPackaged`                           | `debug_assertions`    |
-//! | macOS | unsigned, so no updater exists at all (§4.3) | `cfg!(target_os)`     |
-//! | E2E   | `initializeAutoUpdater` never called        | `SHIRANAMI_E2E=1`     |
+//! | Case  | v1                                           | Here                  |
+//! | ----- | -------------------------------------------- | --------------------- |
+//! | dev   | `!app.isPackaged`                            | `debug_assertions`    |
+//! | macOS | unsigned, so no updater exists at all (§4.3) | enabled               |
+//! | E2E   | `initializeAutoUpdater` never called         | `SHIRANAMI_E2E=1`     |
 //!
-//! All three answer `{ enabled: false }` rather than erroring, because that is
-//! what the settings pane renders "updates are not available in this build"
-//! from. [`build`] returns `None` for all three and the command layer's absent-seam
-//! path produces exactly that answer, so there is no second code path to keep in
-//! agreement.
+//! Both disabled cases answer `{ enabled: false }` rather than erroring, because
+//! that is what the settings pane renders "updates are not available in this
+//! build" from. [`build`] returns `None` for both and the command layer's
+//! absent-seam path produces exactly that answer, so there is no second code
+//! path to keep in agreement.
 //!
-//! macOS stays disabled until the Developer ID certificate lands (§4.3): v1 has
-//! no macOS updater to hand over *from*, so there is no regression, and an
-//! unsigned app writing into `/Applications` and relaunching is the fragile,
-//! Gatekeeper-quarantined path that fails silently on user machines.
+//! macOS is enabled without a Developer ID certificate. The bundle is ad-hoc
+//! signed (`signingIdentity: "-"`), the `.app.tar.gz` is verified against the
+//! updater's own minisign key, and a file this process downloads carries no
+//! quarantine attribute, so Gatekeeper never re-assesses the replaced bundle.
+//! nightcore ships the same setup and self-updates on macOS (§4.3 amendment).
 //!
 //! # `is_release_pending` had to grow, and why that is a launch issue
 //!
@@ -67,7 +68,7 @@ pub const CHECK_INTERVAL_SECS: u64 = 60 * 60;
 ///
 /// See the module docs for why the three clauses are not one.
 pub fn is_supported(e2e: bool) -> bool {
-    !e2e && !crate::infra::platform::is_dev() && !cfg!(target_os = "macos")
+    !e2e && !crate::infra::platform::is_dev()
 }
 
 /// The updater for this build, or `None` when it has none.
@@ -76,7 +77,6 @@ pub fn build(app: &AppHandle, e2e: bool) -> Option<Arc<dyn Updater>> {
         tracing::info!(
             e2e,
             dev = crate::infra::platform::is_dev(),
-            macos = cfg!(target_os = "macos"),
             "this build has no auto-updater"
         );
         return None;
@@ -255,10 +255,12 @@ impl Updater for PluginUpdater {
         };
 
         match update.install(bytes) {
-            // On success the process exits, so the renderer never observes this
-            // resolving — which is why the command returns `void` rather than a
-            // status.
-            Ok(()) => Ok(()),
+            // On Windows the NSIS installer takes over and the process exits
+            // inside `install`. On macOS `install` only swaps the bundle on disk
+            // and returns, so the restart that loads the new one is ours. Either
+            // way the renderer never observes this resolving — which is why the
+            // command returns `void` rather than a status.
+            Ok(()) => self.app.restart(),
             Err(error) => {
                 let message = error.to_string();
                 self.events.send(UpdaterEvent::failed(&message));

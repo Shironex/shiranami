@@ -557,6 +557,19 @@ download manually; the modal makes that explicit instead of pretending otherwise
 Developer ID cert lands (~post-v1, per the deferred-signing plan), at which point the
 `.app.tar.gz` replacement path becomes worth building.
 
+> **Amended 2026-09-23: macOS auto-update ships without the Developer ID cert.** The
+> Gatekeeper concern above does not apply to a self-update: the plugin downloads the
+> `.app.tar.gz` itself, so the file carries no quarantine attribute and Gatekeeper never
+> re-assesses the replaced bundle, and integrity comes from the minisign key, not Apple's.
+> nightcore (noctcore/nightcore) ships the same setup, an ad-hoc signed bundle
+> (`signingIdentity: "-"`) and `darwin-*` entries in `latest.json`, and self-updates on macOS.
+> Changes: `updater::is_supported` no longer excludes macOS, `install` restarts the app
+> itself (on macOS the plugin swaps the bundle and returns; only Windows' NSIS exits the
+> process), `latest.json` carries `darwin-aarch64`, and the release workflow renames the
+> bare `Shiranami.app.tar.gz` to carry its arch. 2.0.0 shipped with the updater compiled out
+> on macOS, so Mac users download the first release that has it by hand, once. The
+> handover modal stays: it is v1's path, not v2's.
+
 ### 4.4 Supporting measures
 
 - ~~Keep publishing v1.x **security/compat patches for ~6 months** so stragglers are not

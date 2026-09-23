@@ -47,7 +47,8 @@
     "shortDescription": "Your personal music sanctuary",
     "longDescription": "Shiranami is a local-first music player: your own library, your own files, no account and no streaming service in between.",
     "macOS": {
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
     },
     "windows": {
       "nsis": {
