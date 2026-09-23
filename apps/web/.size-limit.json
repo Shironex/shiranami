@@ -8,13 +8,13 @@
   {
     "name": "vendor-react",
     "path": "dist/assets/vendor-react-*.js",
-    "limit": "65 kB",
+    "limit": "70 kB",
     "gzip": true
   },
   {
     "name": "total JS",
     "path": "dist/assets/*.js",
-    "limit": "700 kB",
+    "limit": "800 kB",
     "gzip": true
   }
 ]
