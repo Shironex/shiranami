@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@/lib/i18n": ["../../.design-sync/i18n-preview-shim.ts"]
     }

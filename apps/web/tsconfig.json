@@ -9,7 +9,7 @@
     "jsx": "react-jsx",
     "outDir": "./dist",
     "noEmit": true,
-    "baseUrl": ".",
+    "rootDir": "../..",
     "paths": {
       "@/*": ["./src/*"],
       "@shiranami/contracts/bindings": ["../../packages/contracts/src/generated/bindings"],

@@ -26,7 +26,7 @@ describe('validateEnv', () => {
   });
 
   async function loadAndValidate() {
-    const { validateEnv } = await import('./env');
+    const { validateEnv } = await import('./env.js');
     return validateEnv();
   }
 
