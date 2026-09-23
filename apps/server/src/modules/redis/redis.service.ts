@@ -12,6 +12,9 @@ export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy
     super(config.getOrThrow<string>('REDIS_URL'), {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
+      // Pin RESP2 so the ioredis v6 upgrade keeps v5 wire behaviour (production
+      // Redis version unverified; RESP3/HELLO 3 is ioredis 6's new default).
+      protocol: 2,
     });
 
     this.on('connect', () => this.logger.info('Connected to Redis'));
