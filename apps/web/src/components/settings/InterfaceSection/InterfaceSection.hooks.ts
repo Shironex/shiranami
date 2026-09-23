@@ -75,15 +75,13 @@ export function useInterfaceSection(): IInterfaceSectionView {
       id: section.id,
       label,
       dragHandleLabel: t('app.interface.overviewDragHandle', { label }),
-      toggles: section.toggles.map(
-        (key, index): IInterfaceToggle<OverviewWidgetKey> => ({
-          key,
-          label: t(`app.interface.elements.${key}`),
-          description: t(`app.interface.elements.${key}Desc`),
-          checked: state[key],
-          divider: index > 0,
-        })
-      ),
+      toggles: section.toggles.map((key, index): IInterfaceToggle<OverviewWidgetKey> => ({
+        key,
+        label: t(`app.interface.elements.${key}`),
+        description: t(`app.interface.elements.${key}Desc`),
+        checked: state[key],
+        divider: index > 0,
+      })),
     };
   });
 

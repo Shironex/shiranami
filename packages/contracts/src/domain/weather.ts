@@ -8,14 +8,7 @@
  * glyph/icon.
  */
 export type WeatherCondition =
-  | 'clear'
-  | 'partly_cloudy'
-  | 'cloudy'
-  | 'rain'
-  | 'snow'
-  | 'thunderstorm'
-  | 'fog'
-  | 'unknown';
+  'clear' | 'partly_cloudy' | 'cloudy' | 'rain' | 'snow' | 'thunderstorm' | 'fog' | 'unknown';
 
 export const WEATHER_CONDITIONS: readonly WeatherCondition[] = [
   'clear',

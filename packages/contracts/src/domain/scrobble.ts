@@ -30,5 +30,4 @@ export type LastfmConnectResult =
 
 /** Result of connecting ListenBrainz by validating a user token. */
 export type ListenBrainzConnectResult =
-  | { ok: true; username: string | null }
-  | { ok: false; error: string };
+  { ok: true; username: string | null } | { ok: false; error: string };
