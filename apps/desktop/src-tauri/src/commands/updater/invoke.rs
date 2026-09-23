@@ -38,7 +38,7 @@ pub(crate) use commands;
 /// Cannot fail. See the parent module: v1 catches its own check failure and
 /// still answers `{ enabled: true }`, so a failing check reaches the user as an
 /// `updater:error` event. An absent seam answers `{ enabled: false }`, which is
-/// v1's answer in dev and on macOS.
+/// v1's answer in dev (and, in v1, on macOS).
 #[tauri::command]
 #[specta::specta]
 pub async fn updater_check_for_updates(state: State<'_, AppState>) -> CommandResult<UpdaterCheck> {
@@ -218,7 +218,7 @@ mod tests {
     }
 
     /// v1 gated only the check: an updater that reports itself disabled has
-    /// touched nothing and emitted nothing, which is what dev and macOS builds
+    /// touched nothing and emitted nothing, which is what dev and E2E builds
     /// do on every hourly tick.
     #[tokio::test]
     async fn a_disabled_updater_answers_without_emitting_anything() {

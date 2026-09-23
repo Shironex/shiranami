@@ -25,7 +25,7 @@ pub struct UpdaterCheck {
 }
 
 impl UpdaterCheck {
-    /// v1's dev and macOS answer, and the answer when no updater is wired.
+    /// The dev and E2E answer, and the answer when no updater is wired.
     pub const DISABLED: Self = Self { enabled: false };
     /// A check ran, whatever it found.
     pub const ENABLED: Self = Self { enabled: true };
