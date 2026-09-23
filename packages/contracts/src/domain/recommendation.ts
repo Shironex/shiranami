@@ -80,14 +80,7 @@ export const SIMILAR_TRACKS_MAX = 50;
 /** Weather buckets the renderer passes to the smart-mix generator. Mirrors the
  *  Open-Meteo `WeatherCondition` union (kept structurally compatible). */
 export type SmartMixWeather =
-  | 'clear'
-  | 'partly_cloudy'
-  | 'cloudy'
-  | 'rain'
-  | 'snow'
-  | 'thunderstorm'
-  | 'fog'
-  | 'unknown';
+  'clear' | 'partly_cloudy' | 'cloudy' | 'rain' | 'snow' | 'thunderstorm' | 'fog' | 'unknown';
 
 /**
  * Contextual signals the renderer collects (current local hour + optional

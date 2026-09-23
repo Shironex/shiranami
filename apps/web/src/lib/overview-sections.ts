@@ -11,13 +11,7 @@ export type OverviewWidgetKey = Extract<InterfaceElementKey, `overview${string}`
  * layout row rather than stacking.
  */
 export type OverviewSectionId =
-  | 'recap'
-  | 'memories'
-  | 'stats'
-  | 'insights'
-  | 'mixes'
-  | 'recommendations'
-  | 'recentlyAdded';
+  'recap' | 'memories' | 'stats' | 'insights' | 'mixes' | 'recommendations' | 'recentlyAdded';
 
 export interface OverviewSection {
   id: OverviewSectionId;

@@ -58,8 +58,15 @@ const meta: Meta<typeof PlaylistSubmenu> = {
   decorators: [
     Story => (
       <QueryClientProvider client={client()}>
-        <div className="w-[200px] rounded-xl border border-border/50 bg-card py-1">
-          <Story />
+        {/* Headless Chromium on Linux (Playwright 1.63+) keeps a phantom
+            cursor at (0,0) and fires real hover events on whatever mounts
+            there, which opens this hover-driven fly-out on its own. The inset
+            keeps the row off that corner. Inline, because Tailwind is not
+            applied in the vitest browser run. */}
+        <div style={{ padding: 24 }}>
+          <div className="w-[200px] rounded-xl border border-border/50 bg-card py-1">
+            <Story />
+          </div>
         </div>
       </QueryClientProvider>
     ),

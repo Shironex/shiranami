@@ -12,14 +12,7 @@ import type { LucideIcon } from 'lucide-react';
  * the folder barrel by downloads / playlist-import / search / overview.
  */
 export type DownloadStatus =
-  | 'idle'
-  | 'queued'
-  | 'downloading'
-  | 'converting'
-  | 'done'
-  | 'canceled'
-  | 'error'
-  | 'skipped';
+  'idle' | 'queued' | 'downloading' | 'converting' | 'done' | 'canceled' | 'error' | 'skipped';
 
 export interface IDownloadProgressButtonProps {
   readonly status: DownloadStatus;

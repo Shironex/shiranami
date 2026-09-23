@@ -16,13 +16,7 @@ import type { WeatherCurrent } from '@shiranami/contracts';
 
 /** Accessory the resident wears; keys the `data-outfit` CSS reveal. */
 export type CompanionOutfit =
-  | 'umbrella'
-  | 'scarf'
-  | 'sun'
-  | 'lantern'
-  | 'sakura'
-  | 'maple'
-  | 'snow';
+  'umbrella' | 'scarf' | 'sun' | 'lantern' | 'sakura' | 'maple' | 'snow';
 
 export const COMPANION_OUTFITS: readonly CompanionOutfit[] = [
   'umbrella',
