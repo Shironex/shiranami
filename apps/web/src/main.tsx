@@ -31,7 +31,7 @@ if (window.electronAPI?.__e2e) {
 }
 
 // Initialize crash/error reporting. No-op unless the user opted in and this is
-// a packaged/production Electron build; events route to the main transport.
+// a production Tauri build; events route to the Rust client via the plugin.
 void initSentryRenderer();
 
 // Global safety net for async failures that never reach React's render path —
