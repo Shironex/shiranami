@@ -50,6 +50,4 @@ COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 RUN pnpm install --frozen-lockfile --filter @shiranami/server... --prod --ignore-scripts
 
 EXPOSE 3000
-# `nest build` (swc builder) mirrors the source tree, so the entrypoint lands in
-# dist/src — not dist.
-CMD ["node", "apps/server/dist/src/main.js"]
+CMD ["node", "apps/server/dist/main.js"]
