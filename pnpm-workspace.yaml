@@ -77,6 +77,35 @@ overrides:
   'brace-expansion@1': 1.1.21
   'brace-expansion@2': '^2.1.3'
   'brace-expansion@5': '>=5.0.9'
+  # eslint-plugin-react-hooks > @babel/core pulls this transitively;
+  # unbounded memory growth (no cache eviction) + a prototype-write crash
+  # on untrusted browserslist-stats.json, both fixed at this floor.
+  browserslist: '>=4.28.7'
+  # Same @babel/core chain as browserslist above; process-termination DoS
+  # on invalid input, fixed at this floor.
+  'baseline-browser-mapping': '>=2.11.0'
+  # apps/desktop's @wdio/config (e2e devDep) pulls this; stack exhaustion
+  # when merging recursive object graphs, fixed at this floor.
+  'deepmerge-ts': '>=8.0.0'
+  # apps/desktop's @wdio/mocha-framework > mocha (e2e devDep) pulls this;
+  # RCE via RegExp.flags / Date.prototype.toISOString() plus a CPU-exhaustion
+  # DoS on crafted array-likes, both fixed at this floor. One major above
+  # what mocha@10.8.2 itself declares (^6.0.2) — mocha@12.0.2 already uses
+  # serialize-javascript@^7.1.1 so the API is known-compatible, but verify
+  # apps/desktop's e2e suite after bumping this.
+  'serialize-javascript': '>=7.0.5'
+  # apps/desktop's @wdio/tauri-service > @wdio/native-utils (e2e devDep)
+  # pulls this; DoS via malformed TOML documents, fixed at this floor.
+  'smol-toml': '>=1.7.1'
+  # prisma (apps/server) bundles mysql2 regardless of driver even though the
+  # project is Postgres-only via @prisma/adapter-pg; auth-plugin downgrade
+  # leaking plaintext credentials plus a decompression-bomb DoS, both fixed
+  # at this floor.
+  mysql2: '>=3.23.1'
+  # root devDep chain vite > postcss pulls nanoid@3 (separate from the
+  # nanoid@5 used directly in apps/server, hence the scoped `@3` syntax,
+  # same pattern as brace-expansion above); DoS fix floor.
+  'nanoid@3': '>=3.3.18'
 
 onlyBuiltDependencies:
   - esbuild
