@@ -72,7 +72,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/browser": "^4.1.10",
     "@vitest/browser-playwright": "^4.1.10",
-    "jsdom": "^27.4.0",
+    "jsdom": "^30.0.1",
     "playwright": "^1.63.0",
     "size-limit": "^14.0.0",
     "storybook": "^10.6.0",

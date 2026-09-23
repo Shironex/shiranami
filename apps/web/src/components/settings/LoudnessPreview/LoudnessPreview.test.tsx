@@ -14,6 +14,11 @@ function barHeights(container: HTMLElement): string[] {
   );
 }
 
+function targetLineBottom(container: HTMLElement): string {
+  const line = container.querySelector(TARGET_LINE);
+  return line instanceof HTMLElement ? line.style.bottom : '';
+}
+
 describe('LoudnessPreview', () => {
   it('renders one bar per illustrative track', () => {
     const { container } = render(<LoudnessPreview enabled={false} target={-14} />);
@@ -57,8 +62,10 @@ describe('LoudnessPreview', () => {
 
     // The line is offset from the column baseline by the target's share of the
     // 3.5rem column: nothing at the quietest target, all of it at the loudest.
-    expect(quiet.querySelector(TARGET_LINE)).toHaveStyle({ bottom: 'calc(0.75rem + 0rem)' });
-    expect(mid.querySelector(TARGET_LINE)).toHaveStyle({ bottom: 'calc(0.75rem + 2.25rem)' });
-    expect(loud.querySelector(TARGET_LINE)).toHaveStyle({ bottom: 'calc(0.75rem + 3.5rem)' });
+    // (jsdom's CSSOM folds the same-unit calc() terms together when the style
+    // is read back, e.g. `calc(0.75rem + 2.25rem)` serializes as `calc(3rem)`.)
+    expect(targetLineBottom(quiet)).toBe('calc(0.75rem)');
+    expect(targetLineBottom(mid)).toBe('calc(3rem)');
+    expect(targetLineBottom(loud)).toBe('calc(4.25rem)');
   });
 });

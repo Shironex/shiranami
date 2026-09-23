@@ -8,6 +8,13 @@ const INCOMING_BAR = '.bg-sky-400\\/45';
 /** The soft overlap glow only renders while blending. */
 const BLEND_GLOW = '.blur-sm';
 
+function incomingBarStyle(container: HTMLElement): { left: string; width: string } {
+  const bar = container.querySelector(INCOMING_BAR);
+  return bar instanceof HTMLElement
+    ? { left: bar.style.left, width: bar.style.width }
+    : { left: '', width: '' };
+}
+
 describe('CrossfadePreview', () => {
   it('labels both sides of the transition', () => {
     render(<CrossfadePreview enabled duration={6} />);
@@ -20,7 +27,7 @@ describe('CrossfadePreview', () => {
   it('overlaps the incoming track and shows the blend glow when enabled', () => {
     const { container } = render(<CrossfadePreview enabled duration={6} />);
 
-    expect(container.querySelector(INCOMING_BAR)).toHaveStyle({ left: '42%', width: '42%' });
+    expect(incomingBarStyle(container)).toEqual({ left: '42%', width: '42%' });
     expect(container.querySelector(BLEND_GLOW)).not.toBeNull();
     expect(screen.getByText('Tracks overlap smoothly')).toBeInTheDocument();
   });
@@ -28,7 +35,7 @@ describe('CrossfadePreview', () => {
   it('parks the incoming track at the boundary with no glow when disabled', () => {
     const { container } = render(<CrossfadePreview enabled={false} duration={6} />);
 
-    expect(container.querySelector(INCOMING_BAR)).toHaveStyle({ left: '68%', width: '0.5rem' });
+    expect(incomingBarStyle(container)).toEqual({ left: '68%', width: '0.5rem' });
     expect(container.querySelector(BLEND_GLOW)).toBeNull();
     expect(screen.getByText('Next track starts after a clean cut')).toBeInTheDocument();
   });
