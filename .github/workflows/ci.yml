@@ -281,6 +281,20 @@ jobs:
       - name: Build the E2E binary
         run: pnpm --filter @shiranami/desktop run e2e:build
 
+      # `e2e-bridge.ts` exports nothing and only assigns `window.__shiranami`, so
+      # a bundler that tree-shakes it outside `sideEffects` ships an empty chunk
+      # and every spec fails later with "window.__shiranami never appeared".
+      # Rolldown 1.2 started doing exactly that. Fail here, with the real cause.
+      - name: Check the e2e bridge chunk survived the build
+        shell: bash
+        run: |
+          shopt -s nullglob
+          chunks=(apps/web/dist/assets/e2e-bridge-*.js)
+          if [ ${#chunks[@]} -ne 1 ] || [ ! -s "${chunks[0]}" ] || ! grep -q "__shiranami" "${chunks[0]}"; then
+            echo "::error::The e2e-bridge chunk is missing or empty. Is src/e2e-bridge.ts still listed in apps/web/package.json sideEffects?"
+            exit 1
+          fi
+
       - name: Run E2E tests
         run: pnpm --filter @shiranami/desktop run test:e2e
 
