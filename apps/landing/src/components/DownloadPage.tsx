@@ -1,4 +1,4 @@
-import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { AnimatePresence, MotionConfig, motion } from 'motion/react';
 import { type MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LandingLanguage } from '@/lib/i18n';
 import { GITHUB_RELEASES_API_URL, GITHUB_RELEASES_LATEST_URL } from '@/lib/site';
