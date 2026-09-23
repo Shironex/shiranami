@@ -6,9 +6,10 @@
  * They are different files for different readers and must never be confused:
  *
  * - **`latest.json`** — the feed `tauri-plugin-updater` polls, so v2 can update
- *   itself. Windows only: `updater::is_supported` excludes macOS until the
- *   Developer ID certificate lands (architecture §4.3), and a feed entry for a
- *   platform whose updater is compiled out would be a promise nothing keeps.
+ *   itself. Windows points at the NSIS installer, macOS at the `.app.tar.gz`
+ *   the plugin unpacks over the running bundle (architecture §4.3 amendment).
+ *   Both are required: a feed that silently dropped one platform would strand
+ *   that platform's users on the release they have.
  *
  * - **`v2.json`** — the handover manifest the *v1 Electron* app polls (§4.1),
  *   whose shape is fixed by the shipped bridge in
@@ -66,6 +67,9 @@ const INSTALLER_MAX_BYTES = 300 * 1024 * 1024;
  */
 const UPDATER_ARCH = { x64: 'x86_64', arm64: 'aarch64' };
 
+/** The artifact kind each OS updates from, keyed to the plugin's `updater_os()`. */
+const UPDATER_OS = { nsis: 'windows', 'app-archive': 'darwin' };
+
 /**
  * `process.platform`-`process.arch`, as the bridge's `currentPlatformKey()`
  * builds it. Deliberately Node's vocabulary and not Rust's — the reader is an
@@ -84,6 +88,16 @@ const BRIDGE_ARCH = { x64: 'x64', arm64: 'arm64' };
 export function classifyArtifact(fileName) {
   const arch = fileName.includes('aarch64') || fileName.includes('arm64') ? 'arm64' : 'x64';
 
+  // Tauri writes the updater archive as a bare `<productName>.app.tar.gz` with
+  // no arch token, which the default above would misread as x64 and publish
+  // under the wrong updater key. The release workflow renames it; one that
+  // arrives un-renamed is refused rather than guessed.
+  if (fileName.endsWith('.app.tar.gz') && !/(aarch64|arm64|x64|x86_64)/.test(fileName)) {
+    throw new Error(
+      `${fileName} carries no arch token — rename it to <name>_<version>_<arch>.app.tar.gz`
+    );
+  }
+
   if (fileName.endsWith('-setup.exe')) return { kind: 'nsis', platform: 'win32', arch };
   if (fileName.endsWith('.dmg')) return { kind: 'dmg', platform: 'darwin', arch };
   if (fileName.endsWith('.app.tar.gz')) return { kind: 'app-archive', platform: 'darwin', arch };
@@ -100,27 +114,34 @@ export function assetUrl(repo, tag, fileName) {
  * `{os}-{arch}`, each entry carrying the minisign signature of the artifact the
  * URL points at.
  *
- * Windows-only by construction, per the module docs. `signed` entries missing a
- * signature are a build that did not run with `TAURI_SIGNING_PRIVATE_KEY` set,
- * which is a hard error rather than an omission: an unsigned feed entry makes
- * every client reject the update at install time.
+ * One entry per updater artifact: the NSIS installer on Windows, the
+ * `.app.tar.gz` on macOS. The DMG is an install medium, never an update. Entries
+ * missing a signature are a build that did not run with
+ * `TAURI_SIGNING_PRIVATE_KEY` set, which is a hard error rather than an
+ * omission: an unsigned feed entry makes every client reject the update at
+ * install time.
  */
 export function buildLatestJson({ version, pubDate, notes, signed }) {
   const platforms = {};
 
   for (const entry of signed) {
-    if (entry.platform !== 'win32') continue;
+    const os = UPDATER_OS[entry.kind];
+    if (!os) continue;
     if (!entry.signature) {
       throw new Error(`${entry.fileName} has no minisign signature — was the build signed?`);
     }
-    platforms[`windows-${UPDATER_ARCH[entry.arch]}`] = {
+    platforms[`${os}-${UPDATER_ARCH[entry.arch]}`] = {
       signature: entry.signature,
       url: entry.url,
     };
   }
 
-  if (Object.keys(platforms).length === 0) {
-    throw new Error('latest.json would carry no platforms — no signed Windows installer found');
+  for (const os of Object.values(UPDATER_OS)) {
+    if (!Object.keys(platforms).some(key => key.startsWith(`${os}-`))) {
+      throw new Error(
+        `latest.json would carry no ${os} entry — no signed ${os} updater artifact found`
+      );
+    }
   }
 
   return { version, notes, pub_date: pubDate, platforms };
@@ -271,9 +292,9 @@ function selfTest() {
       signature: null,
     },
     {
-      ...classifyArtifact('Shiranami.app.tar.gz'),
-      fileName: 'Shiranami.app.tar.gz',
-      url: assetUrl(repo, tag, 'Shiranami.app.tar.gz'),
+      ...classifyArtifact('Shiranami_2.0.0_aarch64.app.tar.gz'),
+      fileName: 'Shiranami_2.0.0_aarch64.app.tar.gz',
+      url: assetUrl(repo, tag, 'Shiranami_2.0.0_aarch64.app.tar.gz'),
       size: 21_000_000,
       sha256: 'c'.repeat(64),
       signature: 'dW50cnVzdGVkIGNvbW1lbnQ6IG1hYw==',
@@ -291,8 +312,12 @@ function selfTest() {
     signed: artifacts,
   });
   assert(
-    Object.keys(latest.platforms).join() === 'windows-x86_64',
-    `latest.json must carry only windows-x86_64, got ${Object.keys(latest.platforms).join()}`
+    Object.keys(latest.platforms).sort().join() === 'darwin-aarch64,windows-x86_64',
+    `latest.json must carry darwin-aarch64 and windows-x86_64, got ${Object.keys(latest.platforms).join()}`
+  );
+  assert(
+    latest.platforms['darwin-aarch64'].url.endsWith('Shiranami_2.0.0_aarch64.app.tar.gz'),
+    'the macOS updater url must point at the app archive, never the DMG'
   );
   assert(latest.platforms['windows-x86_64'].signature.length > 0, 'signature must be carried');
   assert(
@@ -336,6 +361,27 @@ function selfTest() {
       }),
     'an unsigned Windows installer'
   );
+  mustThrow(
+    () =>
+      buildLatestJson({
+        version: '2.0.0',
+        pubDate: '',
+        notes: '',
+        signed: [{ ...artifacts[2], signature: null }, artifacts[0]],
+      }),
+    'an unsigned macOS app archive'
+  );
+  mustThrow(
+    () =>
+      buildLatestJson({
+        version: '2.0.0',
+        pubDate: '',
+        notes: '',
+        signed: [artifacts[0], artifacts[1]],
+      }),
+    'a feed with no macOS entry'
+  );
+  mustThrow(() => classifyArtifact('Shiranami.app.tar.gz'), 'an app archive with no arch token');
   mustThrow(
     () =>
       buildHandoverManifest({
