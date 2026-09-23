@@ -217,9 +217,6 @@ importers:
       '@shiranami/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       fastify:
         specifier: '>=5.12.1'
         version: 5.12.5
