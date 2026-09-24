@@ -31,8 +31,17 @@ function seedProfile(withBackground: boolean): Map<string, string> {
     ['shiranami.language', pickLanguage()],
     ['shiranami.onboarding', bucket({ hasCompletedOnboarding: true })],
     ['shiranami.supportBanner', bucket({ seen: true })],
-    // Smart Playlists ships hidden; the showcase shows every view.
-    ['shiranami.app-store', bucket({ sidebarHiddenItems: [], landingView: 'overview' })],
+    // Smart Playlists ships hidden; the showcase shows every view. Artwork bloom
+    // and room light are off, so the backdrop is the calm cover-colour glow.
+    [
+      'shiranami.app-store',
+      bucket({
+        sidebarHiddenItems: [],
+        landingView: 'overview',
+        artworkBloomEnabled: false,
+        roomLightEnabled: false,
+      }),
+    ],
     ['shiranami.companion-store', bucket({ namingCeremonyDone: true })],
     // The desk companion is an optional extra that perches over the content;
     // screenshots show the app itself.
