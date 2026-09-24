@@ -52,3 +52,7 @@ apps/web/index.d.ts
 
 # per-release Discord announcement scratch file (overwritten each release)
 docs/release-announcement.md
+# Raw showcase captures (pnpm showcase); the framed images in assets/showcase are tracked.
+showcase-out/
+# Local files showcase mode serves (a SHOWCASE_BACKGROUND wallpaper); never committed.
+apps/web/showcase-local/
