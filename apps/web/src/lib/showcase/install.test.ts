@@ -145,6 +145,31 @@ describe('showcase mode on (?showcase=1)', () => {
     await window.fetch('/assets/local.json');
     expect(realFetch).toHaveBeenCalledTimes(1);
   });
+
+  it('hands local URLs and unparseable input to the real fetch', async () => {
+    const respond = vi.fn(async () => new Response('stub'));
+    const realFetch = vi.fn(async (_input: RequestInfo | URL) => new Response('real'));
+    window.fetch = realFetch;
+
+    installShowcaseMode(async () => fixtures({ respond }));
+
+    await window.fetch('data:image/svg+xml,%3Csvg%2F%3E');
+    await window.fetch('blob:http://localhost/0b8f3c1e-7a9d-4c56-9e2a-4f1d2c3b4a5e');
+    // Unparseable: the real fetch owns the rejection, and it must not throw
+    // synchronously out of the wrapper.
+    let pending: Promise<Response> | undefined;
+    expect(() => {
+      pending = window.fetch('http://[not-a-host');
+    }).not.toThrow();
+    await pending;
+
+    expect(respond).not.toHaveBeenCalled();
+    expect(realFetch.mock.calls.map(call => String(call[0]))).toEqual([
+      'data:image/svg+xml,%3Csvg%2F%3E',
+      'blob:http://localhost/0b8f3c1e-7a9d-4c56-9e2a-4f1d2c3b4a5e',
+      'http://[not-a-host',
+    ]);
+  });
 });
 
 describe('showcase wallpaper (&background=1)', () => {

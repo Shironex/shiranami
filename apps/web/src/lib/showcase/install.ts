@@ -43,15 +43,23 @@ const loadFixtures: ShowcaseFixtureLoader = () => import('./fixtures');
 export const SHOWCASE_PLATFORM: NodeJS.Platform = 'darwin';
 
 /**
- * Route every cross-origin `fetch` to the fixtures. Same-origin requests (the
- * dev server's own modules and assets) pass through untouched.
+ * Route every cross-origin http(s) `fetch` to the fixtures. Everything else
+ * goes to the real `fetch` untouched: same-origin requests (the dev server's
+ * own modules and assets), local `data:` and `blob:` URLs (the fixtures' own
+ * covers are `data:` URLs), and input that does not parse, whose rejection the
+ * real `fetch` owns.
  */
 function keepOffline(load: ShowcaseFixtureLoader): void {
   const realFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
-    const raw = input instanceof Request ? input.url : String(input);
-    const url = new URL(raw, window.location.href);
-    if (url.origin === window.location.origin) return realFetch(input, init);
+    let url: URL;
+    try {
+      url = new URL(input instanceof Request ? input.url : String(input), window.location.href);
+    } catch {
+      return realFetch(input, init);
+    }
+    const remote = url.protocol === 'http:' || url.protocol === 'https:';
+    if (!remote || url.origin === window.location.origin) return realFetch(input, init);
     return load().then(fixtures => fixtures.respond(url, init));
   };
 }
