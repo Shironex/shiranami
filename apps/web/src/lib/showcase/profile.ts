@@ -34,6 +34,9 @@ function seedProfile(): Map<string, string> {
     // Smart Playlists ships hidden; the showcase shows every view.
     ['shiranami.app-store', bucket({ sidebarHiddenItems: [], landingView: 'overview' })],
     ['shiranami.companion-store', bucket({ namingCeremonyDone: true })],
+    // The desk companion is an optional extra that perches over the content;
+    // screenshots show the app itself.
+    ['shiranami.interface-store', bucket({ companion: false })],
     [
       'shiranami.weather',
       bucket({ enabled: true, coords: { lat: 35.01, lon: 135.77, label: 'Kyoto' } }),
