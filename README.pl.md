@@ -1,7 +1,7 @@
 <a name="top"></a>
 
 <div align="center">
-  <img src="apps/landing/public/assets/icon.png" alt="Shiranami" width="128" height="128" />
+  <img src="assets/showcase/hero.webp" alt="Shiranami: spokojny odtwarzacz do Twojej lokalnej muzyki" width="100%" />
 
   <h1>白波 &nbsp;·&nbsp; Shiranami</h1>
 
@@ -45,36 +45,52 @@ Shiranami to odtwarzacz muzyki dla osób, które trzymają swoją kolekcję loka
 
 <table>
   <tr>
-    <td width="50%"><img src="assets/screenshots/pl/library.png" alt="Biblioteka — Twoja lokalna kolekcja muzyki" /></td>
-    <td width="50%"><img src="assets/screenshots/pl/playlists.png" alt="Playlisty z własnymi okładkami" /></td>
+    <td width="50%"><img src="assets/showcase/pl/overview.webp" alt="Shiranami: Przegląd" /></td>
+    <td width="50%"><img src="assets/showcase/pl/library.webp" alt="Shiranami: Biblioteka" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Biblioteka — przeglądaj, sortuj i odtwarzaj z własnych folderów.</sub></td>
-    <td align="center"><sub>Playlisty — własne okładki i szybki dostęp z paska bocznego.</sub></td>
+    <td align="center"><sub>Przegląd: Twój wieczór w pigułce, z podsumowaniem tygodnia i wspomnieniem sprzed roku.</sub></td>
+    <td align="center"><sub>Biblioteka: przeglądaj i odtwarzaj muzykę prosto z własnych folderów.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/pl/favorites.png" alt="Ulubione utwory" /></td>
-    <td width="50%"><img src="assets/screenshots/pl/history.png" alt="Historia słuchania ze statystykami" /></td>
+    <td width="50%"><img src="assets/showcase/pl/playlists.webp" alt="Shiranami: Playlisty" /></td>
+    <td width="50%"><img src="assets/showcase/pl/favorites.webp" alt="Shiranami: Ulubione" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Ulubione — wszystkie polubione utwory w jednym miejscu.</sub></td>
-    <td align="center"><sub>Historia — liczniki odtworzeń, najczęściej słuchane utwory i dzienna aktywność.</sub></td>
+    <td align="center"><sub>Playlisty: własne okładki i szybki dostęp z paska bocznego.</sub></td>
+    <td align="center"><sub>Ulubione: wszystkie polubione utwory w jednym miejscu.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/pl/mixes.png" alt="Automatyczne miksy" /></td>
-    <td width="50%"><img src="assets/screenshots/pl/radio.png" alt="Internetowe radio z Radio Browser" /></td>
+    <td width="50%"><img src="assets/showcase/pl/history.webp" alt="Shiranami: Historia" /></td>
+    <td width="50%"><img src="assets/showcase/pl/mixes.webp" alt="Shiranami: Miksy" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Miksy — inteligentne kolekcje z Twoich nawyków słuchania.</sub></td>
-    <td align="center"><sub>Radio — przeglądaj i słuchaj stacji z całego świata.</sub></td>
+    <td align="center"><sub>Historia: liczba odtworzeń, czas słuchania i dzienna aktywność.</sub></td>
+    <td align="center"><sub>Miksy: inteligentne zestawy z Twoich nawyków i pory dnia.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/pl/search.png" alt="Wyszukiwanie i pobieranie utworów z YouTube" /></td>
-    <td width="50%"><img src="assets/screenshots/pl/settings.png" alt="Ustawienia — wygląd, dźwięk, integracje" /></td>
+    <td width="50%"><img src="assets/showcase/pl/search.webp" alt="Shiranami: Wyszukiwanie" /></td>
+    <td width="50%"><img src="assets/showcase/pl/import-playlist.webp" alt="Shiranami: Import playlisty" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Wyszukiwanie — znajdź i pobierz utwory przez yt-dlp + ffmpeg.</sub></td>
-    <td align="center"><sub>Ustawienia — wygląd, dźwięk, integracje, język.</sub></td>
+    <td align="center"><sub>Wyszukiwanie: znajdź utwory na YouTube i pobierz je przez yt-dlp i ffmpeg.</sub></td>
+    <td align="center"><sub>Import: przenieś całą playlistę z YouTube lub Spotify, z oceną dopasowania.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/showcase/pl/radio.webp" alt="Shiranami: Radio" /></td>
+    <td width="50%"><img src="assets/showcase/pl/smart-playlists.webp" alt="Shiranami: Inteligentne playlisty" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Radio: przeglądaj i słuchaj stacji internetowych z całego świata.</sub></td>
+    <td align="center"><sub>Inteligentne playlisty: reguły, które same aktualizują playlistę.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/showcase/pl/downloads.webp" alt="Shiranami: Pobieranie" /></td>
+    <td width="50%"><img src="assets/showcase/pl/settings.webp" alt="Shiranami: Ustawienia" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Pobieranie: kolejka z postępem, ponawianiem i automatycznym importem.</sub></td>
+    <td align="center"><sub>Ustawienia: motywy, kolory akcentu, dźwięk, integracje i język.</sub></td>
   </tr>
 </table>
 
@@ -209,7 +225,7 @@ shiranami/
 │   ├── server/           # Backend API i schemat Prisma
 │   └── web/              # Renderer React używany przez aplikację desktopową
 ├── assets/
-│   └── screenshots/      # Zrzuty ekranu do README po angielsku i polsku
+│   └── showcase/         # Obrazy do README i baner (pnpm showcase)
 ├── crates/               # Workspace Rusta — backend, który spina powłoka
 ├── docs/                 # Notatki projektu, CI, audyty i materiały release'owe
 ├── packages/
