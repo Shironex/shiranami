@@ -112,7 +112,7 @@ onlyBuiltDependencies:
 
 # The owner's global npm config sets a 7 day minimum release age. First-party
 # @noctcore packages are published by the owner and may be installed as soon as
-# they are out. pnpm honours this from 10.16; the pinned 10.9.0 enforces
-# neither the gate nor this exclusion yet.
+# they are out. The pinned pnpm 10.9.0 enforces neither the gate nor this
+# exclusion; newer pnpm releases read both.
 minimumReleaseAgeExclude:
   - '@noctcore/*'
