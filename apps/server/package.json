@@ -43,7 +43,7 @@
     "@swc/core": "^1.16.2",
     "@types/node": "^22.20.4",
     "@types/pg": "^8.23.1",
-    "prisma": "^7.9.0",
+    "prisma": "^7.10.0",
     "typescript": "^6.0.2"
   }
 }
