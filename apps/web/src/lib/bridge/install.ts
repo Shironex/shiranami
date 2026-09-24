@@ -34,10 +34,16 @@
  * actually there: nightcore's `tauriInvoke(fallback)` shape — resolving to mock
  * data outside the webview — is deliberately *not* adopted, because this app's
  * fallback is not mock data, it is the guarded empty path it already has.
+ *
+ * The one exception is opt-in and dev-only: a dev build opened with
+ * `?showcase=1` installs the fixture surface from `@/lib/showcase`, which serves
+ * a fixed demo library for screenshots. Without that parameter, and in every
+ * production build, browser dev stays exactly as described above.
  */
 
 import { createElectronApi } from './index';
 import { isTauri } from './environment';
+import { installShowcaseMode } from '@/lib/showcase/install';
 
 /**
  * Install `window.electronAPI` when running inside Tauri; otherwise do nothing.
@@ -64,4 +70,10 @@ export function installElectronApiBridge(): boolean {
   return true;
 }
 
-installElectronApiBridge();
+// Outside Tauri, a dev build opened with `?showcase=1` gets the fixture-backed
+// surface instead (see `@/lib/showcase/flag`). The `DEV` guard is what keeps it
+// out of production: the call is dead code there, so the showcase modules and
+// their fixture chunk are never emitted.
+if (!installElectronApiBridge() && import.meta.env.DEV) {
+  installShowcaseMode();
+}
