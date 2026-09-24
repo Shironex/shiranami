@@ -26,7 +26,8 @@ import { ALBUM_LIST, TRACKS, trackById, trackIdByTitle } from './catalog';
 import { coverDataUrl, stationLogoDataUrl } from './covers';
 
 const MINUTE_MS = 60 * 1000;
-const DAY_MS = 24 * 60 * MINUTE_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
 
 const iso = (msBeforeNow: number) => new Date(SHOWCASE_NOW - msBeforeNow).toISOString();
 
@@ -289,8 +290,9 @@ function buildHistory(): ListeningHistoryEntry[] {
       completed,
       source: 'library',
     });
-    // Songs back to back, with a longer gap every few plays.
-    at -= duration * 1000 + (i % 6 === 5 ? (5 + random() * 14) * 60 * MINUTE_MS : 20 * 1000);
+    // Songs back to back within a sitting; every sixth play ends the sitting with a 5 to 19 hour break,
+    // which spreads the history over a week of separate sittings.
+    at -= duration * 1000 + (i % 6 === 5 ? (5 + random() * 14) * HOUR_MS : 20 * 1000);
   }
   return entries;
 }
