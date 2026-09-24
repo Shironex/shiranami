@@ -4,6 +4,9 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { commands as generated } from '@shiranami/contracts/bindings';
+import { commands } from '@/lib/bridge/commands';
+import { streamUrlBase } from '@/lib/bridge/stream-urls';
 import { freezeClock, SHOWCASE_NOW, seededRandom } from './determinism';
 import { isShowcaseRequested } from './flag';
 import { installShowcaseMode, SHOWCASE_PLATFORM, type ShowcaseFixtureModule } from './install';
@@ -141,6 +144,41 @@ describe('showcase mode on (?showcase=1)', () => {
 
     await window.fetch('/assets/local.json');
     expect(realFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('showcase wallpaper (&background=1)', () => {
+  const realLibraryGet = generated.backgroundLibraryGet;
+
+  afterEach(() => {
+    generated.backgroundLibraryGet = realLibraryGet;
+  });
+
+  it('stays on the default theme and the real command without the parameter', () => {
+    window.history.replaceState(null, '', '/?showcase=1');
+    installShowcaseMode(async () => fixtures());
+
+    expect(window.localStorage.getItem('shiranami.theme')).toBeNull();
+    expect(generated.backgroundLibraryGet).toBe(realLibraryGet);
+  });
+
+  it('selects the custom theme and answers the library from the local files', async () => {
+    window.history.replaceState(null, '', '/?showcase=1&background=1');
+    const record = { fileName: 'bg-showcase.gif', stillFileName: 'bg-showcase.still.webp' };
+    const realFetch = vi.fn(
+      async (_input: RequestInfo | URL) =>
+        new Response(JSON.stringify(record), { headers: { 'content-type': 'application/json' } })
+    );
+    window.fetch = realFetch;
+
+    installShowcaseMode(async () => fixtures());
+
+    expect(window.localStorage.getItem('shiranami.theme')).toContain('"custom"');
+    expect(streamUrlBase()).toBe(`${window.location.origin}/showcase-local`);
+    const library = await commands.backgroundLibraryGet();
+    expect(library?.activeId).toBe('showcase');
+    expect(library?.entries?.[0]?.background).toEqual(record);
+    expect(realFetch.mock.calls[0]?.[0]).toBe('/showcase-local/background/background.json');
   });
 });
 

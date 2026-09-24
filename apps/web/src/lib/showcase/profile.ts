@@ -26,8 +26,8 @@ function bucket(state: Record<string, unknown>, version = 1): string {
   return JSON.stringify({ state, version });
 }
 
-function seedProfile(): Map<string, string> {
-  return new Map<string, string>([
+function seedProfile(withBackground: boolean): Map<string, string> {
+  const profile = new Map<string, string>([
     ['shiranami.language', pickLanguage()],
     ['shiranami.onboarding', bucket({ hasCompletedOnboarding: true })],
     ['shiranami.supportBanner', bucket({ seen: true })],
@@ -42,6 +42,8 @@ function seedProfile(): Map<string, string> {
       bucket({ enabled: true, coords: { lat: 35.01, lon: 135.77, label: 'Kyoto' } }),
     ],
   ]);
+  if (withBackground) profile.set('shiranami.theme', bucket({ theme: 'custom' }));
+  return profile;
 }
 
 class MemoryStorage implements Storage {
@@ -72,10 +74,13 @@ class MemoryStorage implements Storage {
   }
 }
 
-/** Swap `window.localStorage` for the seeded in-memory profile. */
-export function installShowcaseProfile(): void {
+/**
+ * Swap `window.localStorage` for the seeded in-memory profile. With a custom
+ * wallpaper (see `./background`) the profile selects the custom theme.
+ */
+export function installShowcaseProfile(withBackground = false): void {
   Object.defineProperty(window, 'localStorage', {
-    value: new MemoryStorage(seedProfile()),
+    value: new MemoryStorage(seedProfile(withBackground)),
     configurable: true,
     enumerable: true,
     writable: false,

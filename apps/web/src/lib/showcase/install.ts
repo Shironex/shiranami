@@ -18,6 +18,7 @@ import {
   VALIDATION_ERROR_CODES,
 } from '@shiranami/contracts';
 import type { ElectronAPI } from '@/types/electron';
+import { installShowcaseBackground, isShowcaseBackgroundRequested } from './background';
 import { freezeClock, seedRandom } from './determinism';
 import { isShowcaseRequested } from './flag';
 import { createLazyApi } from './lazyApi';
@@ -64,7 +65,9 @@ export function installShowcaseMode(loader: ShowcaseFixtureLoader = loadFixtures
 
   freezeClock();
   seedRandom();
-  installShowcaseProfile();
+  const withBackground = isShowcaseBackgroundRequested();
+  installShowcaseProfile(withBackground);
+  if (withBackground) installShowcaseBackground();
 
   let pending: Promise<ShowcaseFixtureModule> | null = null;
   const load = () => (pending ??= loader());
