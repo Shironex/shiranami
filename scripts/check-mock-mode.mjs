@@ -25,12 +25,21 @@
  *
  *   pnpm check:mock-mode                            # starts the dev server itself
  *   MOCK_MODE_URL=http://localhost:4173/ pnpm check:mock-mode   # or reuse one
+ *   node scripts/check-mock-mode.mjs --self-test    # only the server-guard checks
  *
  * Note the port: the architecture doc says `:5173` in §2.6/§8, but the web app
  * has always been on **15175** (`apps/web/vite.config.ts`, and `devUrl` in
  * `tauri.conf.json`). 15175 is the real target.
  */
 import { spawn, spawnSync } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+
+// The guard that stops the dev server is checked before it is trusted with one.
+await selfTest();
+if (process.argv.includes('--self-test')) {
+  console.log('check-mock-mode self-test: OK');
+  process.exit(0);
+}
 
 const PW = process.env.PLAYWRIGHT_PATH ?? 'playwright';
 const { chromium } = await import(PW);
@@ -93,30 +102,157 @@ async function startServer() {
 
   // `pnpm` is a `.cmd` shim on Windows, which only a shell can start. The shell
   // also means `child` is the shell, not vite, so stopping it has to take the
-  // whole tree: by PID with taskkill on Windows, by process group elsewhere.
+  // whole tree (see `killTree`).
   const isWindows = process.platform === 'win32';
   const child = spawn('pnpm', ['dev:web'], {
     stdio: ['ignore', 'ignore', 'inherit'],
     shell: true,
     detached: !isWindows,
   });
-  await waitForServer(URL, 120_000);
-  return {
-    stop() {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      if (isWindows) {
-        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
-      } else {
-        process.kill(-child.pid, 'SIGTERM');
-      }
-    },
+  const guard = guardChild(child, { isWindows });
+  await untilReady(guard, waitForServer(URL, 120_000));
+  return guard;
+}
+
+/**
+ * Stop a whole process tree: by PID with taskkill on Windows, by process group
+ * elsewhere (the child is spawned detached, so it leads its own group).
+ */
+function killTree(pid, isWindows) {
+  if (isWindows) {
+    spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
+    return;
+  }
+  try {
+    process.kill(-pid, 'SIGTERM');
+  } catch {
+    /* the group is already gone */
+  }
+}
+
+/**
+ * Tie a started server's tree to this script's life.
+ *
+ * A detached tree does not die with its parent, so Ctrl+C or a CI cancel would
+ * leave vite holding the port, and the next run's `waitForServer` would happily
+ * test that stale server. So SIGINT and SIGTERM stop the tree first and then
+ * exit with the conventional code (128 + signal number). The handlers exist only
+ * while the child does: they are added here, at spawn, and removed by `stop()`
+ * or when the child exits on its own. Nothing is killed by PID once the child
+ * has exited, because Windows reuses PIDs and the number may name a stranger.
+ */
+function guardChild(child, { isWindows, proc = process, kill = killTree }) {
+  const handlers = new Map();
+  let stopped = false;
+  const release = () => {
+    for (const [signal, handler] of handlers) proc.off(signal, handler);
+    handlers.clear();
   };
+  // Latched: the kill is asynchronous, so a second call can land before the
+  // child's exit event, and must not reach for the PID again.
+  const stop = () => {
+    release();
+    if (stopped) return;
+    stopped = true;
+    if (child.exitCode === null && child.signalCode === null) kill(child.pid, isWindows);
+  };
+
+  for (const [signal, code] of [
+    ['SIGINT', 130],
+    ['SIGTERM', 143],
+  ]) {
+    const handler = () => {
+      stop();
+      proc.exit(code);
+    };
+    handlers.set(signal, handler);
+    proc.on(signal, handler);
+  }
+  child.once('exit', release);
+
+  return { stop };
+}
+
+/** Wait for the server; if it never comes up, take the tree down before failing. */
+async function untilReady(guard, ready) {
+  try {
+    await ready;
+  } catch (error) {
+    guard.stop();
+    throw error;
+  }
+}
+
+/**
+ * `guardChild` and `untilReady` against fake processes: no server, no browser,
+ * a few milliseconds. Runs before every check, and alone with `--self-test`.
+ */
+async function selfTest() {
+  const check = (condition, message) => {
+    if (!condition) throw new Error(`check-mock-mode self-test: ${message}`);
+  };
+  const guarded = () => {
+    const proc = new EventEmitter();
+    proc.exitCodes = [];
+    proc.exit = code => proc.exitCodes.push(code);
+    const child = new EventEmitter();
+    Object.assign(child, { pid: 4242, exitCode: null, signalCode: null });
+    const kills = [];
+    const guard = guardChild(child, {
+      isWindows: true,
+      proc,
+      kill: pid => kills.push(pid),
+    });
+    const listening = () => proc.listenerCount('SIGINT') + proc.listenerCount('SIGTERM');
+    return { proc, child, kills, guard, listening };
+  };
+
+  for (const [signal, code] of [
+    ['SIGINT', 130],
+    ['SIGTERM', 143],
+  ]) {
+    const { proc, kills, listening } = guarded();
+    check(listening() === 2, 'SIGINT and SIGTERM handlers are registered when the child starts');
+    proc.emit(signal);
+    check(kills.join() === '4242', `${signal} stops the server tree`);
+    check(proc.exitCodes.join() === String(code), `${signal} exits with ${String(code)}`);
+    check(listening() === 0, `${signal} releases the handlers`);
+  }
+
+  {
+    const { kills, guard, listening } = guarded();
+    guard.stop();
+    guard.stop();
+    check(kills.length === 1, 'a normal stop kills the tree once');
+    check(listening() === 0, 'a normal stop removes the handlers');
+  }
+
+  {
+    const { proc, child, kills, guard, listening } = guarded();
+    child.exitCode = 1;
+    child.emit('exit', 1);
+    check(listening() === 0, 'the handlers go when the child exits on its own');
+    guard.stop();
+    proc.emit('SIGINT');
+    check(kills.length === 0, 'nothing is killed by PID after the child has exited');
+  }
+
+  {
+    const { kills, guard, listening } = guarded();
+    const failed = await untilReady(guard, Promise.reject(new Error('never came up'))).then(
+      () => false,
+      () => true
+    );
+    check(failed, 'a failed startup still fails');
+    check(kills.length === 1 && listening() === 0, 'a failed startup stops the tree');
+  }
 }
 
 const server = await startServer();
-const browser = await chromium.launch();
+let browser;
 
 try {
+  browser = await chromium.launch();
   const page = await browser.newPage();
 
   const consoleErrors = [];
@@ -225,7 +361,7 @@ try {
     failures.push(`console error: ${text}`);
   }
 } finally {
-  await browser.close();
+  await browser?.close();
   server.stop();
 }
 
