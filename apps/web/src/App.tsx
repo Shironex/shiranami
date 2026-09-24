@@ -292,6 +292,12 @@ function App() {
           root App tree does not re-render on every 250ms time tick. */}
       <MediaSessionSync />
 
+      {/* Set once the shell is up and the library has answered: what capture
+          tools (showcase.config.mjs) and specs wait on before the first shot. */}
+      {splashDone && onboardingDone && !libraryLoading && !libraryError && (
+        <span data-testid="app-ready" hidden />
+      )}
+
       <SplashScreen
         isLoading={libraryLoading}
         isError={libraryError}
