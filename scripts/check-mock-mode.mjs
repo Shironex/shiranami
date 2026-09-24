@@ -30,7 +30,7 @@
  * has always been on **15175** (`apps/web/vite.config.ts`, and `devUrl` in
  * `tauri.conf.json`). 15175 is the real target.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const PW = process.env.PLAYWRIGHT_PATH ?? 'playwright';
 const { chromium } = await import(PW);
@@ -91,11 +91,24 @@ async function startServer() {
     return { stop() {} };
   }
 
-  const child = spawn('pnpm', ['dev:web'], { stdio: ['ignore', 'ignore', 'inherit'] });
+  // `pnpm` is a `.cmd` shim on Windows, which only a shell can start. The shell
+  // also means `child` is the shell, not vite, so stopping it has to take the
+  // whole tree: by PID with taskkill on Windows, by process group elsewhere.
+  const isWindows = process.platform === 'win32';
+  const child = spawn('pnpm', ['dev:web'], {
+    stdio: ['ignore', 'ignore', 'inherit'],
+    shell: true,
+    detached: !isWindows,
+  });
   await waitForServer(URL, 120_000);
   return {
     stop() {
-      child.kill();
+      if (child.exitCode !== null || child.signalCode !== null) return;
+      if (isWindows) {
+        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        process.kill(-child.pid, 'SIGTERM');
+      }
     },
   };
 }
@@ -115,6 +128,14 @@ try {
   });
   page.on('pageerror', error => {
     pageErrors.push(String(error?.stack ?? error));
+  });
+
+  // Showcase mode (`?showcase=1`) must cost a plain dev session nothing beyond
+  // its small install seam: the demo library is only ever reached through the
+  // flag, so none of its fixture modules may be requested here.
+  const showcaseRequests = [];
+  page.on('request', request => {
+    if (request.url().includes('/lib/showcase/fixtures/')) showcaseRequests.push(request.url());
   });
 
   // A fresh profile lands on the first-run wizard, which has no sidebar and so
@@ -184,6 +205,14 @@ try {
   const stillInert = await page.evaluate(() => !('electronAPI' in window));
   if (!stillInert) {
     failures.push('window.electronAPI appeared after navigating — the bridge installs lazily');
+  }
+
+  const showcaseActive = await page.evaluate(() => document.documentElement.dataset.showcase);
+  if (showcaseActive !== undefined) {
+    failures.push('showcase mode switched itself on without ?showcase=1');
+  }
+  for (const url of showcaseRequests) {
+    failures.push(`a showcase fixture module loaded without ?showcase=1: ${url}`);
   }
 
   // Both arrays hold strings already rendered at capture time — the page-error
