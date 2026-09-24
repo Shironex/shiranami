@@ -33,6 +33,7 @@
     "canary:analyser": "node scripts/analyser-canary.mjs",
     "check:mock-mode": "node scripts/check-mock-mode.mjs",
     "visual:windows": "node scripts/visual-check-windows.mjs",
+    "showcase": "showcase",
     "prepare": "husky"
   },
   "engines": {
@@ -52,6 +53,7 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^10.0.1",
+    "@noctcore/showcase-kit": "0.1.0",
     "@shiranami/eslint-plugin": "workspace:*",
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.11.0",
