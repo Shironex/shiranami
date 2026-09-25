@@ -13,6 +13,7 @@ export default function SettingsView() {
       return (
         <button
           key={section.id}
+          data-section={section.id}
           aria-current={isActive ? 'page' : undefined}
           onClick={() => onSelectSection(section.id)}
           title={t(section.labelKey)}

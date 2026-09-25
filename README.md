@@ -1,7 +1,7 @@
 <a name="top"></a>
 
 <div align="center">
-  <img src="apps/landing/public/assets/icon.png" alt="Shiranami" width="128" height="128" />
+  <img src="assets/showcase/hero.webp" alt="Shiranami: a calm desktop player for your local music" width="100%" />
 
   <h1>白波 &nbsp;·&nbsp; Shiranami</h1>
 
@@ -45,36 +45,52 @@ Shiranami is a desktop music player for people who keep their music locally. Ins
 
 <table>
   <tr>
-    <td width="50%"><img src="assets/screenshots/en/library.png" alt="Library — your local music collection" /></td>
-    <td width="50%"><img src="assets/screenshots/en/playlists.png" alt="Playlists with custom covers" /></td>
+    <td width="50%"><img src="assets/showcase/en/overview.webp" alt="Shiranami: Overview" /></td>
+    <td width="50%"><img src="assets/showcase/en/library.webp" alt="Shiranami: Library" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Library — browse, sort, and play from your own folders.</sub></td>
-    <td align="center"><sub>Playlists — custom covers and quick sidebar access.</sub></td>
+    <td align="center"><sub>Overview: your evening at a glance, with the weekly recap and a year-ago memory.</sub></td>
+    <td align="center"><sub>Library: browse and play straight from your own folders.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/en/favorites.png" alt="Favorites — all your hearted tracks" /></td>
-    <td width="50%"><img src="assets/screenshots/en/history.png" alt="Listening history with stats" /></td>
+    <td width="50%"><img src="assets/showcase/en/playlists.webp" alt="Shiranami: Playlists" /></td>
+    <td width="50%"><img src="assets/showcase/en/favorites.webp" alt="Shiranami: Favorites" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Favorites — every track you've hearted in one place.</sub></td>
-    <td align="center"><sub>History — play counts, top tracks, daily activity.</sub></td>
+    <td align="center"><sub>Playlists: custom covers and quick access from the sidebar.</sub></td>
+    <td align="center"><sub>Favorites: every track you have hearted, in one place.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/en/mixes.png" alt="Auto-generated mixes" /></td>
-    <td width="50%"><img src="assets/screenshots/en/radio.png" alt="Internet radio from Radio Browser" /></td>
+    <td width="50%"><img src="assets/showcase/en/history.webp" alt="Shiranami: History" /></td>
+    <td width="50%"><img src="assets/showcase/en/mixes.webp" alt="Shiranami: Mixes" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Mixes — smart collections from your listening patterns.</sub></td>
-    <td align="center"><sub>Radio — browse and stream stations worldwide.</sub></td>
+    <td align="center"><sub>History: play counts, listening time and daily activity.</sub></td>
+    <td align="center"><sub>Mixes: smart collections built from your listening and the time of day.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="assets/screenshots/en/search.png" alt="Search and download tracks from YouTube" /></td>
-    <td width="50%"><img src="assets/screenshots/en/settings.png" alt="Settings — appearance, audio, integrations" /></td>
+    <td width="50%"><img src="assets/showcase/en/search.webp" alt="Shiranami: Search" /></td>
+    <td width="50%"><img src="assets/showcase/en/import-playlist.webp" alt="Shiranami: Import Playlist" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>Search — find and download tracks with yt-dlp + ffmpeg.</sub></td>
-    <td align="center"><sub>Settings — appearance, audio, integrations, language.</sub></td>
+    <td align="center"><sub>Search: find tracks on YouTube and download them with yt-dlp and ffmpeg.</sub></td>
+    <td align="center"><sub>Import: bring a whole YouTube or Spotify playlist in, with match confidence.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/showcase/en/radio.webp" alt="Shiranami: Radio" /></td>
+    <td width="50%"><img src="assets/showcase/en/smart-playlists.webp" alt="Shiranami: Smart Playlists" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Radio: browse and stream internet stations from around the world.</sub></td>
+    <td align="center"><sub>Smart playlists: rules that keep a playlist up to date on their own.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/showcase/en/downloads.webp" alt="Shiranami: Downloads" /></td>
+    <td width="50%"><img src="assets/showcase/en/settings.webp" alt="Shiranami: Settings" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Downloads: a queue with progress, retries and automatic import.</sub></td>
+    <td align="center"><sub>Settings: themes, accent colors, audio, integrations and language.</sub></td>
   </tr>
 </table>
 
@@ -209,7 +225,7 @@ shiranami/
 │   ├── server/           # Backend API and Prisma schema
 │   └── web/              # React renderer used by the desktop app
 ├── assets/
-│   └── screenshots/      # README screenshots in English and Polish
+│   └── showcase/         # README images and hero banner (pnpm showcase)
 ├── crates/               # Rust workspace — the backend the shell wires together
 ├── docs/                 # Project notes, CI docs, audits, and release research
 ├── packages/

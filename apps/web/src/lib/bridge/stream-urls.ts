@@ -186,6 +186,16 @@ export function streamUrlBase(): string | null {
   return base;
 }
 
+/**
+ * Serve media from a stand-in origin. Showcase mode only (dev builds, see
+ * `@/lib/showcase`), which has no shell to ask and serves its demo wallpaper
+ * from the dev server instead.
+ */
+export function setShowcaseStreamBase(value: string): void {
+  base = value;
+  ready = null;
+}
+
 /** Reset module state. Test-only — nothing in the app un-installs the bridge. */
 export function resetStreamUrlsForTests(): void {
   base = null;

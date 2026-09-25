@@ -63,6 +63,9 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.11.0(jiti@2.7.0))
+      '@noctcore/showcase-kit':
+        specifier: 0.1.1
+        version: 0.1.1(@types/node@26.6.2)(playwright@1.63.0)
       '@shiranami/eslint-plugin':
         specifier: workspace:*
         version: link:packages/eslint-plugin
@@ -2278,6 +2281,13 @@ packages:
   '@noble/hashes@2.2.0':
     resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
     engines: {node: '>= 20.19.0'}
+
+  '@noctcore/showcase-kit@0.1.1':
+    resolution: {integrity: sha512-F/DHDgel/IBia5a7LcwrBIQxRYe/KiU76vmjF8TxlzL31B24bzH2+8eSeUaCzag3TBS7BHbpRSsJhrCT5mLLKQ==}
+    engines: {node: '>=22'}
+    hasBin: true
+    peerDependencies:
+      playwright: '>=1.50.0'
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -11269,6 +11279,13 @@ snapshots:
 
   '@noble/hashes@2.2.0':
     optional: true
+
+  '@noctcore/showcase-kit@0.1.1(@types/node@26.6.2)(playwright@1.63.0)':
+    dependencies:
+      playwright: 1.63.0
+      sharp: 0.35.4(@types/node@26.6.2)
+    transitivePeerDependencies:
+      - '@types/node'
 
   '@opentelemetry/api@1.9.1':
     optional: true
