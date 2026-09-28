@@ -55,6 +55,7 @@ pub fn spawn(app: &AppHandle, e2e: bool, handles: &Handles) {
     }
     schedule_recommendation_refresh(app);
     schedule_update_checks(app);
+    crate::downloads::auto_update::spawn(app);
 }
 
 /// v1's `hydrateAndResume`, which reloads the persisted queue and restarts

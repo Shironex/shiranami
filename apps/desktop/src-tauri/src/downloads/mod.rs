@@ -30,6 +30,7 @@
 //! §2.8's ordering is Phase 16's, and a second definition of it here would be a
 //! competing one. Every type below takes its dependencies already built.
 
+pub mod auto_update;
 pub mod queue;
 pub mod services;
 pub mod sinks;
