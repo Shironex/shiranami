@@ -42,6 +42,10 @@ regex = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# Verifying a downloaded yt-dlp against its release's `SHA2-256SUMS`, and the
+# Windows ffmpeg archive against gyan.dev's `.sha256`. The workspace pin three
+# other crates already use, so the lockfile gains nothing.
+sha2 = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
 # `macros` on top of the workspace feature set, for `select!` and `join!`. The
