@@ -104,18 +104,43 @@ pub const FFMPEG_MAC_INFO_URL: &str = "https://evermeet.cx/ffmpeg/info/ffmpeg/re
 pub const FFMPEG_WINDOWS_URL: &str =
     "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
 
+/// gyan.dev's published SHA-256 of the essentials build, Windows: a bare hex
+/// digest, redirecting to the versioned file like the archive itself does.
+pub const FFMPEG_WINDOWS_SHA256_URL: &str =
+    "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip.sha256";
+
 /// gyan.dev's plain-text version file, Windows.
 pub const FFMPEG_WINDOWS_VERSION_URL: &str =
     "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip.ver";
 
-/// The release asset to download for `platform`.
-pub fn yt_dlp_asset_url(platform: Platform) -> String {
-    let asset = match platform {
+/// yt-dlp's releases root on GitHub, which both the `latest` redirect and
+/// the per-tag download paths hang off.
+pub const YT_DLP_RELEASES: &str = "https://github.com/yt-dlp/yt-dlp/releases";
+
+/// The release asset's file name for `platform`, as `SHA2-256SUMS` lists it.
+pub fn yt_dlp_asset_name(platform: Platform) -> &'static str {
+    match platform {
         Platform::MacOs => "yt-dlp_macos",
         Platform::Windows => "yt-dlp.exe",
         Platform::Other => "yt-dlp_linux",
-    };
-    format!("{YT_DLP_RELEASE_BASE}/{asset}")
+    }
+}
+
+/// The release asset to download for `platform`.
+pub fn yt_dlp_asset_url(platform: Platform) -> String {
+    format!("{YT_DLP_RELEASE_BASE}/{}", yt_dlp_asset_name(platform))
+}
+
+/// One file of a yt-dlp release under `releases`: the release named `tag`, or
+/// whichever is latest when `tag` is `None`.
+///
+/// GitHub serves `<releases>/latest/download/<file>` and
+/// `<releases>/download/<tag>/<file>`; both redirect to the asset CDN.
+pub fn yt_dlp_release_file_url(releases: &str, tag: Option<&str>, file: &str) -> String {
+    match tag {
+        Some(tag) => format!("{releases}/download/{tag}/{file}"),
+        None => format!("{releases}/latest/download/{file}"),
+    }
 }
 
 #[cfg(test)]
@@ -181,6 +206,23 @@ mod tests {
         assert_eq!(
             yt_dlp_asset_url(Platform::Other),
             "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+        );
+    }
+
+    #[test]
+    fn a_release_file_resolves_to_latest_or_to_a_pinned_tag() {
+        assert_eq!(
+            yt_dlp_release_file_url(YT_DLP_RELEASES, None, "SHA2-256SUMS"),
+            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS"
+        );
+        assert_eq!(
+            yt_dlp_release_file_url(YT_DLP_RELEASES, Some("2026.09.20"), "yt-dlp.exe"),
+            "https://github.com/yt-dlp/yt-dlp/releases/download/2026.09.20/yt-dlp.exe"
+        );
+        assert_eq!(
+            yt_dlp_release_file_url(YT_DLP_RELEASES, None, yt_dlp_asset_name(Platform::MacOs)),
+            yt_dlp_asset_url(Platform::MacOs),
+            "the unpinned URL is the one installs have always used"
         );
     }
 

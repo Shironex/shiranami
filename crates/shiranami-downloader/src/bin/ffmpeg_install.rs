@@ -1,10 +1,11 @@
 //! The two ffmpeg install flows, and their progress arithmetic.
 //!
 //! Split from [`crate::bin::ffmpeg`] because the two platforms share nothing:
-//! macOS downloads two single-binary archives from evermeet.cx and unpacks them
-//! straight into place; Windows downloads one build archive from gyan.dev and
-//! has to go looking inside it, because the binaries sit under a directory
-//! named for a version that is not known until the archive is open.
+//! macOS downloads two single-binary archives from evermeet.cx and unpacks them;
+//! Windows downloads one build archive from gyan.dev, verifies it, and has to go
+//! looking inside it, because the binaries sit under a directory named for a
+//! version that is not known until the archive is open. Both unpack into a
+//! staging directory, and [`FfmpegManager::promote_staged`] swaps the pair in.
 //!
 //! # The progress numbers are v1's, exactly
 //!
@@ -15,16 +16,28 @@
 //! offset to 50, and the four flat values mark the extraction steps. Windows
 //! scales its single download by 0.9 and marks 92, 96, 100.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use shiranami_net::RequestOptions;
 
 use crate::bin::archive;
+use crate::bin::checksum;
 use crate::bin::fetch::{ProgressSink, Scaled, download_to_file};
 use crate::bin::ffmpeg::FfmpegManager;
 use crate::bin::install;
-use crate::bin::layout;
+use crate::bin::layout::{self, Platform};
 use crate::error::{DownloaderError, Result};
 
 use crate::bin::ffmpeg::ARCHIVE_INCOMPLETE;
+
+/// The directory under `bin/` a new ffmpeg and ffprobe are staged in.
+///
+/// v1 unpacked straight over the installed binaries, so a failed extraction or
+/// an interrupted run could leave one new binary beside one old one, or a
+/// truncated one in place. Staging beside them and promoting both together
+/// (see `bin::swap`) is what lets an unattended update fail without breaking
+/// a working install.
+const STAGE_DIR: &str = "_ffmpeg_stage";
 
 /// Report `percent`, when anyone is listening.
 fn mark(progress: Option<&dyn ProgressSink>, percent: u32) {
@@ -33,103 +46,120 @@ fn mark(progress: Option<&dyn ProgressSink>, percent: u32) {
     }
 }
 
+/// A verified ffmpeg and ffprobe pair waiting to be promoted.
+#[derive(Debug)]
+pub struct StagedFfmpeg {
+    pub(crate) dir: PathBuf,
+    pub(crate) ffmpeg: PathBuf,
+    pub(crate) ffprobe: PathBuf,
+}
+
 impl FfmpegManager {
-    /// macOS: two archives from evermeet.cx, each holding one binary.
-    pub(super) async fn install_macos(&self, progress: Option<&dyn ProgressSink>) -> Result<()> {
-        let ffmpeg_zip = self.bin_dir.join("ffmpeg.zip");
-        let ffprobe_zip = self.bin_dir.join("ffprobe.zip");
-
-        let result = self
-            .install_macos_inner(&ffmpeg_zip, &ffprobe_zip, progress)
-            .await;
-
-        if result.is_err() {
-            // v1 removed both archives on any failure, including the one that
-            // had not been downloaded yet — `remove_quietly` makes that a
-            // no-op rather than a second error.
-            install::remove_quietly(&ffmpeg_zip).await;
-            install::remove_quietly(&ffprobe_zip).await;
+    /// Download ffmpeg and ffprobe into a staging directory beside the
+    /// installed pair, without touching it.
+    ///
+    /// # Integrity
+    ///
+    /// The Windows archive is checked against gyan.dev's published `.sha256`
+    /// and refused on a mismatch. The macOS archives are **not** checked:
+    /// evermeet.cx publishes an OpenPGP signature and no digest, and
+    /// `bin::checksum` explains why that is not verified here.
+    ///
+    /// # Errors
+    ///
+    /// `InstallFailed` on an unsupported platform, a malformed archive or a
+    /// failed checksum; `Io` or `Http` when a step fails. The staging
+    /// directory is removed on every failure.
+    pub async fn stage(&self, progress: Option<&dyn ProgressSink>) -> Result<StagedFfmpeg> {
+        if self.platform == Platform::Other {
+            return Err(DownloaderError::InstallFailed {
+                message: crate::bin::ffmpeg::UNSUPPORTED_PLATFORM.to_owned(),
+            });
         }
 
-        result
+        let dir = self.bin_dir.join(STAGE_DIR);
+        // A previous run may have died half-way through.
+        install::remove_dir_quietly(&dir).await;
+        install::ensure_dir(&dir).await?;
+
+        let staged = StagedFfmpeg {
+            ffmpeg: layout::ffmpeg_path(&dir, self.platform),
+            ffprobe: layout::ffprobe_path(&dir, self.platform),
+            dir,
+        };
+
+        let result = match self.platform {
+            Platform::Windows => self.stage_windows(&staged, progress).await,
+            Platform::MacOs | Platform::Other => self.stage_macos(&staged, progress).await,
+        };
+
+        match result {
+            Ok(()) => Ok(staged),
+            Err(error) => {
+                install::remove_dir_quietly(&staged.dir).await;
+                Err(error)
+            }
+        }
     }
 
-    async fn install_macos_inner(
+    /// macOS: two archives from evermeet.cx, each holding one binary.
+    async fn stage_macos(
         &self,
-        ffmpeg_zip: &Path,
-        ffprobe_zip: &Path,
+        staged: &StagedFfmpeg,
         progress: Option<&dyn ProgressSink>,
     ) -> Result<()> {
+        let ffmpeg_zip = staged.dir.join("ffmpeg.zip");
+        let ffprobe_zip = staged.dir.join("ffprobe.zip");
+
         tracing::info!(url = layout::FFMPEG_MAC_URL, "downloading ffmpeg");
-        self.download_stage(layout::FFMPEG_MAC_URL, ffmpeg_zip, progress, 0, 45.0)
+        self.download_stage(layout::FFMPEG_MAC_URL, &ffmpeg_zip, progress, 0, 45.0)
             .await?;
 
         mark(progress, 46);
-        archive::extract_all(ffmpeg_zip, &self.bin_dir).await?;
-        install::remove_quietly(ffmpeg_zip).await;
+        archive::extract_all(&ffmpeg_zip, &staged.dir).await?;
+        install::remove_quietly(&ffmpeg_zip).await;
         mark(progress, 50);
 
         tracing::info!(url = layout::FFPROBE_MAC_URL, "downloading ffprobe");
-        self.download_stage(layout::FFPROBE_MAC_URL, ffprobe_zip, progress, 50, 45.0)
+        self.download_stage(layout::FFPROBE_MAC_URL, &ffprobe_zip, progress, 50, 45.0)
             .await?;
 
         mark(progress, 96);
-        archive::extract_all(ffprobe_zip, &self.bin_dir).await?;
-        install::remove_quietly(ffprobe_zip).await;
+        archive::extract_all(&ffprobe_zip, &staged.dir).await?;
+        install::remove_quietly(&ffprobe_zip).await;
         mark(progress, 98);
 
-        let ffmpeg = self.ffmpeg_path();
-        let ffprobe = self.ffprobe_path();
-        install::make_executable(&ffmpeg, self.platform).await?;
-        install::make_executable(&ffprobe, self.platform).await?;
-        install::strip_quarantine(
-            self.runner.as_ref(),
-            &[ffmpeg.as_path(), ffprobe.as_path()],
-            self.platform,
-        )
-        .await;
-
+        self.finish_stage(staged).await?;
         mark(progress, 100);
-        tracing::info!(dir = %self.bin_dir.display(), "ffmpeg and ffprobe installed");
         Ok(())
     }
 
-    /// Windows: one build archive from gyan.dev, unpacked and searched.
-    pub(super) async fn install_windows(&self, progress: Option<&dyn ProgressSink>) -> Result<()> {
-        let zip = self.bin_dir.join("ffmpeg-essentials.zip");
-        let extract_dir = self.bin_dir.join("_ffmpeg_extract");
-
-        let result = self
-            .install_windows_inner(&zip, &extract_dir, progress)
-            .await;
-
-        if result.is_err() {
-            install::remove_quietly(&zip).await;
-            install::remove_dir_quietly(&extract_dir).await;
-        }
-
-        result
-    }
-
-    async fn install_windows_inner(
+    /// Windows: one build archive from gyan.dev, verified, unpacked and
+    /// searched.
+    async fn stage_windows(
         &self,
-        zip: &Path,
-        extract_dir: &Path,
+        staged: &StagedFfmpeg,
         progress: Option<&dyn ProgressSink>,
     ) -> Result<()> {
+        let zip = staged.dir.join("ffmpeg-essentials.zip");
+        let extract_dir = staged.dir.join("extract");
+
         tracing::info!(url = layout::FFMPEG_WINDOWS_URL, "downloading ffmpeg");
-        self.download_stage(layout::FFMPEG_WINDOWS_URL, zip, progress, 0, 90.0)
+        self.download_stage(layout::FFMPEG_WINDOWS_URL, &zip, progress, 0, 90.0)
             .await?;
 
+        let expected = self.published_windows_digest().await?;
+        checksum::verify_file(&zip, &expected).await?;
+
         mark(progress, 92);
-        archive::extract_all(zip, extract_dir).await?;
-        install::remove_quietly(zip).await;
+        archive::extract_all(&zip, &extract_dir).await?;
+        install::remove_quietly(&zip).await;
         mark(progress, 96);
 
         // The binaries live at `ffmpeg-<version>-essentials_build/bin/`, and
         // the version is only knowable once the archive is open.
-        let found_ffmpeg = archive::find_file(extract_dir, "ffmpeg.exe").await?;
-        let found_ffprobe = archive::find_file(extract_dir, "ffprobe.exe").await?;
+        let found_ffmpeg = archive::find_file(&extract_dir, "ffmpeg.exe").await?;
+        let found_ffprobe = archive::find_file(&extract_dir, "ffprobe.exe").await?;
 
         let (Some(found_ffmpeg), Some(found_ffprobe)) = (found_ffmpeg, found_ffprobe) else {
             return Err(DownloaderError::InstallFailed {
@@ -137,13 +167,45 @@ impl FfmpegManager {
             });
         };
 
-        copy(&found_ffmpeg, &self.ffmpeg_path()).await?;
-        copy(&found_ffprobe, &self.ffprobe_path()).await?;
+        move_into_stage(&found_ffmpeg, &staged.ffmpeg).await?;
+        move_into_stage(&found_ffprobe, &staged.ffprobe).await?;
+        install::remove_dir_quietly(&extract_dir).await;
 
-        install::remove_dir_quietly(extract_dir).await;
-
+        self.finish_stage(staged).await?;
         mark(progress, 100);
-        tracing::info!(dir = %self.bin_dir.display(), "ffmpeg and ffprobe installed");
+        Ok(())
+    }
+
+    /// The digest gyan.dev publishes for the essentials archive.
+    ///
+    /// Fetched after the archive rather than before, so the two name the same
+    /// build except in the seconds after a new one is published. A release
+    /// landing in that window fails the check and is refused, which is the
+    /// safe direction; the next scheduled check picks it up.
+    async fn published_windows_digest(&self) -> Result<checksum::Sha256Digest> {
+        let document = self
+            .client
+            .text(layout::FFMPEG_WINDOWS_SHA256_URL, RequestOptions::default())
+            .await
+            .map_err(|error| DownloaderError::InstallFailed {
+                message: format!("Could not download the published checksum: {error}"),
+            })?;
+
+        checksum::parse_bare(&document).ok_or_else(|| DownloaderError::InstallFailed {
+            message: checksum::CHECKSUM_MISSING.to_owned(),
+        })
+    }
+
+    /// Make the staged pair runnable, so the post-promotion probe can run it.
+    async fn finish_stage(&self, staged: &StagedFfmpeg) -> Result<()> {
+        install::make_executable(&staged.ffmpeg, self.platform).await?;
+        install::make_executable(&staged.ffprobe, self.platform).await?;
+        install::strip_quarantine(
+            self.runner.as_ref(),
+            &[staged.ffmpeg.as_path(), staged.ffprobe.as_path()],
+            self.platform,
+        )
+        .await;
         Ok(())
     }
 
@@ -166,13 +228,16 @@ impl FfmpegManager {
     }
 }
 
-/// Copy a file out of the extraction directory into its installed place.
-async fn copy(from: &Path, to: &Path) -> Result<()> {
-    tokio::fs::copy(from, to)
+/// Move a file found in the extraction directory to its staged name.
+///
+/// A rename, not v1's copy: both paths are inside the staging directory, so
+/// they share a volume and the rename is free where a copy of a 100 MB binary
+/// is not.
+async fn move_into_stage(from: &Path, to: &Path) -> Result<()> {
+    tokio::fs::rename(from, to)
         .await
-        .map(|_bytes| ())
         .map_err(|source| DownloaderError::Io {
-            operation: "install the extracted binary as",
+            operation: "stage the extracted binary as",
             path: to.to_path_buf(),
             source,
         })
@@ -284,7 +349,7 @@ mod tests {
 
         // An extraction directory holding only one of the two binaries: the
         // shape a truncated or restructured gyan.dev build would produce.
-        let extract_dir = temp.path().join("_ffmpeg_extract");
+        let extract_dir = temp.path().join(STAGE_DIR).join("extract");
         let nested = extract_dir.join("ffmpeg-7.1-essentials_build/bin");
         tokio::fs::create_dir_all(&nested)
             .await

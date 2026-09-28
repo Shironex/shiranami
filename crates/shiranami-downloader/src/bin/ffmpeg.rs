@@ -21,7 +21,9 @@ use shiranami_net::{HttpClient, RequestOptions};
 use tokio_util::sync::CancellationToken;
 
 use crate::bin::fetch::ProgressSink;
+use crate::bin::ffmpeg_install::StagedFfmpeg;
 use crate::bin::layout::{self, Platform};
+use crate::bin::swap;
 use crate::error::{DownloaderError, Result};
 use crate::spawn::{ProcessRunner, ProcessSpec, args};
 
@@ -40,6 +42,9 @@ pub const UNSUPPORTED_PLATFORM: &str =
 /// public surface even though only one private function raises it.
 pub const ARCHIVE_INCOMPLETE: &str =
     "Could not find ffmpeg.exe or ffprobe.exe in downloaded archive";
+
+/// What an install reports when the new pair does not run.
+pub const PROBE_FAILED: &str = "The new ffmpeg did not run, so the previous version was kept";
 
 /// The version out of ffmpeg's banner line.
 static VERSION_LINE: LazyLock<Regex> = LazyLock::new(|| {
@@ -182,24 +187,82 @@ impl FfmpegManager {
         }
     }
 
-    /// Download and install ffmpeg and ffprobe.
+    /// Download, verify where the upstream allows it, and install ffmpeg and
+    /// ffprobe.
+    ///
+    /// The manual install behind the settings panel's button, and the same
+    /// stage and promote path an automatic update takes.
     ///
     /// # Errors
     ///
-    /// [`DownloaderError::InstallFailed`] on an unsupported platform or a
-    /// malformed archive; [`DownloaderError::Io`] or
-    /// [`DownloaderError::Http`] when a step fails. Every failure path removes
-    /// the archives and any extraction directory it created.
+    /// [`DownloaderError::InstallFailed`] on an unsupported platform, a
+    /// malformed archive, a failed checksum or a new pair that does not run;
+    /// [`DownloaderError::Io`] or [`DownloaderError::Http`] when a step fails.
+    /// Every failure path removes what it staged and leaves the installed pair,
+    /// if any, intact.
     pub async fn install(&self, progress: Option<&dyn ProgressSink>) -> Result<()> {
         crate::bin::install::ensure_dir(&self.bin_dir).await?;
+        let staged = self.stage(progress).await?;
+        self.promote_staged(staged).await.map(|_version| ())
+    }
 
-        match self.platform {
-            Platform::MacOs => self.install_macos(progress).await,
-            Platform::Windows => self.install_windows(progress).await,
-            Platform::Other => Err(DownloaderError::InstallFailed {
-                message: UNSUPPORTED_PLATFORM.to_owned(),
-            }),
+    /// Swap a staged pair in, keeping the old pair until the new ffmpeg reports
+    /// a version and the new ffprobe runs.
+    ///
+    /// Returns the version the new ffmpeg reports.
+    ///
+    /// # Errors
+    ///
+    /// `Io` when a rename fails, `InstallFailed` carrying [`PROBE_FAILED`] when
+    /// the new pair does not run. Both leave the previous pair in place.
+    pub async fn promote_staged(&self, staged: StagedFfmpeg) -> Result<String> {
+        let pairs = [
+            (staged.ffmpeg.clone(), self.ffmpeg_path()),
+            (staged.ffprobe.clone(), self.ffprobe_path()),
+        ];
+
+        let promoted = match swap::promote_all(&pairs).await {
+            Ok(promoted) => promoted,
+            Err(error) => {
+                self.discard(staged).await;
+                return Err(error);
+            }
+        };
+        self.discard(staged).await;
+
+        let Some(version) = self.version().await else {
+            return self.reject(&promoted).await;
+        };
+        if !self.ffprobe_runs().await {
+            return self.reject(&promoted).await;
         }
+
+        swap::commit(&promoted).await;
+        tracing::info!(dir = %self.bin_dir.display(), version, "ffmpeg and ffprobe installed");
+        Ok(version)
+    }
+
+    /// Throw a staged pair away, for an update that will not be promoted.
+    pub async fn discard(&self, staged: StagedFfmpeg) {
+        crate::bin::install::remove_dir_quietly(&staged.dir).await;
+    }
+
+    async fn reject(&self, promoted: &[swap::Promoted]) -> Result<String> {
+        tracing::error!(dir = %self.bin_dir.display(), "the new ffmpeg did not run; rolling back");
+        swap::roll_back(promoted).await;
+        Err(DownloaderError::InstallFailed {
+            message: PROBE_FAILED.to_owned(),
+        })
+    }
+
+    /// Whether the installed ffprobe answers `-version`.
+    async fn ffprobe_runs(&self) -> bool {
+        let spec = ProcessSpec::capturing(self.ffprobe_path(), args::ffmpeg_version())
+            .with_timeout(VERSION_TIMEOUT);
+        matches!(
+            self.runner.run(spec, None, &CancellationToken::new()).await,
+            Ok(output) if output.code == 0
+        )
     }
 }
 
