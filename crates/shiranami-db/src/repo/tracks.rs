@@ -44,19 +44,24 @@ pub use crate::repo::track_analysis::{
     AnalysisWrite, TrackAnalysisState, analysis_state, record_analysis_many, set_bpm_key,
 };
 
+// And for content identity: the move-aware import and the hash backfill.
+pub use crate::repo::track_identity::{
+    IdentifiedTrack, Imported, Unhashed, import, import_many, set_content_hashes, unhashed,
+};
+
 /// Rows per `INSERT`, as v1 sized it.
 ///
-/// Twelve columns per track, so a full chunk binds 1,200 parameters — an order
-/// of magnitude under SQLite's 32,766 `SQLITE_MAX_VARIABLE_NUMBER`.
-const INSERT_CHUNK: usize = 100;
+/// Thirteen columns per track, so a full chunk binds 1,300 parameters, an
+/// order of magnitude under SQLite's 32,766 `SQLITE_MAX_VARIABLE_NUMBER`.
+pub(crate) const INSERT_CHUNK: usize = 100;
 
 /// Ids per `IN (…)` list, as v1 sized it. One bind each.
-const ID_CHUNK: usize = 500;
+pub(crate) const ID_CHUNK: usize = 500;
 
 /// The insert column list, and the order [`push_values`] binds in.
 const INSERT_INTO: &str = "INSERT INTO tracks \
     (id, file_path, title, artist, album_artist, album, duration, genre, year, \
-     track_number, disc_number, album_art) ";
+     track_number, disc_number, album_art, content_hash) ";
 
 /// Every track, newest first.
 pub async fn get_all(conn: &mut SqliteConnection) -> Result<Vec<Track>> {
@@ -455,9 +460,25 @@ async fn insert_chunk(
     conn: &mut SqliteConnection,
     chunk: &[TrackCreateInput],
 ) -> Result<Vec<Track>> {
+    let rows: Vec<NewRow<'_>> = chunk.iter().map(|track| (track, None)).collect();
+    insert_rows(conn, &rows).await
+}
+
+/// One row for [`insert_rows`]: what the caller sent, and the content identity
+/// measured for it (`None` when unmeasured).
+pub(crate) type NewRow<'a> = (&'a TrackCreateInput, Option<&'a str>);
+
+/// [`insert_chunk`]'s statement, with each row's content hash bound beside it.
+///
+/// Shared with the move-aware import ([`crate::repo::track_identity`]), which
+/// is the only caller that has hashes to bind. Same `ON CONFLICT` contract.
+pub(crate) async fn insert_rows(
+    conn: &mut SqliteConnection,
+    chunk: &[NewRow<'_>],
+) -> Result<Vec<Track>> {
     let mut builder = QueryBuilder::<Sqlite>::new(INSERT_INTO);
 
-    builder.push_values(chunk, |mut row, track| {
+    builder.push_values(chunk, |mut row, (track, content_hash)| {
         row.push_bind(Uuid::new_v4().to_string())
             .push_bind(track.file_path.clone())
             .push_bind(track.title.clone())
@@ -472,7 +493,8 @@ async fn insert_chunk(
             // The one bind that is normalised rather than passed through: a
             // renderer that posts back the loopback URL it was shown must not
             // be able to make a session-scoped address durable.
-            .push_bind(art_url::canonical(track.album_art.as_deref()));
+            .push_bind(art_url::canonical(track.album_art.as_deref()))
+            .push_bind(content_hash.map(str::to_owned));
     });
 
     builder.push(" ON CONFLICT (file_path) DO NOTHING RETURNING *");
