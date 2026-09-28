@@ -35,6 +35,15 @@
 //! but before the commit also rolls back (conservatively); the next scheduled
 //! check installs it again.
 //!
+//! The marker is written through a flushed temporary file and a rename (and,
+//! on Unix, a flushed directory), so on a filesystem that honours those
+//! flushes a crash leaves either no marker or a whole one. On one that does
+//! not, a torn record (empty, NUL-filled, the wrong length) is read as "every
+//! binary had a predecessor": recovery then restores whatever backups are
+//! there and **never removes a binary**. The cost is that an interrupted
+//! *first* install may be left in place rather than removed, which is the
+//! harmless direction.
+//!
 //! Without a marker, a `.old` file is only ever a leftover (Windows could not
 //! delete a `.old` that was still running) and is never restored: restoring it
 //! would put an older build over a newer good one. The next promotion sweeps
@@ -82,9 +91,23 @@ pub fn marker_path(first_final: &Path) -> PathBuf {
 /// ffprobe) never ends up with one new binary beside one old one. The same
 /// holds across a crash, through the marker (see the module docs).
 ///
+/// # Refusals, all before anything is renamed
+///
+/// - **A swap is already pending** (its marker is on disk, because an earlier
+///   rollback could not finish). Starting over it would sweep that swap's
+///   `.old`, the last known-good build, and overwrite its marker. The caller
+///   must [`recover`] first; the managers do, under their install lock.
+/// - **A stale backup cannot be cleared.** On Windows a `.old` that is still
+///   running cannot be deleted. Setting the current binary aside onto it would
+///   then fail half-way, and a rollback would restore that *stale* backup over
+///   the newer binary. So the swap stops cleanly instead, and the next window
+///   tries again.
+///
 /// # Errors
 ///
-/// [`DownloaderError::Io`] for the marker write or the rename that failed.
+/// `InstallFailed` carrying [`SWAP_PENDING`] or [`STALE_BACKUP`] for the two
+/// refusals above, [`DownloaderError::Io`] for the marker write or the rename
+/// that failed.
 pub async fn promote_all(pairs: &[(PathBuf, PathBuf)]) -> Result<Vec<Promoted>> {
     let finals: Vec<PathBuf> = pairs
         .iter()
@@ -94,6 +117,12 @@ pub async fn promote_all(pairs: &[(PathBuf, PathBuf)]) -> Result<Vec<Promoted>> 
         return Ok(Vec::new());
     };
 
+    if is_pending(&finals).await {
+        return Err(DownloaderError::InstallFailed {
+            message: SWAP_PENDING.to_owned(),
+        });
+    }
+
     // Stale backups of every binary in the pair go before the first rename, so
     // none of them can be mistaken for this swap's. Only while the binary they
     // belong to is present: a lone `.old` may be the last copy there is.
@@ -101,7 +130,14 @@ pub async fn promote_all(pairs: &[(PathBuf, PathBuf)]) -> Result<Vec<Promoted>> 
     for final_path in &finals {
         let present = exists(final_path).await;
         if present {
-            remove_quietly(&backup_path(final_path)).await;
+            let backup = backup_path(final_path);
+            remove_quietly(&backup).await;
+            if exists(&backup).await {
+                tracing::warn!(path = %backup.display(), "a stale backup could not be cleared; not swapping");
+                return Err(DownloaderError::InstallFailed {
+                    message: STALE_BACKUP.to_owned(),
+                });
+            }
         }
         had_previous.push(present);
     }
@@ -110,14 +146,7 @@ pub async fn promote_all(pairs: &[(PathBuf, PathBuf)]) -> Result<Vec<Promoted>> 
         .iter()
         .map(|had| if *had { '1' } else { '0' })
         .collect();
-    let marker = marker_path(first);
-    tokio::fs::write(&marker, record)
-        .await
-        .map_err(|source| DownloaderError::Io {
-            operation: "mark the binary swap as in progress at",
-            path: marker.clone(),
-            source,
-        })?;
+    write_marker(&marker_path(first), &record).await?;
 
     let mut promoted = Vec::with_capacity(pairs.len());
     for ((staged, final_path), had) in pairs.iter().zip(had_previous) {
@@ -146,6 +175,55 @@ async fn promote_one(staged: &Path, final_path: &Path, had_previous: bool) -> Re
     // On failure the staged file stays where it was for the caller to clean
     // up, and `promote_all` rolls the pair back.
     rename(staged, final_path, "install the new binary as").await
+}
+
+/// What [`promote_all`] answers when a swap of the same binaries is pending.
+pub const SWAP_PENDING: &str =
+    "An earlier update of this tool could not be undone yet, so this one was not started";
+
+/// What [`promote_all`] answers when a stale backup cannot be cleared.
+pub const STALE_BACKUP: &str = "A previous copy of this tool could not be cleared away \
+     (it may still be running), so the update was not started. It is tried again later";
+
+/// Write the marker durably and atomically: a temporary file, flushed to disk,
+/// renamed into place, and (on Unix) the directory flushed too. A crash can
+/// then leave no marker or a complete one, never an empty or half-written one
+/// on a filesystem that honours the flushes. [`recover`] still treats a
+/// malformed record as "never remove a binary", for filesystems that do not.
+async fn write_marker(marker: &Path, record: &str) -> Result<()> {
+    use tokio::io::AsyncWriteExt as _;
+
+    let io_error = |source| DownloaderError::Io {
+        operation: "mark the binary swap as in progress at",
+        path: marker.to_path_buf(),
+        source,
+    };
+    let temporary = crate::bin::install::temporary_path(marker);
+
+    let mut file = tokio::fs::File::create(&temporary)
+        .await
+        .map_err(io_error)?;
+    file.write_all(record.as_bytes()).await.map_err(io_error)?;
+    file.sync_all().await.map_err(io_error)?;
+    drop(file);
+    tokio::fs::rename(&temporary, marker)
+        .await
+        .map_err(io_error)?;
+
+    // Windows cannot open a directory as a file to flush it, and NTFS journals
+    // the rename; Unix needs the directory entry flushed for the rename to
+    // survive a power cut.
+    #[cfg(unix)]
+    if let Some(directory) = marker.parent() {
+        let flushed = match tokio::fs::File::open(directory).await {
+            Ok(directory) => directory.sync_all().await,
+            Err(error) => Err(error),
+        };
+        if let Err(error) = flushed {
+            tracing::debug!(%error, "could not flush the binary directory");
+        }
+    }
+    Ok(())
 }
 
 /// Undo a promotion: put the whole pair back as it was.
@@ -192,18 +270,17 @@ pub async fn recover(finals: &[PathBuf]) -> bool {
     };
 
     tracing::warn!(?finals, "rolling back an unfinished binary swap");
-    let record: Vec<char> = record.trim().chars().collect();
+    let record = parse_record(&record, finals.len());
     let mut consistent = true;
 
     for (index, final_path) in finals.iter().enumerate() {
         let backup = backup_path(final_path);
-        // An unreadable record falls back to "had a predecessor if its backup
-        // is there", which is the safe reading: it never deletes a binary.
-        let had_previous = match record.get(index) {
-            Some('0') if record.len() == finals.len() => false,
-            Some('1') if record.len() == finals.len() => true,
-            _ => exists(&backup).await,
-        };
+        // Only a well-formed record can say "this binary had no predecessor",
+        // which is the one answer that removes a binary. A torn record (empty,
+        // NUL-filled, the wrong length) reads as "had one" for every binary,
+        // so recovery then only ever restores a backup that is there and
+        // never deletes anything.
+        let had_previous = record.as_ref().is_none_or(|record| record[index]);
 
         if !had_previous {
             remove_quietly(final_path).await;
@@ -221,6 +298,23 @@ pub async fn recover(finals: &[PathBuf]) -> bool {
         remove_quietly(&marker).await;
     }
     consistent
+}
+
+/// A marker's record: one `0` or `1` per binary, or `None` when it is not
+/// exactly that.
+fn parse_record(record: &str, binaries: usize) -> Option<Vec<bool>> {
+    let record = record.trim();
+    if record.len() != binaries {
+        return None;
+    }
+    record
+        .chars()
+        .map(|flag| match flag {
+            '0' => Some(false),
+            '1' => Some(true),
+            _ => None,
+        })
+        .collect()
 }
 
 /// Whether a swap of `finals` was started and neither committed nor rolled
@@ -278,228 +372,5 @@ async fn rename(from: &Path, to: &Path, operation: &'static str) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    async fn write(path: &Path, body: &str) {
-        tokio::fs::write(path, body).await.expect("write a file");
-    }
-
-    async fn read(path: &Path) -> String {
-        tokio::fs::read_to_string(path).await.expect("read a file")
-    }
-
-    #[test]
-    fn the_backup_and_the_marker_keep_the_exe_suffix() {
-        assert_eq!(
-            backup_path(Path::new("/data/bin/yt-dlp.exe")),
-            PathBuf::from("/data/bin/yt-dlp.exe.old")
-        );
-        assert_eq!(
-            marker_path(Path::new("/data/bin/ffmpeg.exe")),
-            PathBuf::from("/data/bin/ffmpeg.exe.swapping")
-        );
-    }
-
-    #[tokio::test]
-    async fn promotion_keeps_the_previous_binary_until_commit() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let staged = temp.path().join("yt-dlp.tmp");
-        let final_path = temp.path().join("yt-dlp");
-        write(&final_path, "old").await;
-        write(&staged, "new").await;
-
-        let promoted = promote_all(&[(staged.clone(), final_path.clone())])
-            .await
-            .expect("promotes");
-
-        assert_eq!(read(&final_path).await, "new");
-        assert_eq!(read(&backup_path(&final_path)).await, "old");
-        assert!(is_pending(std::slice::from_ref(&final_path)).await);
-        assert!(!staged.exists());
-
-        commit(&promoted).await;
-        assert!(!backup_path(&final_path).exists());
-        assert!(!is_pending(std::slice::from_ref(&final_path)).await);
-        assert_eq!(read(&final_path).await, "new");
-    }
-
-    #[tokio::test]
-    async fn rolling_back_restores_the_previous_binary() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let staged = temp.path().join("yt-dlp.tmp");
-        let final_path = temp.path().join("yt-dlp");
-        write(&final_path, "old").await;
-        write(&staged, "new").await;
-
-        let promoted = promote_all(&[(staged, final_path.clone())])
-            .await
-            .expect("promotes");
-        assert!(roll_back(&promoted).await, "the predecessor is back");
-
-        assert_eq!(read(&final_path).await, "old");
-        assert!(!backup_path(&final_path).exists());
-        assert!(!is_pending(std::slice::from_ref(&final_path)).await);
-    }
-
-    #[tokio::test]
-    async fn rolling_back_a_first_install_leaves_nothing_behind() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let staged = temp.path().join("yt-dlp.tmp");
-        let final_path = temp.path().join("yt-dlp");
-        write(&staged, "new").await;
-
-        let promoted = promote_all(&[(staged, final_path.clone())])
-            .await
-            .expect("promotes");
-        assert_eq!(promoted[0].backup, None);
-
-        assert!(roll_back(&promoted).await);
-        assert!(
-            !final_path.exists(),
-            "a binary that failed its probe is not left installed"
-        );
-    }
-
-    #[tokio::test]
-    async fn a_failed_second_pair_rolls_back_the_first() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let ffmpeg = temp.path().join("ffmpeg");
-        let ffprobe = temp.path().join("ffprobe");
-        let staged_ffmpeg = temp.path().join("stage-ffmpeg");
-        write(&ffmpeg, "old ffmpeg").await;
-        write(&ffprobe, "old ffprobe").await;
-        write(&staged_ffmpeg, "new ffmpeg").await;
-
-        // The staged ffprobe does not exist, so its rename fails.
-        let error = promote_all(&[
-            (staged_ffmpeg, ffmpeg.clone()),
-            (temp.path().join("stage-ffprobe-missing"), ffprobe.clone()),
-        ])
-        .await
-        .expect_err("the second rename fails");
-
-        assert!(matches!(error, DownloaderError::Io { .. }));
-        assert_eq!(read(&ffmpeg).await, "old ffmpeg");
-        assert_eq!(read(&ffprobe).await, "old ffprobe");
-        assert!(!is_pending(&[ffmpeg, ffprobe]).await);
-    }
-
-    /// Gate finding N2 (a): a crash after ffmpeg was promoted and before
-    /// ffprobe was touched. No final file is missing, so only the marker can
-    /// tell this apart from a healthy install.
-    #[tokio::test]
-    async fn a_crash_between_the_pair_rolls_both_back() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let ffmpeg = temp.path().join("ffmpeg");
-        let ffprobe = temp.path().join("ffprobe");
-        write(&marker_path(&ffmpeg), "11").await;
-        write(&ffmpeg, "new ffmpeg").await;
-        write(&backup_path(&ffmpeg), "old ffmpeg").await;
-        write(&ffprobe, "old ffprobe").await;
-
-        assert!(recover(&[ffmpeg.clone(), ffprobe.clone()]).await);
-
-        assert_eq!(read(&ffmpeg).await, "old ffmpeg");
-        assert_eq!(read(&ffprobe).await, "old ffprobe", "one build, not two");
-        assert!(!is_pending(&[ffmpeg, ffprobe]).await);
-    }
-
-    #[tokio::test]
-    async fn a_crash_between_one_binarys_renames_is_rolled_back() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let final_path = temp.path().join("yt-dlp");
-        write(&marker_path(&final_path), "1").await;
-        write(&backup_path(&final_path), "old").await;
-
-        assert!(recover(std::slice::from_ref(&final_path)).await);
-        assert_eq!(read(&final_path).await, "old");
-        assert!(!backup_path(&final_path).exists());
-        assert!(
-            recover(std::slice::from_ref(&final_path)).await,
-            "nothing pending afterwards"
-        );
-    }
-
-    /// Gate finding N2 (b): Windows could not delete a running `ffprobe.old`
-    /// after a good update. With no swap pending, it must never be restored
-    /// over the newer ffprobe.
-    #[tokio::test]
-    async fn a_leftover_backup_is_never_restored() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let ffmpeg = temp.path().join("ffmpeg");
-        let ffprobe = temp.path().join("ffprobe");
-        write(&ffmpeg, "new ffmpeg").await;
-        write(&ffprobe, "new ffprobe").await;
-        write(&backup_path(&ffprobe), "stale ffprobe").await;
-
-        assert!(recover(&[ffmpeg.clone(), ffprobe.clone()]).await);
-        assert_eq!(read(&ffprobe).await, "new ffprobe");
-    }
-
-    /// …and the next promotion sweeps it before its first rename, so the
-    /// backup it keeps is this swap's and not the stale one.
-    #[tokio::test]
-    async fn a_promotion_sweeps_the_pairs_stale_backups_first() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let ffmpeg = temp.path().join("ffmpeg");
-        let ffprobe = temp.path().join("ffprobe");
-        let (stage_ffmpeg, stage_ffprobe) = (temp.path().join("s1"), temp.path().join("s2"));
-        write(&ffmpeg, "old ffmpeg").await;
-        write(&ffprobe, "old ffprobe").await;
-        write(&backup_path(&ffprobe), "ancient ffprobe").await;
-        write(&stage_ffmpeg, "new ffmpeg").await;
-        write(&stage_ffprobe, "new ffprobe").await;
-
-        let promoted = promote_all(&[
-            (stage_ffmpeg, ffmpeg.clone()),
-            (stage_ffprobe, ffprobe.clone()),
-        ])
-        .await
-        .expect("promotes");
-        assert_eq!(read(&backup_path(&ffprobe)).await, "old ffprobe");
-
-        assert!(roll_back(&promoted).await);
-        assert_eq!(read(&ffprobe).await, "old ffprobe", "not the ancient one");
-    }
-
-    /// Gate finding N6: a restore that fails leaves the binary that is there,
-    /// keeps the marker for another try, and says it failed.
-    #[tokio::test]
-    async fn a_restore_that_fails_is_reported_and_deletes_nothing() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let final_path = temp.path().join("yt-dlp");
-        write(&marker_path(&final_path), "1").await;
-        write(&final_path, "new").await;
-        // A directory cannot be renamed over a file, so this restore fails.
-        tokio::fs::create_dir(backup_path(&final_path))
-            .await
-            .expect("mkdir");
-
-        assert!(!recover(std::slice::from_ref(&final_path)).await);
-        assert_eq!(
-            read(&final_path).await,
-            "new",
-            "the only binary there is stays"
-        );
-        assert!(is_pending(std::slice::from_ref(&final_path)).await);
-    }
-
-    /// Gate finding N6: a lone `.old` whose binary is missing may be the last
-    /// copy, so a promotion never sweeps it.
-    #[tokio::test]
-    async fn a_promotion_never_deletes_a_backup_whose_binary_is_missing() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let final_path = temp.path().join("yt-dlp");
-        let staged = temp.path().join("yt-dlp.tmp");
-        write(&backup_path(&final_path), "last copy").await;
-        write(&staged, "new").await;
-
-        let promoted = promote_all(&[(staged, final_path.clone())])
-            .await
-            .expect("promotes");
-
-        assert_eq!(read(&backup_path(&final_path)).await, "last copy");
-        assert_eq!(promoted[0].backup, None, "it was not this swap's backup");
-    }
-}
+#[path = "swap_tests.rs"]
+mod tests;
