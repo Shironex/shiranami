@@ -118,6 +118,9 @@ describe('useLibraryRescan', () => {
     await rescan();
 
     expect(window.electronAPI.db.tracks.removeMany).not.toHaveBeenCalled();
+    expect(window.electronAPI.db.tracks.addMany).toHaveBeenCalledWith(expect.any(Array), {
+      followMoves: true,
+    });
     const library = useLibraryStore.getState().library;
     expect(library).toHaveLength(1);
     expect(library[0]).toMatchObject({ id: 't1', filePath: '/music/new/song.mp3', playCount: 7 });
@@ -150,7 +153,10 @@ describe('useLibraryRescan', () => {
 
     await rescan();
 
-    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(['deleted']);
+    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
+      ['deleted'],
+      ['/music/a/gone.mp3']
+    );
     const ids = useLibraryStore.getState().library.map(t => t.id);
     expect(ids).toEqual(['moved', 'kept', 'fresh']);
     expect(toast.success).toHaveBeenCalledWith(
@@ -172,7 +178,38 @@ describe('useLibraryRescan', () => {
 
     await rescan();
 
-    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(['gone']);
+    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
+      ['gone'],
+      ['/music/gone.mp3']
+    );
     expect(toast.success).toHaveBeenCalledWith('rescanSummary({"added":1,"removed":1})');
+  });
+
+  it('does not drop a track re-pointed while its files were being checked', async () => {
+    useLibraryStore.setState({ library: [libraryTrack('t1', '/music/old/song.mp3', 7)] });
+    vi.mocked(window.electronAPI.library.scanFolderGrouped).mockResolvedValue({
+      rootTracks: [],
+      subfolders: [],
+    } as never);
+    // While validateFiles runs, another writer (a download import, which does
+    // not take the scan lock) re-points t1 and updates the store.
+    vi.mocked(window.electronAPI.library.validateFiles).mockImplementation((async (
+      paths: string[]
+    ) => {
+      useLibraryStore.getState().addToLibrary([libraryTrack('t1', '/music/new/song.mp3', 7)]);
+      return paths.filter(path => path === '/music/old/song.mp3');
+    }) as never);
+
+    await rescan();
+
+    // The delete names the path it checked, so the backend keeps the row...
+    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
+      ['t1'],
+      ['/music/old/song.mp3']
+    );
+    // ...and the store keeps the re-pointed entry.
+    expect(useLibraryStore.getState().library).toEqual([
+      expect.objectContaining({ id: 't1', filePath: '/music/new/song.mp3' }),
+    ]);
   });
 });

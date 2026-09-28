@@ -27,13 +27,26 @@ export interface ScanAndPersistResult {
   allExisted: boolean;
 }
 
+export interface ScanAndPersistOptions {
+  /**
+   * Re-point tracks whose files have moved away instead of inserting the moved
+   * files as new tracks. Only the rescan sets this: it is the one flow that
+   * also sweeps missing tracks, and the backend only counts a file as moved
+   * when its volume and music folder are present (an offline drive never is).
+   */
+  followMoves?: boolean;
+}
+
 /**
  * Scans a folder, persists new tracks into the DB, updates Zustand queue/library state,
  * and registers the folder in the DB. Swallows "duplicate folder" errors.
  *
  * Shared by useLibraryFolders (add-folder flow) and useLibraryRescan (rescan flow).
  */
-export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPersistResult> {
+export async function scanAndPersistFolder(
+  dirPath: string,
+  options: ScanAndPersistOptions = {}
+): Promise<ScanAndPersistResult> {
   const { rootTracks, subfolders: scannedSubfolders } =
     await window.electronAPI.library.scanFolderGrouped(dirPath);
 
@@ -67,26 +80,27 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
     };
   }
 
-  const dbTracks = (await window.electronAPI.db.tracks.addMany(
-    genuinelyNew.map(r => ({
-      filePath: r.filePath,
-      title: r.metadata.title,
-      artist: r.metadata.artist,
-      // Pass the album-artist tag through as-is (null = untagged); the scan
-      // layer deliberately omits the track-artist fallback, so don't add it here.
-      albumArtist: r.metadata.albumArtist ?? null,
-      album: r.metadata.album,
-      duration: r.metadata.duration,
-      genre: r.metadata.genre ?? null,
-      year: r.metadata.year ?? null,
-      trackNumber: r.metadata.trackNumber ?? null,
-      discNumber: r.metadata.discNumber ?? null,
-      albumArt: r.metadata.albumArt ?? null,
-    }))
-  )) as DbTrackRecord[];
+  const inputs = genuinelyNew.map(r => ({
+    filePath: r.filePath,
+    title: r.metadata.title,
+    artist: r.metadata.artist,
+    // Pass the album-artist tag through as-is (null = untagged); the scan
+    // layer deliberately omits the track-artist fallback, so don't add it here.
+    albumArtist: r.metadata.albumArtist ?? null,
+    album: r.metadata.album,
+    duration: r.metadata.duration,
+    genre: r.metadata.genre ?? null,
+    year: r.metadata.year ?? null,
+    trackNumber: r.metadata.trackNumber ?? null,
+    discNumber: r.metadata.discNumber ?? null,
+    albumArt: r.metadata.albumArt ?? null,
+  }));
+  const dbTracks = (await (options.followMoves
+    ? window.electronAPI.db.tracks.addMany(inputs, { followMoves: true })
+    : window.electronAPI.db.tracks.addMany(inputs))) as DbTrackRecord[];
 
-  // The import re-points a moved file's existing row instead of inserting a
-  // new one, and hands it back with its old id. Those ids are already in the
+  // When following moves, the import re-points a moved file's existing row
+  // instead of inserting a new one, and hands it back with its old id. Those ids are already in the
   // library, which is how a move is told apart from an addition here.
   const knownIds = new Set(useLibraryStore.getState().library.map(t => t.id));
   const returned = mapDbTracksToTracks(dbTracks);
@@ -113,9 +127,7 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
     movedIds: movedTracks.map(t => t.id),
     subfolders: scannedSubfolders,
     empty: false,
-    // A moved track was already in the library, so a folder of nothing but
-    // moves has nothing genuinely new in it.
-    allExisted: newTracks.length === 0,
+    allExisted: false,
   };
 }
 
@@ -127,8 +139,12 @@ export async function scanAndPersistFolder(dirPath: string): Promise<ScanAndPers
  * one folder, say). Pass the library as it stands AFTER persistence: a moved
  * file's track has by then been re-pointed at its new path, in the DB and in
  * the store, so its entry already names a file that exists. `keepIds` (the
- * moved ids) is the second guard: even a stale snapshot still holding the old
- * path cannot delete a track the import just re-pointed.
+ * moved ids) is the second guard.
+ *
+ * The third guard closes the race with any writer that does not take the scan
+ * lock (the download importer, say): the delete names the path each track was
+ * checked at, so the backend skips a track that was re-pointed while
+ * `validateFiles` ran, and the store only drops entries still at that path.
  */
 export async function removeMissingTracks(
   tracks: Track[],
@@ -143,10 +159,21 @@ export async function removeMissingTracks(
   if (missingPaths.length === 0) return [];
 
   const missingSet = new Set(missingPaths);
-  const staleIds = candidates.filter(t => missingSet.has(t.filePath)).map(t => t.id);
-  if (staleIds.length > 0) {
-    await window.electronAPI.db.tracks.removeMany(staleIds);
-    useLibraryStore.getState().removeFromLibrary(staleIds);
-  }
-  return staleIds;
+  const stale = candidates.filter(t => missingSet.has(t.filePath));
+  if (stale.length === 0) return [];
+
+  await window.electronAPI.db.tracks.removeMany(
+    stale.map(t => t.id),
+    stale.map(t => t.filePath)
+  );
+
+  // Read the store again after the awaits: an entry re-pointed meanwhile now
+  // names a different path, and the backend kept its row.
+  const checkedAt = new Map(stale.map(t => [t.id, t.filePath]));
+  const removedIds = useLibraryStore
+    .getState()
+    .library.filter(t => checkedAt.get(t.id) === t.filePath)
+    .map(t => t.id);
+  useLibraryStore.getState().removeFromLibrary(removedIds);
+  return removedIds;
 }

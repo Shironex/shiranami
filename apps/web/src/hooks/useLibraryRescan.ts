@@ -85,7 +85,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
     try {
       for (const folder of folders) {
         try {
-          const result = await scanAndPersistFolder(folder.path);
+          const result = await scanAndPersistFolder(folder.path, { followMoves: true });
 
           if (result.subfolders.length > 0) {
             allDetectedSubfolders.push(...result.subfolders);
