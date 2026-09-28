@@ -71,10 +71,12 @@ export function useDownloadsSection(): IDownloadsSectionView {
       record: autoUpdate.record,
       ffmpegIncluded: autoUpdate.ffmpegIncluded,
     },
-    // A manual click while an automatic install runs would only queue behind
-    // it, so the button makes way for a note until it finishes.
+    // Another install of the tool is running (an automatic update, or an
+    // install started elsewhere), and a click would only queue behind it, so
+    // the button makes way for a neutral note until it finishes. ffmpeg on
+    // macOS is never updated automatically, so it never gets the note there.
     ytdlpAutoInstalling: autoUpdate.ytdlpInstalling,
-    ffmpegAutoInstalling: autoUpdate.ffmpegInstalling,
+    ffmpegAutoInstalling: autoUpdate.ffmpegIncluded && autoUpdate.ffmpegInstalling,
     autoInstallingHint: t('dl.autoUpdate.inProgress'),
 
     locationPathDisplay,

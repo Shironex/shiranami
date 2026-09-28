@@ -827,7 +827,7 @@
       "updatedTo": "Updated automatically to {{version}}",
       "checkedAt": "Last checked {{when}}",
       "notChecked": "Not checked yet",
-      "inProgress": "Updating automatically. This finishes on its own."
+      "inProgress": "An update is in progress. Try again in a moment."
     }
   },
   "upd": {

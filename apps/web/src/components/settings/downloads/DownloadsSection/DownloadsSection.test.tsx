@@ -96,7 +96,7 @@ describe('DownloadsSection', () => {
     expect(autoUpdate.setEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('makes way for a note while an automatic install of yt-dlp runs', () => {
+  it('makes way for a note while another install of yt-dlp runs', () => {
     autoUpdate.ytdlpInstalling = true;
     settings.value = makeSettings({
       ytdlpLatestVersion: '2026.09.20',
@@ -105,7 +105,7 @@ describe('DownloadsSection', () => {
     render(<DownloadsSection />);
 
     expect(screen.queryByRole('button', { name: /Update yt-dlp/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/Updating automatically/)).toBeInTheDocument();
+    expect(screen.getByText(/An update is in progress/)).toBeInTheDocument();
     autoUpdate.ytdlpInstalling = false;
   });
 });

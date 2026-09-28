@@ -60,9 +60,9 @@ export interface IDownloadsSectionView {
   // --- Automatic tool updates ---
   /** Props for the automatic-update opt-in beside the tool rows. */
   readonly autoUpdate: IToolAutoUpdatePanelProps;
-  /** Whether an install of yt-dlp not started by this panel is running. */
+  /** Whether an install of yt-dlp not started by this button is running. */
   readonly ytdlpAutoInstalling: boolean;
-  /** Whether an install of ffmpeg not started by this panel is running. */
+  /** Whether such an install of ffmpeg is running (never on macOS). */
   readonly ffmpegAutoInstalling: boolean;
   /** Note shown in place of an update button while such an install runs. */
   readonly autoInstallingHint: string;

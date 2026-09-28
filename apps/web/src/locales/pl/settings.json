@@ -851,7 +851,7 @@
       "updatedTo": "Zaktualizowano automatycznie do {{version}}",
       "checkedAt": "Ostatnie sprawdzenie: {{when}}",
       "notChecked": "Jeszcze nie sprawdzono",
-      "inProgress": "Trwa automatyczna aktualizacja. Zakończy się sama."
+      "inProgress": "Trwa aktualizacja. Spróbuj ponownie za chwilę."
     }
   },
   "upd": {
