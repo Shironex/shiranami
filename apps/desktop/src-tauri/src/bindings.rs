@@ -245,6 +245,9 @@ mod tests {
             "sharePlaylist",
             "shareImport",
             "shareCacheYoutubeId",
+            // Ports no v1 channel: v1 dropped a deep link that launched the
+            // app, so it had no cold-start drain. See NON_V1_COMMANDS.
+            "shareTakePendingDeepLink",
             "discordRpcGetSettings",
             "discordRpcUpdateSettings",
             "discordRpcUpdatePresence",

@@ -29,63 +29,69 @@
 //! `shiranami://` at all. [`register`] still claims it at runtime on Windows
 //! (and Linux), as v1 did, so an install moved after setup keeps working.
 //!
-//! On macOS the running app receives the link as `RunEvent::Opened`, which the
-//! plugin re-emits as its `deep-link://new-url` event; [`register`] listens
-//! for that there. Windows keeps its two argv paths above, and the listener is
-//! not installed there, so no link is dispatched twice.
+//! On macOS the link arrives as `RunEvent::Opened`, and `lib.rs`'s run loop
+//! hands it to [`on_opened`]. Not the plugin's `deep-link://new-url` event,
+//! for two reasons:
 //!
-//! # A link that arrives before the window is dropped, and that is v1's rule
+//! - **The launching link comes before `setup`.** tao forwards
+//!   `application:openURLs:` the moment AppKit sends it, with no wait for
+//!   `applicationDidFinishLaunching:`, and the link that launches the app is
+//!   sent in between. Tauri runs `setup` on `Ready`, which is that second
+//!   callback, so a listener installed in `setup` never hears the one link a
+//!   cold start is about. The run loop callback exists from `app.run` on and
+//!   Tauri forwards every event to it without waiting for `setup`, so it hears
+//!   that link and every later one, with no `get_current` catch-up that could
+//!   dispatch the same link a second time.
+//! - **The webview can emit that event itself.** `core:default` lets the page
+//!   emit any event name, so trusting `deep-link://new-url` would let page
+//!   script forge a share link. `RunEvent::Opened` only comes from the OS.
 //!
-//! v1's `handleDeepLink` reads the module-scoped `mainWindow` and returns
-//! silently when it is null. Preserved rather than queued: a queue would replay
-//! an import prompt at an arbitrary later moment, and "nothing happened, click
-//! it again" is a better failure than "a dialog appeared four seconds after you
-//! stopped looking". Boot registers the handler before the window is shown, so
-//! the gap is small.
+//! Windows keeps its two argv paths above, and `RunEvent::Opened` does not
+//! exist there, so no link is dispatched twice.
+//!
+//! # A link that arrives before the renderer is held, once
+//!
+//! Every cold-start path above lands before React has mounted the hook that
+//! listens for `share:deep-link`: the Windows argv link is dispatched from
+//! `setup`, and the macOS `open-url` that launched the app arrives before
+//! `setup` has even created the window. An event emitted then reaches no listener, so the
+//! link was dropped with no error anywhere; closing the argv gap above only
+//! moved the drop one step later.
+//!
+//! [`PendingDeepLink`] is the slot that closes it. Until the renderer drains it
+//! (the `share_take_pending_deep_link` command, called once per page load by
+//! the bridge shim), a link is **held instead of emitted**, never both, so it
+//! cannot be delivered twice. After the drain every link goes straight through
+//! the live event, exactly as before. Only the latest held link survives: two
+//! clicks during a launch mean the user wants the second one.
+//!
+//! This is not the queue v1 declined. v1's `handleDeepLink` returned silently
+//! when its `mainWindow` was null, and its reasoning was that a queue would
+//! replay an import prompt at an arbitrary later moment. The slot is drained
+//! by the first render, the moment the app becomes usable, and never again, so
+//! the prompt appears as part of the launch the link caused. A link that finds
+//! no window **after** the drain is still dropped, as v1 did.
 
+use shiranami_core::sync::lock_or_recover;
 use shiranami_integrations::share::deep_link::{
     DeepLink, find_deep_link_argument, parse_deep_link,
 };
 use tauri::{AppHandle, Manager as _};
 use tauri_specta::Event as _;
 
-/// Claim `shiranami://` where it can be claimed at runtime, and listen for it
-/// where the OS delivers it as an event.
+/// Windows and Linux: claim `shiranami://` for this executable at runtime.
 ///
-/// v1's runtime condition was `!process.defaultApp`, whose comment reads:
-/// *"Only register in packaged builds — dev mode can't resolve the Electron
-/// binary correctly on Windows."* The equivalent fact here is whether the
-/// running binary is the installed one, and `debug_assertions` is the honest
-/// stand-in: a dev build registering the scheme would point the OS at a target
-/// directory that moves.
-pub fn register(app: &AppHandle) {
-    #[cfg(target_os = "macos")]
-    listen_for_open_url(app);
-
-    #[cfg(not(target_os = "macos"))]
-    register_scheme(app);
-}
-
-/// macOS: `open-url`, through the plugin's `deep-link://new-url` event.
+/// macOS has nothing to do here: the bundle's `Info.plist` is the claim, and
+/// links arrive through [`on_opened`] (see the module docs).
 ///
-/// Installed in every build, including a development one: the listener costs
-/// nothing, and only a bundle whose `Info.plist` carries the scheme is ever
-/// sent a link, so a dev binary simply never hears from it.
-#[cfg(target_os = "macos")]
-fn listen_for_open_url(app: &AppHandle) {
-    use tauri_plugin_deep_link::DeepLinkExt as _;
-
-    let handle = app.clone();
-    app.deep_link().on_open_url(move |event| {
-        for url in event.urls() {
-            dispatch(&handle, url.as_str());
-        }
-    });
-}
-
-/// Windows and Linux: write the scheme's registration for this executable.
+/// v1 registered only when `process.defaultApp` was false, that is only in a
+/// packaged build, because a dev build could not resolve the Electron binary
+/// correctly on Windows. The equivalent fact here is whether the running
+/// binary is the installed one, and `debug_assertions` is the honest stand-in:
+/// a dev build registering the scheme would point the OS at a target directory
+/// that moves.
 #[cfg(not(target_os = "macos"))]
-fn register_scheme(app: &AppHandle) {
+pub fn register(app: &AppHandle) {
     if crate::infra::platform::is_dev() {
         tracing::debug!("not claiming shiranami:// from a development build");
         return;
@@ -102,6 +108,33 @@ fn register_scheme(app: &AppHandle) {
 /// The scheme, as `tauri.conf.json` declares it. A test keeps the two equal.
 pub const SCHEME: &str = "shiranami";
 
+/// macOS: the OS asked this app to open `urls`, from `RunEvent::Opened`.
+///
+/// Called from `lib.rs`'s run loop, which is the one place that hears the
+/// launching link as well as later ones; the module docs say why the plugin's
+/// event is not used. Runs in every build, including a development one: only a
+/// bundle whose `Info.plist` carries the scheme is ever sent a link, so a dev
+/// binary simply never hears from it.
+#[cfg(target_os = "macos")]
+pub fn on_opened(app: &AppHandle, urls: &[tauri::Url]) {
+    if let Some(url) = last_import_url(urls.iter().map(tauri::Url::as_str)) {
+        dispatch(app, url);
+    }
+}
+
+/// The last `shiranami://import/...` link in `urls`, if any.
+///
+/// One `open-url` can carry several URLs. They are one request, so one
+/// import prompt answers it, for the same reason the pending slot keeps only
+/// the latest link: the last thing the user clicked is what they want now.
+/// Anything else in the list is ignored, as [`dispatch`] would ignore it.
+#[cfg(any(target_os = "macos", test))]
+fn last_import_url<'a>(urls: impl IntoIterator<Item = &'a str>) -> Option<&'a str> {
+    urls.into_iter()
+        .filter(|url| matches!(parse_deep_link(url), Some(DeepLink::Import { .. })))
+        .last()
+}
+
 /// The deep link this process was launched with, if any.
 ///
 /// Windows and Linux deliver a cold-start link as an argument. **v1 dropped
@@ -113,7 +146,54 @@ pub fn initial_argument() -> Option<String> {
     find_deep_link_argument(borrowed).map(str::to_owned)
 }
 
-/// Parse `url` and hand the result to the renderer.
+/// The import code a link carried before the renderer could hear it.
+///
+/// Managed on the builder rather than in `setup`, so it exists before `setup`
+/// runs the Windows cold-start dispatch. `Default` and purely in-memory, like
+/// the other holders managed beside it. See the module docs for why this is a
+/// slot of one rather than a queue.
+#[derive(Default)]
+pub struct PendingDeepLink {
+    inner: std::sync::Mutex<Pending>,
+}
+
+#[derive(Default)]
+struct Pending {
+    /// Set by the first [`PendingDeepLink::take`] and never cleared: a webview
+    /// reload finds the live event already wired, so the slot has no job left.
+    renderer_ready: bool,
+    code: Option<String>,
+}
+
+impl PendingDeepLink {
+    /// Decide what happens to a freshly parsed `code`.
+    ///
+    /// Before the renderer has drained the slot, the code is stored (replacing
+    /// any earlier one) and `None` comes back, which tells the caller **not**
+    /// to emit: an emitted and a held copy of the same link would open the
+    /// import prompt twice. After the drain the code is handed straight back
+    /// for the live event and nothing is stored.
+    pub fn offer(&self, code: String) -> Option<String> {
+        let mut pending = lock_or_recover(&self.inner);
+        if pending.renderer_ready {
+            return Some(code);
+        }
+        pending.code = Some(code);
+        None
+    }
+
+    /// Mark the renderer as listening, and hand it whatever arrived first.
+    ///
+    /// Taking rather than reading: a second call, from a reload or a second
+    /// subscriber, finds nothing, so the held link opens one prompt at most.
+    pub fn take(&self) -> Option<String> {
+        let mut pending = lock_or_recover(&self.inner);
+        pending.renderer_ready = true;
+        pending.code.take()
+    }
+}
+
+/// Parse `url` and hand the result to the renderer, now or when it asks.
 ///
 /// Silent for anything that is not a link we act on: v1's `parseDeepLink`
 /// returned `null` for an unrecognised shape and `handleDeepLink` returned
@@ -129,6 +209,20 @@ pub fn dispatch(app: &AppHandle, url: &str) {
     // v1 showed and focused the window *before* sending, so the import prompt
     // appears on a window the user can see.
     crate::focus_main_window(app);
+
+    // `try_state` so a shell that never managed the slot (a test harness, a
+    // future builder that forgets it) degrades to today's live event rather
+    // than panicking on a link click.
+    let code = match app.try_state::<PendingDeepLink>() {
+        Some(pending) => match pending.offer(code) {
+            Some(code) => code,
+            None => {
+                tracing::info!("deep link held until the renderer is listening");
+                return;
+            }
+        },
+        None => code,
+    };
 
     if app.get_webview_window("main").is_none() {
         // v1's exact behaviour: no window, no delivery, no queue.
@@ -218,5 +312,66 @@ mod tests {
         // The test binary's own argv carries no `shiranami://`, which is the
         // answer every ordinary launch gives too.
         assert_eq!(initial_argument(), None);
+    }
+
+    /// The cold-start case: nothing is listening yet, so the link is held and
+    /// the caller is told not to emit. Emitting as well would open the import
+    /// prompt twice once the renderer drains the slot.
+    #[test]
+    fn a_link_before_the_drain_is_held_and_not_emitted() {
+        let pending = PendingDeepLink::default();
+
+        assert_eq!(pending.offer("AbC123".to_owned()), None);
+        assert_eq!(pending.take(), Some("AbC123".to_owned()));
+    }
+
+    /// The drain is a take: a reload, or a second subscriber, finds nothing.
+    #[test]
+    fn a_held_link_is_taken_once() {
+        let pending = PendingDeepLink::default();
+        pending.offer("AbC123".to_owned());
+
+        assert_eq!(pending.take(), Some("AbC123".to_owned()));
+        assert_eq!(pending.take(), None);
+    }
+
+    /// Once the renderer has drained, links travel the live event as they did
+    /// before the slot existed, and none is left behind for a later take.
+    #[test]
+    fn a_link_after_the_drain_is_emitted_and_not_stored() {
+        let pending = PendingDeepLink::default();
+        assert_eq!(pending.take(), None);
+
+        assert_eq!(
+            pending.offer("XyZ789".to_owned()),
+            Some("XyZ789".to_owned())
+        );
+        assert_eq!(pending.take(), None);
+    }
+
+    /// An `open-url` carrying several URLs opens one prompt, for the last
+    /// import link among them; anything that is not one is passed over.
+    #[test]
+    fn the_last_import_link_in_an_open_request_is_the_one_taken() {
+        let urls = [
+            "shiranami://import/first1",
+            "https://example.com",
+            "shiranami://import/second2",
+            "shiranami://something-else",
+        ];
+
+        assert_eq!(last_import_url(urls), Some("shiranami://import/second2"));
+        assert_eq!(last_import_url(["https://example.com"]), None);
+        assert_eq!(last_import_url([]), None);
+    }
+
+    /// Two clicks during one launch: the second is what the user wants now.
+    #[test]
+    fn the_latest_link_before_the_drain_wins() {
+        let pending = PendingDeepLink::default();
+        pending.offer("first1".to_owned());
+        pending.offer("second2".to_owned());
+
+        assert_eq!(pending.take(), Some("second2".to_owned()));
     }
 }

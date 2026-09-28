@@ -3,6 +3,9 @@
 //! Four channels, ported from `apps/desktop/src/main/ipc/share.ts`, plus the
 //! `share:deep-link` **event** that [`crate::events::ShareDeepLink`] declares —
 //! it travels the other way, so it is not a command and is not registered here.
+//! A fifth command, [`share_take_pending_deep_link`], ports no channel: it is
+//! the event's cold-start half, for a link that arrived before anything was
+//! listening.
 //!
 //! # The assembly is here because it was there
 //!
@@ -64,6 +67,7 @@ macro_rules! commands {
                 crate::commands::share::share_playlist,
                 crate::commands::share::share_import,
                 crate::commands::share::share_cache_youtube_id,
+                crate::commands::share::share_take_pending_deep_link,
             ]
         }
     };
@@ -217,6 +221,28 @@ pub async fn share_cache_youtube_id(
     youtube_mappings::upsert(&mut conn, &track_id, &youtube_id)
         .await
         .wire()
+}
+
+/// Hand the renderer the deep link that arrived before it was listening, and
+/// switch every later link to the live `share:deep-link` event. Ports no v1
+/// channel.
+///
+/// v1 dropped cold-start links entirely: its argv scan ran only for a second
+/// instance, and a link that launched the app reached a window with nothing
+/// subscribed yet. Emitting earlier cannot fix that, because the listener is a
+/// React effect that does not exist until the first render, so the renderer
+/// has to come and ask. [`crate::deep_link::PendingDeepLink`] explains why a
+/// link is held *or* emitted, never both.
+///
+/// The bridge shim calls this once per page load. A second call is harmless:
+/// the slot is taken, so it answers `None`. `async` for the arch guard, which
+/// with borrowed `State` forces the `Result` return; it is always `Ok`.
+#[tauri::command]
+#[specta::specta]
+pub async fn share_take_pending_deep_link(
+    pending: State<'_, crate::deep_link::PendingDeepLink>,
+) -> CommandResult<Option<String>> {
+    Ok(pending.take())
 }
 
 /// POST the body and hand the server's answer back verbatim.

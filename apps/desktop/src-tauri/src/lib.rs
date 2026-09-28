@@ -191,6 +191,10 @@ pub fn run() {
         // Sanctuary Mode's display-sleep assertion: also `Default`, also
         // purely in-memory — the guard object inside is the whole state.
         .manage(commands::window::SleepInhibitor::default())
+        // The cold-start deep link's holding slot. On the builder, not in
+        // `setup`, because `setup` dispatches the Windows launch link below and
+        // the slot has to exist by then; see `deep_link`'s module docs.
+        .manage(deep_link::PendingDeepLink::default())
         .manage(system)
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
@@ -265,11 +269,16 @@ pub fn run() {
                 system::watch_autostart(&handle, &preflight.settings);
             }
             shortcuts::register(&handle, e2e);
+            // macOS has no runtime claim; its links arrive as
+            // `RunEvent::Opened` in the run loop below.
+            #[cfg(not(target_os = "macos"))]
             deep_link::register(&handle);
 
             // v1 never handled a cold-start deep link — its argv scan lived in
             // the `second-instance` handler only — so clicking a share link with
-            // the app closed opened the app and dropped the link.
+            // the app closed opened the app and dropped the link. The renderer
+            // is not listening yet, so this lands in `PendingDeepLink` and is
+            // drained when the bridge first subscribes.
             if let Some(url) = deep_link::initial_argument() {
                 let handle = handle.clone();
                 tauri::async_runtime::spawn(async move {
@@ -302,6 +311,11 @@ pub fn run() {
             has_visible_windows: false,
             ..
         } => focus_main_window(app),
+        // A `shiranami://` link on macOS, including the one that launched the
+        // app: that one arrives before `setup` runs, which only this callback
+        // is early enough to hear. See `deep_link`'s module docs.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => deep_link::on_opened(app, &urls),
         _ => {}
     });
 }
