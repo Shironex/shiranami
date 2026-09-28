@@ -91,6 +91,8 @@ export default function DownloadsSection() {
                   caption={s.ytdlpInstallCaption}
                   className="px-1"
                 />
+              ) : s.ytdlpAutoInstalling ? (
+                <p className="text-xs text-muted-foreground/60 px-1">{s.autoInstallingHint}</p>
               ) : s.ytdlpInstalled && s.ytdlpUpdateAvailable ? (
                 <Button
                   type="button"
@@ -130,6 +132,8 @@ export default function DownloadsSection() {
                   caption={s.ffmpegInstallCaption}
                   className="px-1"
                 />
+              ) : s.ffmpegAutoInstalling ? (
+                <p className="text-xs text-muted-foreground/60 px-1">{s.autoInstallingHint}</p>
               ) : s.ffmpegInstalled && s.ffmpegUpdateAvailable ? (
                 <Button
                   type="button"

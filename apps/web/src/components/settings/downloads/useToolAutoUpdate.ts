@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SystemNotice, ToolAutoUpdateState } from '@shiranami/contracts';
 import { useSettingsQuery, useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
-import { IS_ELECTRON } from '@/lib/platform';
+import { IS_ELECTRON, IS_MAC } from '@/lib/platform';
 
 /**
  * The automatic tool-update opt-in, kept as a field inside the renderer
@@ -18,6 +18,13 @@ export const toolAutoUpdateKeys = {
   status: ['downloader', 'autoUpdateStatus'] as const,
 };
 
+/**
+ * How often the record is re-read while automatic updates are on, so the card
+ * notices an install starting or finishing without a click. A settings read
+ * plus two lock checks, so cheap.
+ */
+const STATUS_POLL_MS = 10_000;
+
 /** Notice codes the scheduler raises when it installed a new version. */
 const UPDATED_CODES = new Set(['ytdlpAutoUpdated', 'ffmpegAutoUpdated']);
 
@@ -32,10 +39,13 @@ export function useToolAutoUpdate(onToolUpdated?: () => void) {
   const updateSettings = useUpdateSettingsMutation();
   const getStatus = IS_ELECTRON ? window.electronAPI.downloader.getToolAutoUpdateStatus : undefined;
 
+  const optedIn = settings.data?.[AUTO_UPDATE_TOOLS_FIELD] === true;
+
   const status = useQuery({
     queryKey: toolAutoUpdateKeys.status,
     queryFn: async (): Promise<ToolAutoUpdateState | null> => (getStatus ? getStatus() : null),
     enabled: Boolean(getStatus),
+    refetchInterval: optedIn ? STATUS_POLL_MS : false,
   });
 
   useEffect(() => {
@@ -59,6 +69,11 @@ export function useToolAutoUpdate(onToolUpdated?: () => void) {
     // something nothing will do.
     disabled: !getStatus || enabled === undefined,
     record: status.data ?? null,
+    // evermeet.cx publishes no checksum, so the backend never updates ffmpeg
+    // unattended on macOS (`update::policy::auto_updatable`).
+    ffmpegIncluded: !IS_MAC,
+    ytdlpInstalling: status.data?.ytdlp?.installing === true,
+    ffmpegInstalling: status.data?.ffmpeg?.installing === true,
     setEnabled: (value: boolean) => {
       updateSettings.mutate(
         { [AUTO_UPDATE_TOOLS_FIELD]: value },

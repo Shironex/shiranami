@@ -426,6 +426,8 @@ export interface ToolUpdateRecord {
   lastUpdatedVersion?: string | null;
   /** Failed automatic attempts since the last success. */
   consecutiveFailures?: number;
+  /** Whether an install of this tool (manual or automatic) is running now. */
+  installing?: boolean;
 }
 
 /** Automatic tool updating's persisted record (v2-only). */

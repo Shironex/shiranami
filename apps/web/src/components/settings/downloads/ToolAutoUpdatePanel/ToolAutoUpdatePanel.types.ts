@@ -9,6 +9,8 @@ export interface IToolAutoUpdatePanelProps {
   readonly onEnabledChange: (enabled: boolean) => void;
   /** What automatic updating has done so far, or null when unknown. */
   readonly record: ToolAutoUpdateState | null;
+  /** Whether ffmpeg is updated automatically here (not on macOS). */
+  readonly ffmpegIncluded: boolean;
 }
 
 /** One tool's status line, pre-composed. */

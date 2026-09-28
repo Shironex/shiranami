@@ -16,6 +16,7 @@ export function useToolAutoUpdatePanel({
   disabled,
   onEnabledChange,
   record,
+  ffmpegIncluded,
 }: IToolAutoUpdatePanelProps): IToolAutoUpdatePanelView {
   const { t, i18n } = useTranslation('settings');
   const format = new Intl.DateTimeFormat(i18n.language, {
@@ -40,6 +41,8 @@ export function useToolAutoUpdatePanel({
     checked: enabled,
     disabled,
     onCheckedChange: onEnabledChange,
-    rows: enabled ? [row('yt-dlp', record?.ytdlp), row('ffmpeg', record?.ffmpeg)] : [],
+    rows: enabled
+      ? [row('yt-dlp', record?.ytdlp), ...(ffmpegIncluded ? [row('ffmpeg', record?.ffmpeg)] : [])]
+      : [],
   };
 }

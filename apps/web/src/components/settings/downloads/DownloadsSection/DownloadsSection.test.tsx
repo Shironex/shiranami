@@ -14,13 +14,16 @@ vi.mock('@/components/settings/downloads/useDownloadsSettings', () => ({
   useDownloadsSettings: () => settings.value,
 }));
 
-const autoUpdate = vi.hoisted(() => ({ setEnabled: vi.fn() }));
+const autoUpdate = vi.hoisted(() => ({ setEnabled: vi.fn(), ytdlpInstalling: false }));
 
 vi.mock('@/components/settings/downloads/useToolAutoUpdate', () => ({
   useToolAutoUpdate: () => ({
     enabled: false,
     disabled: false,
     record: null,
+    ffmpegIncluded: true,
+    ytdlpInstalling: autoUpdate.ytdlpInstalling,
+    ffmpegInstalling: false,
     setEnabled: autoUpdate.setEnabled,
   }),
 }));
@@ -91,5 +94,18 @@ describe('DownloadsSection', () => {
 
     await user.click(toggle);
     expect(autoUpdate.setEnabled).toHaveBeenCalledWith(true);
+  });
+
+  it('makes way for a note while an automatic install of yt-dlp runs', () => {
+    autoUpdate.ytdlpInstalling = true;
+    settings.value = makeSettings({
+      ytdlpLatestVersion: '2026.09.20',
+      ytdlpUpdateAvailable: true,
+    });
+    render(<DownloadsSection />);
+
+    expect(screen.queryByRole('button', { name: /Update yt-dlp/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Updating automatically/)).toBeInTheDocument();
+    autoUpdate.ytdlpInstalling = false;
   });
 });

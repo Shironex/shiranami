@@ -24,6 +24,7 @@ describe('ToolAutoUpdatePanel', () => {
         disabled={false}
         onEnabledChange={onEnabledChange}
         record={record}
+        ffmpegIncluded
       />
     );
 
@@ -37,7 +38,13 @@ describe('ToolAutoUpdatePanel', () => {
 
   it('shows what was installed and when each tool was last checked', () => {
     render(
-      <ToolAutoUpdatePanel enabled disabled={false} onEnabledChange={() => {}} record={record} />
+      <ToolAutoUpdatePanel
+        enabled
+        disabled={false}
+        onEnabledChange={() => {}}
+        record={record}
+        ffmpegIncluded
+      />
     );
 
     expect(screen.getByRole('switch', { name: /up to date automatically/i })).toBeChecked();
@@ -48,9 +55,31 @@ describe('ToolAutoUpdatePanel', () => {
 
   it('keeps the switch disabled until the backend answers', () => {
     render(
-      <ToolAutoUpdatePanel enabled={false} disabled onEnabledChange={() => {}} record={null} />
+      <ToolAutoUpdatePanel
+        enabled={false}
+        disabled
+        onEnabledChange={() => {}}
+        record={null}
+        ffmpegIncluded
+      />
     );
 
     expect(screen.getByRole('switch', { name: /up to date automatically/i })).toBeDisabled();
+  });
+
+  it('leaves ffmpeg out where it is not updated automatically (macOS)', () => {
+    render(
+      <ToolAutoUpdatePanel
+        enabled
+        disabled={false}
+        onEnabledChange={() => {}}
+        record={record}
+        ffmpegIncluded={false}
+      />
+    );
+
+    expect(screen.getByText('yt-dlp')).toBeInTheDocument();
+    expect(screen.queryByText('ffmpeg')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not checked yet')).not.toBeInTheDocument();
   });
 });

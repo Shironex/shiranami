@@ -20,6 +20,7 @@ const meta: Meta<typeof ToolAutoUpdatePanel> = {
   args: {
     onEnabledChange: fn(),
     disabled: false,
+    ffmpegIncluded: true,
     record: {
       ytdlp: {
         lastCheckedAt: Date.UTC(2026, 8, 28, 12, 0),
@@ -75,6 +76,17 @@ export const NeverChecked: Story = {
     const canvas = within(canvasElement);
 
     await expect(canvas.getAllByText('Not checked yet')).toHaveLength(2);
+  },
+};
+
+/** macOS: ffmpeg is only ever updated by hand there, so it has no row. */
+export const MacOs: Story = {
+  args: { enabled: true, ffmpegIncluded: false },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(canvas.getByText('yt-dlp')).toBeInTheDocument();
+    await expect(canvas.queryByText('ffmpeg')).not.toBeInTheDocument();
   },
 };
 

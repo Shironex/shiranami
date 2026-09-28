@@ -69,7 +69,13 @@ export function useDownloadsSection(): IDownloadsSectionView {
       disabled: autoUpdate.disabled,
       onEnabledChange: autoUpdate.setEnabled,
       record: autoUpdate.record,
+      ffmpegIncluded: autoUpdate.ffmpegIncluded,
     },
+    // A manual click while an automatic install runs would only queue behind
+    // it, so the button makes way for a note until it finishes.
+    ytdlpAutoInstalling: autoUpdate.ytdlpInstalling,
+    ffmpegAutoInstalling: autoUpdate.ffmpegInstalling,
+    autoInstallingHint: t('dl.autoUpdate.inProgress'),
 
     locationPathDisplay,
     downloadLocationIsDefault: s.downloadLocationIsDefault,
