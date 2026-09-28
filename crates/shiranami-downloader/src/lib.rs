@@ -47,5 +47,6 @@ pub mod location;
 pub mod queue;
 pub mod search;
 pub mod spawn;
+pub mod update;
 
 pub use error::{DownloaderError, Result};
