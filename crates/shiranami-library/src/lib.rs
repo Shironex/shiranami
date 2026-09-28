@@ -49,9 +49,10 @@
 //!   a file whose tags are edited on disk outside the app stays stale in the
 //!   library. **Moved files are followed** since migration `0009`: a new path
 //!   is hashed ([`identity`], the audio payload with tag blocks skipped), and
-//!   `db:tracks:add-many` re-points a row whose own file is gone instead of
-//!   inserting a stranger, so id, plays, favourite, playlists and history
-//!   survive a move or rename. v1 had no `UPDATE tracks SET file_path` at all.
+//!   during a rescan `db:tracks:add-many` re-points a row whose file has moved
+//!   away ([`moved_away`]: gone, from a volume and music folder that are
+//!   present) instead of inserting a stranger, so id, plays, favourite,
+//!   playlists and history survive a move or rename. v1 had no `UPDATE tracks SET file_path` at all.
 //!   The hash lives here because it is filesystem work; the matching lives in
 //!   `shiranami-db` and the composition root, so this crate still holds no
 //!   database.
@@ -96,7 +97,7 @@ pub mod storage;
 pub mod validate;
 
 pub use error::{LibraryError, Result};
-pub use identity::{content_hash, content_hashes};
+pub use identity::{content_hash, content_hashes, moved_away};
 pub use scan::{
     AUDIO_EXTENSIONS, GroupedScanResult, PARSE_CONCURRENCY, SCAN_MAX_DEPTH, ScanProgress,
     ScannedFile, SubfolderScan, empty_on_cancel, scan_folder, scan_folder_grouped,

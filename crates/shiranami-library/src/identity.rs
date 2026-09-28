@@ -36,12 +36,16 @@
 //! an explicit edit whose only difference is a mid-song bleep, or two files of
 //! digital silence.
 //!
-//! A collision can only do one thing: re-point a row whose file is **gone from
-//! disk** at a new file that hashed the same. Nothing is deleted, no file is
-//! touched, and without this module that row would have been hard-deleted by
-//! the same rescan anyway. So the worst case of a collision is history
-//! attributed to the sibling edit, which is strictly better than the history
-//! being destroyed.
+//! A collision can only do one thing: during a **rescan** (the one flow that
+//! opts in to following moves), re-point a row whose file has moved away at a
+//! new file that hashed the same. "Moved away" is [`moved_away`]: the file is
+//! gone *and* the volume and the registered music folder it lived in are
+//! present, so an offline drive or share never qualifies. Such a row is one the
+//! rescan's validate step deletes on its next pass over that folder. Nothing
+//! is deleted by a match and no file is touched, so the worst case of a
+//! collision is history attributed to the sibling edit rather than destroyed.
+//! Every other import (adding a folder, a download, a share) inserts plainly
+//! and never re-points.
 //!
 //! # The stored value names its scheme
 //!
@@ -52,7 +56,10 @@
 //! duplicate finding) are a different primitive with a fuzzy comparison and
 //! belong in a column of their own, not in this one.
 
+mod gone;
 mod payload;
+
+pub use gone::{moved_away, volume_root};
 
 use std::fs::File;
 use std::io;
