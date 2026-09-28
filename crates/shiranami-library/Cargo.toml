@@ -18,6 +18,7 @@ shiranami-core.workspace = true
 shiranami-metadata.workspace = true
 
 fs4 = { workspace = true }
+notify = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
 specta = { workspace = true }
