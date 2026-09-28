@@ -129,15 +129,25 @@ fn save_state(settings: &SettingsStore, state: &ToolAutoUpdateState) {
 /// ffmpeg pair. Each tool's recovery **waits** for its install lock rather
 /// than skipping when the lock is busy, so this returns only once any pending
 /// swap has been rolled back (`bin::swap::recover`) or found not to need it;
-/// with no swap pending that is two file-existence checks. A swap whose
-/// rollback cannot finish stays pending, is logged, and is refused by the next
-/// promotion. Runs whether or not automatic updates are on, because a manual
-/// install can be interrupted too.
-pub async fn recover_interrupted_swaps(state: &AppState) {
-    if let Some(services) = state.deferred().downloader.as_deref()
-        && !services.tools().recover_interrupted().await
-    {
+/// with no swap pending that is two file-existence checks. Runs whether or not
+/// automatic updates are on, because a manual install can be interrupted too.
+///
+/// A swap whose rollback cannot finish (a rename that failed, worth retrying)
+/// stays pending and blocks installs of that tool, so it is not left to the
+/// log: it raises a `warn` system notice on every launch it is still there
+/// (the notice gate de-duplicates within five minutes). A swap with nothing
+/// left to restore is cleared by the rollback and raises nothing.
+pub async fn recover_interrupted_swaps(app: &AppHandle, state: &AppState) {
+    let Some(services) = state.deferred().downloader.as_deref() else {
+        return;
+    };
+    services.tools().recover_interrupted().await;
+    if services.tools().has_pending_swap().await {
         tracing::error!("an unfinished tool update could not be rolled back; it stays pending");
+        crate::commands::system::notices(app.clone()).emit(&SystemNotice::warn(
+            SystemNoticeSource::Downloader,
+            shiranami_core::notice::codes::TOOL_SWAP_PENDING,
+        ));
     }
 }
 
