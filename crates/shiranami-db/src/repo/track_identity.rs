@@ -17,13 +17,23 @@
 //! - **A copy is not a move.** If the matching row's file still exists, the
 //!   incoming file is a second copy and is inserted normally, carrying the
 //!   same hash.
-//! - **"Gone" is the caller's existence check**, passed in as `on_disk`. The
-//!   command layer uses [`std::path::Path::exists`], the same "any failure is
-//!   missing" check `library:validate-files` uses, so a row is re-pointable
-//!   exactly when the rescan's validate step would otherwise have deleted it.
-//!   It is only called on the few rows whose hash matched, so the stat calls
-//!   made while the transaction is open are bounded by the matches, not the
-//!   library.
+//! - **Following moves is opt-in, and "gone" is decided before the
+//!   transaction.** [`import_many`] takes `gone`: the set of candidate paths
+//!   the caller has already verified as moved away. An empty set is a plain
+//!   insert, which is what every import except the rescan asks for. The
+//!   command layer builds the set by reading [`candidate_paths`], releasing
+//!   the connection, and checking each path with
+//!   `shiranami_library::moved_away` (the file is gone, and its volume and
+//!   registered music folder are present, so an offline drive or share never
+//!   counts). This module therefore performs **no file I/O**, and in
+//!   particular none while the pool's only connection is held: an offline
+//!   network path can block a `stat` for the OS timeout, and that must never
+//!   freeze every other database command.
+//! - **The check can go stale by the time the transaction runs.** A file that
+//!   reappears in the gap is re-pointed as if it had been checked a moment
+//!   earlier; the rescan then sees both copies' rows correctly on its next
+//!   pass. That window is accepted rather than closed with a second `stat`
+//!   under the lock, for the reason above.
 //! - **Several missing rows can match** (two copies that both moved). The pick
 //!   is deterministic: a row whose old file *name* equals the incoming one
 //!   first (a folder move keeps names, so it beats an unrelated duplicate),
@@ -97,11 +107,14 @@ struct Candidate {
 /// Import a batch, re-pointing moved rows instead of duplicating them.
 ///
 /// The move-aware `add_many`: same skip-on-conflict contract for paths already
-/// in the library, plus the rule in the module docs.
+/// in the library, plus the rule in the module docs. `gone` holds the
+/// candidate paths the caller verified as moved away; a row whose path is not
+/// in it is never re-pointed, so an empty set makes this a plain insert that
+/// still records each file's hash.
 pub async fn import_many(
     conn: &mut SqliteConnection,
     incoming: &[IdentifiedTrack],
-    on_disk: impl Fn(&str) -> bool,
+    gone: &HashSet<String>,
 ) -> Result<Imported> {
     if incoming.is_empty() {
         return Ok(Imported::default());
@@ -149,7 +162,7 @@ pub async fn import_many(
             .as_ref()
             .filter(|_| !taken.contains(target))
             .and_then(|hash| candidates.get(hash))
-            .and_then(|rows| choose(rows, target, &claimed, &on_disk));
+            .and_then(|rows| choose(rows, target, &claimed, gone));
 
         match chosen {
             Some(row) => {
@@ -181,9 +194,9 @@ pub async fn import_many(
 pub async fn import(
     conn: &mut SqliteConnection,
     incoming: &IdentifiedTrack,
-    on_disk: impl Fn(&str) -> bool,
+    gone: &HashSet<String>,
 ) -> Result<Option<Track>> {
-    let imported = import_many(&mut *conn, std::slice::from_ref(incoming), on_disk).await?;
+    let imported = import_many(&mut *conn, std::slice::from_ref(incoming), gone).await?;
     if let Some(track) = imported.moved.into_iter().chain(imported.added).next() {
         return Ok(Some(track));
     }
@@ -265,6 +278,62 @@ pub async fn set_content_hashes(
     Ok(written)
 }
 
+/// The paths of every row carrying one of `hashes`: what the caller must
+/// check (outside any transaction) before a move-following [`import_many`].
+pub async fn candidate_paths(
+    conn: &mut SqliteConnection,
+    hashes: &[String],
+) -> Result<Vec<String>> {
+    Ok(candidates(conn, hashes)
+        .await?
+        .into_values()
+        .flatten()
+        .map(|row| row.file_path)
+        .collect())
+}
+
+/// Delete each `(id, file_path)` row only if it still holds that path,
+/// returning the ids actually deleted.
+///
+/// For the rescan's sweep, which decides a row is stale from a path it checked
+/// on disk a moment earlier. If anything re-pointed the row in between (an
+/// import following a move, from any caller), the row now names a file that
+/// exists and must survive; matching on the path as well as the id makes the
+/// delete refuse it instead of racing it. Cascades like [`super::tracks::remove_many`].
+pub async fn remove_unmoved(
+    conn: &mut SqliteConnection,
+    rows: &[(String, String)],
+) -> Result<Vec<String>> {
+    if rows.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut tx = conn
+        .begin()
+        .await
+        .map_err(failed("begin removing the missing tracks"))?;
+
+    let mut removed = Vec::new();
+    for (id, file_path) in rows {
+        let affected = sqlx::query("DELETE FROM tracks WHERE id = ?1 AND file_path = ?2")
+            .bind(id)
+            .bind(file_path)
+            .execute(&mut *tx)
+            .await
+            .map_err(failed("remove a missing track"))?
+            .rows_affected();
+        if affected > 0 {
+            removed.push(id.clone());
+        }
+    }
+
+    tx.commit()
+        .await
+        .map_err(failed("remove the missing tracks"))?;
+
+    Ok(removed)
+}
+
 /// Every row carrying one of `hashes`, grouped by hash, oldest first.
 async fn candidates(
     conn: &mut SqliteConnection,
@@ -304,12 +373,12 @@ fn choose<'a>(
     rows: &'a [Candidate],
     target: &str,
     claimed: &HashSet<&str>,
-    on_disk: &impl Fn(&str) -> bool,
+    gone: &HashSet<String>,
 ) -> Option<&'a Candidate> {
     let target_name = Path::new(target).file_name();
     let mut available = rows
         .iter()
-        .filter(|row| !claimed.contains(row.id.as_str()) && !on_disk(&row.file_path));
+        .filter(|row| !claimed.contains(row.id.as_str()) && gone.contains(&row.file_path));
 
     let first = available.next()?;
     if Path::new(&first.file_path).file_name() == target_name {

@@ -46,7 +46,8 @@ pub use crate::repo::track_analysis::{
 
 // And for content identity: the move-aware import and the hash backfill.
 pub use crate::repo::track_identity::{
-    IdentifiedTrack, Imported, Unhashed, import, import_many, set_content_hashes, unhashed,
+    IdentifiedTrack, Imported, Unhashed, candidate_paths, import, import_many, remove_unmoved,
+    set_content_hashes, unhashed,
 };
 
 /// Rows per `INSERT`, as v1 sized it.

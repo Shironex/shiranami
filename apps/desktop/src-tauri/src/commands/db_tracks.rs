@@ -35,11 +35,11 @@
 //! adding them again would double them:
 //!
 //! - `add` is idempotent on `file_path` and returns the **pre-existing** row on
-//!   conflict. Both adds are also move-aware (migration `0009`): a file whose
-//!   content matches a row whose own file is gone re-points that row instead
-//!   of inserting a stranger. The renderer's import path does a non-atomic `exists()` → `add()`
-//!   across two calls, so a racing import must get a row back rather than a
-//!   `UNIQUE` violation.
+//!   conflict. Both adds record each file's content hash (migration `0009`),
+//!   and `add-many` with `followMoves` (the rescan) re-points a row whose file
+//!   has moved away instead of inserting a stranger. The renderer's import
+//!   path does a non-atomic `exists()` → `add()` across two calls, so a racing
+//!   import must get a row back rather than a `UNIQUE` violation.
 //! - `add_many` returns **only the rows that landed**, which is what the scan
 //!   path depends on: the ones already present are already in the renderer's
 //!   library.
@@ -61,11 +61,13 @@
 //! nothing else, which is the same set of rows v1 removed; only the follow-up
 //! sweep is deferred.
 
+use std::collections::HashSet;
+
 use shiranami_core::models::{Track, TrackCreateInput, TrackUpdateInput};
 use shiranami_db::repo::tracks;
 use tauri::State;
 
-use crate::error::{CommandResult, WireResultExt as _};
+use crate::error::{CommandResult, WireResultExt as _, bad_request};
 use crate::state::AppState;
 use crate::track_identity;
 
@@ -119,10 +121,9 @@ pub async fn db_tracks_get_all(state: State<'_, AppState>) -> CommandResult<Vec<
 
 /// `db:tracks:add` — import one track, idempotently on `file_path`.
 ///
-/// Move-aware: when the file is a track whose old path is gone from disk, the
-/// existing row comes back re-pointed, with its id (see the shell's
-/// `track_identity` module). The file is hashed before the connection is
-/// taken.
+/// Records the file's content hash (hashed before the connection is taken)
+/// but never follows a move: see the shell's `track_identity` module for why
+/// only the rescan does.
 #[tauri::command]
 #[specta::specta]
 pub async fn db_tracks_add(
@@ -131,28 +132,35 @@ pub async fn db_tracks_add(
 ) -> CommandResult<Option<Track>> {
     let identified = track_identity::identify(vec![track]).await;
     let mut conn = state.conn().await?;
-    tracks::import(&mut conn, &identified[0], track_identity::on_disk)
+    tracks::import(&mut conn, &identified[0], &HashSet::new())
         .await
         .wire()
 }
 
-/// `db:tracks:add-many` — import a batch, returning the rows that landed and
-/// the rows that were re-pointed.
+/// `db:tracks:add-many` — import a batch, returning the rows that landed and,
+/// when following moves, the rows that were re-pointed.
 ///
-/// The wire shape is unchanged, a flat `Track[]`: inserted rows first, then
-/// re-pointed ones. A re-pointed row carries an id the renderer's library
-/// already holds, which is how the renderer tells the two apart and counts
-/// "moved" without a second channel. Files are hashed before the connection
-/// is taken.
+/// `follow_moves` is the rescan's opt-in (absent or `false` everywhere else):
+/// a file whose content matches a row whose file has moved away re-points
+/// that row instead of inserting a stranger. The wire shape is unchanged, a
+/// flat `Track[]`: inserted rows first, then re-pointed ones, which carry ids
+/// the renderer's library already holds. Files are hashed, and moved files
+/// verified, before the connection is taken for the import.
 #[tauri::command]
 #[specta::specta]
 pub async fn db_tracks_add_many(
     state: State<'_, AppState>,
     tracks_input: Vec<TrackCreateInput>,
+    follow_moves: Option<bool>,
 ) -> CommandResult<Vec<Track>> {
     let identified = track_identity::identify(tracks_input).await;
+    let gone = if follow_moves.unwrap_or(false) {
+        track_identity::verified_gone(&state, &identified).await?
+    } else {
+        HashSet::new()
+    };
     let mut conn = state.conn().await?;
-    let imported = tracks::import_many(&mut conn, &identified, track_identity::on_disk)
+    let imported = tracks::import_many(&mut conn, &identified, &gone)
         .await
         .wire()?;
     Ok(imported.added.into_iter().chain(imported.moved).collect())
@@ -169,14 +177,29 @@ pub async fn db_tracks_remove(state: State<'_, AppState>, id: String) -> Command
 /// `db:tracks:remove-many` — delete a batch.
 ///
 /// The orphaned-art sweep v1 fired afterwards is deferred; see the module docs.
+///
+/// `expected_paths`, when given, pairs each id with the path the caller checked
+/// on disk, and a row is deleted only if it still holds that path. The
+/// rescan's sweep passes it, so a row re-pointed after its check (by an import
+/// following a move, from any caller) survives instead of being deleted by id.
 #[tauri::command]
 #[specta::specta]
 pub async fn db_tracks_remove_many(
     state: State<'_, AppState>,
     ids: Vec<String>,
+    expected_paths: Option<Vec<String>>,
 ) -> CommandResult<()> {
+    let Some(paths) = expected_paths else {
+        let mut conn = state.conn().await?;
+        return tracks::remove_many(&mut conn, &ids).await.wire();
+    };
+    if paths.len() != ids.len() {
+        return Err(bad_request("expectedPaths must pair one path with each id"));
+    }
+    let rows: Vec<(String, String)> = ids.into_iter().zip(paths).collect();
     let mut conn = state.conn().await?;
-    tracks::remove_many(&mut conn, &ids).await.wire()
+    tracks::remove_unmoved(&mut conn, &rows).await.wire()?;
+    Ok(())
 }
 
 /// `db:tracks:update` — patch one track.

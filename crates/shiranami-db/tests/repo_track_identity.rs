@@ -1,9 +1,10 @@
 //! The move-aware import (`tracks::import_many`) and the hash backfill reads.
 //!
-//! Paths here are never real files. The existence check is injected, so each
-//! test states outright which old paths are "gone" rather than arranging a
-//! directory tree for it; the real-filesystem version of the same story lives
-//! in `shiranami-library`'s `tests/reconciliation.rs`.
+//! Paths here are never real files. The repository does no file I/O: the
+//! caller passes the set of candidate paths it verified as moved away, so each
+//! test states outright which old paths are "gone"; the real-filesystem
+//! version of the same story lives in `shiranami-library`'s
+//! `tests/reconciliation.rs`.
 
 #[path = "support/library.rs"]
 mod library;
@@ -23,17 +24,20 @@ fn identified(file_path: &str, title: &str, hash: Option<&str>) -> IdentifiedTra
     }
 }
 
-/// An existence check that answers "present" for everything except `gone`.
-fn all_but(gone: &[&str]) -> impl Fn(&str) -> bool {
-    let gone: HashSet<String> = gone.iter().map(|path| (*path).to_owned()).collect();
-    move |path: &str| !gone.contains(path)
+/// The candidate paths a caller verified as moved away.
+fn gone(paths: &[&str]) -> HashSet<String> {
+    paths.iter().map(|path| (*path).to_owned()).collect()
 }
 
 /// Import one file with a hash and return its id.
 async fn seed(conn: &mut SqliteConnection, path: &str, title: &str, hash: &str) -> String {
-    let imported = tracks::import_many(conn, &[identified(path, title, Some(hash))], |_| true)
-        .await
-        .expect("the seed imports");
+    let imported = tracks::import_many(
+        conn,
+        &[identified(path, title, Some(hash))],
+        &HashSet::new(),
+    )
+    .await
+    .expect("the seed imports");
     imported.added[0].id.clone()
 }
 
@@ -85,7 +89,7 @@ async fn a_moved_track_keeps_its_id_plays_favourite_playlists_and_history() {
     let imported = tracks::import_many(
         library.conn(),
         &[identified("/new/song.mp3", "Song", Some("a1:song"))],
-        all_but(&["/old/song.mp3"]),
+        &gone(&["/old/song.mp3"]),
     )
     .await
     .expect("the import runs");
@@ -123,7 +127,7 @@ async fn a_copy_is_inserted_because_the_original_is_still_on_disk() {
     let imported = tracks::import_many(
         library.conn(),
         &[identified("/backup/song.mp3", "Song", Some("a1:song"))],
-        |_| true,
+        &HashSet::new(),
     )
     .await
     .expect("the import runs");
@@ -153,7 +157,7 @@ async fn an_ambiguous_match_prefers_the_same_file_name_then_the_oldest_row() {
     set_created_at(library.conn(), &older, "2025-01-01 00:00:00").await;
     set_created_at(library.conn(), &named, "2025-06-01 00:00:00").await;
     set_created_at(library.conn(), &newest, "2026-01-01 00:00:00").await;
-    let gone = all_but(&["/a/one.mp3", "/b/two.mp3", "/c/three.mp3"]);
+    let gone = gone(&["/a/one.mp3", "/b/two.mp3", "/c/three.mp3"]);
 
     // A file named like one of them goes to that one, though it is not oldest.
     let first = tracks::import_many(
@@ -189,7 +193,7 @@ async fn two_moved_copies_in_one_batch_claim_two_rows() {
             identified("/new/b/song.mp3", "Song", Some("a1:dup")),
             identified("/new/c/song.mp3", "Song", Some("a1:dup")),
         ],
-        all_but(&["/old/a/song.mp3", "/old/b/song.mp3"]),
+        &gone(&["/old/a/song.mp3", "/old/b/song.mp3"]),
     )
     .await
     .expect("the import runs");
@@ -213,7 +217,7 @@ async fn a_path_already_in_the_library_is_neither_moved_nor_duplicated() {
     let imported = tracks::import_many(
         library.conn(),
         &[identified("/new/song.mp3", "Song", Some("a1:song"))],
-        all_but(&["/old/song.mp3"]),
+        &gone(&["/old/song.mp3"]),
     )
     .await
     .expect("the import runs without a UNIQUE violation");
@@ -222,7 +226,7 @@ async fn a_path_already_in_the_library_is_neither_moved_nor_duplicated() {
     let single = tracks::import(
         library.conn(),
         &identified("/new/song.mp3", "Song", Some("a1:song")),
-        all_but(&["/old/song.mp3"]),
+        &gone(&["/old/song.mp3"]),
     )
     .await
     .expect("import")
@@ -244,7 +248,7 @@ async fn an_unhashed_file_or_row_is_never_matched() {
             identified("/new/legacy.mp3", "Legacy", Some("a1:legacy")),
             identified("/new/unreadable.mp3", "Unreadable", None),
         ],
-        |_| false,
+        &gone(&["/old/legacy.mp3"]),
     )
     .await
     .expect("the import runs");
@@ -277,7 +281,7 @@ async fn a_re_point_takes_the_new_name_only_for_a_title_the_old_name_gave() {
             identified("/new/Intro.mp3", "Intro", Some("a1:untagged")),
             identified("/new/y.mp3", "y", Some("a1:tagged")),
         ],
-        all_but(&["/old/track 01.mp3", "/old/x.mp3"]),
+        &gone(&["/old/track 01.mp3", "/old/x.mp3"]),
     )
     .await
     .expect("the import runs");
@@ -331,5 +335,88 @@ async fn the_backfill_pages_past_rows_it_could_not_hash_and_never_overwrites() {
     assert_eq!(
         stored_hash(library.conn(), &hashed).await.as_deref(),
         Some("a1:c")
+    );
+}
+
+/// The add-folder, download and share imports pass no verified set: a file
+/// matching a missing row is still inserted, never re-pointed.
+#[tokio::test]
+async fn without_a_verified_gone_set_nothing_is_re_pointed() {
+    let mut library = fresh().await;
+    let id = seed(library.conn(), "/nas/song.mp3", "Song", "a1:song").await;
+
+    let imported = tracks::import_many(
+        library.conn(),
+        &[identified("/laptop/song.mp3", "Song", Some("a1:song"))],
+        &HashSet::new(),
+    )
+    .await
+    .expect("the import runs");
+
+    assert!(imported.moved.is_empty());
+    assert_eq!(imported.added.len(), 1);
+    let original = tracks::get(library.conn(), &id)
+        .await
+        .expect("read")
+        .expect("the original row is untouched");
+    assert_eq!(original.file_path, "/nas/song.mp3");
+}
+
+#[tokio::test]
+async fn candidate_paths_lists_every_row_carrying_a_hash() {
+    let mut library = fresh().await;
+    seed(library.conn(), "/a/one.mp3", "One", "a1:x").await;
+    seed(library.conn(), "/b/two.mp3", "Two", "a1:x").await;
+    seed(library.conn(), "/c/other.mp3", "Other", "a1:y").await;
+
+    let mut paths = tracks::candidate_paths(library.conn(), &["a1:x".to_owned()])
+        .await
+        .expect("read");
+    paths.sort();
+
+    assert_eq!(
+        paths,
+        vec!["/a/one.mp3".to_owned(), "/b/two.mp3".to_owned()]
+    );
+}
+
+/// The sweep race: the rescan checked `/old/song.mp3`, found it missing, and
+/// meanwhile an import re-pointed the row at `/new/song.mp3`. The delete names
+/// the path it checked, so it must refuse the re-pointed row.
+#[tokio::test]
+async fn a_sweep_never_deletes_a_row_re_pointed_since_it_checked() {
+    let mut library = fresh().await;
+    let moved = seed(library.conn(), "/old/song.mp3", "Song", "a1:song").await;
+    let stale = seed(library.conn(), "/old/gone.mp3", "Gone", "a1:gone").await;
+    tracks::import_many(
+        library.conn(),
+        &[identified("/new/song.mp3", "Song", Some("a1:song"))],
+        &gone(&["/old/song.mp3"]),
+    )
+    .await
+    .expect("the concurrent import re-points");
+
+    let removed = tracks::remove_unmoved(
+        library.conn(),
+        &[
+            (moved.clone(), "/old/song.mp3".to_owned()),
+            (stale.clone(), "/old/gone.mp3".to_owned()),
+        ],
+    )
+    .await
+    .expect("the sweep runs");
+
+    assert_eq!(removed, vec![stale.clone()]);
+    assert!(
+        tracks::get(library.conn(), &moved)
+            .await
+            .expect("read")
+            .is_some()
+    );
+    assert!(
+        tracks::get(library.conn(), &stale)
+            .await
+            .expect("read")
+            .is_none()
     );
 }

@@ -28,14 +28,30 @@
 //! read a page (connection held for one query), hash it (connection
 //! released), write the page (held for one transaction). A row whose file
 //! cannot be read is skipped by the keyset cursor and retried next launch.
+//!
+//! # Following a move is opt-in, and decided with the connection released
+//!
+//! Only the rescan follows moves (`db:tracks:add-many` with `followMoves`).
+//! Adding a folder, a download and a share all insert plainly: they never
+//! sweep the library, so a row they re-pointed would not be one the same flow
+//! was about to delete, and a match there is far more likely a copy of a file
+//! on storage that is merely offline. When the caller does opt in,
+//! [`verified_gone`] reads the matching rows' paths, **releases the
+//! connection**, and checks each with `shiranami_library::moved_away` (file
+//! gone, volume and registered music folder present). The import then runs
+//! against that precomputed set, so no `stat`, which can block for the OS
+//! timeout on an offline network path, ever runs while the pool's only
+//! connection is held.
 
-use std::path::Path;
+use std::collections::HashSet;
 use std::time::Duration;
 
 use shiranami_core::models::TrackCreateInput;
+use shiranami_db::repo::folders;
 use shiranami_db::repo::tracks::{self, IdentifiedTrack};
 use tauri::{AppHandle, Manager as _};
 
+use crate::error::{CommandResult, WireResultExt as _};
 use crate::state::AppState;
 
 /// Rows per backfill page.
@@ -56,13 +72,51 @@ const START_DELAY: Duration = Duration::from_secs(20);
 /// connection to anything the user is doing.
 const PAGE_PAUSE: Duration = Duration::from_millis(100);
 
-/// The existence check the import uses to decide a row's file is gone.
-///
-/// [`Path::exists`], so any failure reads as missing: the same check
-/// `library:validate-files` makes, which means a row is re-pointable exactly
-/// when the rescan would otherwise have deleted it.
-pub fn on_disk(path: &str) -> bool {
-    Path::new(path).exists()
+/// The paths, among rows sharing a hash with `identified`, whose files have
+/// moved away (see the module docs). Holds the connection only for the two
+/// reads; every existence check runs after it is released.
+pub async fn verified_gone(
+    state: &AppState,
+    identified: &[IdentifiedTrack],
+) -> CommandResult<HashSet<String>> {
+    let hashes: Vec<String> = identified
+        .iter()
+        .filter_map(|item| item.content_hash.clone())
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    if hashes.is_empty() {
+        return Ok(HashSet::new());
+    }
+
+    let (candidates, roots) = {
+        let mut conn = state.conn().await?;
+        let candidates = tracks::candidate_paths(&mut conn, &hashes).await.wire()?;
+        if candidates.is_empty() {
+            return Ok(HashSet::new());
+        }
+        let roots: Vec<String> = folders::get_all(&mut conn)
+            .await
+            .wire()?
+            .into_iter()
+            .map(|folder| folder.path)
+            .collect();
+        (candidates, roots)
+    };
+
+    let gone = tauri::async_runtime::spawn_blocking(move || {
+        candidates
+            .into_iter()
+            .filter(|path| shiranami_library::moved_away(path, &roots))
+            .collect::<HashSet<_>>()
+    })
+    .await
+    .unwrap_or_else(|error| {
+        tracing::warn!(%error, "checking moved files failed; importing without following moves");
+        HashSet::new()
+    });
+
+    Ok(gone)
 }
 
 /// Measure the content identity of every input, off the async runtime.
@@ -159,6 +213,68 @@ mod tests {
             title: title.to_owned(),
             ..TrackCreateInput::default()
         }
+    }
+
+    /// The offline-share guard, end to end through the command layer's read:
+    /// two rows share a hash and both files are missing, but only one lived in
+    /// a music folder that is present. The other folder is gone as a whole
+    /// (an unmounted share), so its row is offline, not moved.
+    #[tokio::test]
+    async fn only_a_row_whose_music_folder_is_present_counts_as_moved() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let music = dir.path().join("music");
+        std::fs::create_dir_all(&music).expect("the fixture writes");
+        let share = dir.path().join("share");
+        let moved = music.join("a.mp3").to_string_lossy().into_owned();
+        let offline = share.join("b.mp3").to_string_lossy().into_owned();
+
+        {
+            let mut conn = state.conn().await.expect("acquire");
+            folders::add(&mut conn, &music.to_string_lossy())
+                .await
+                .expect("folder");
+            folders::add(&mut conn, &share.to_string_lossy())
+                .await
+                .expect("folder");
+            let seeded: Vec<IdentifiedTrack> = [&moved, &offline]
+                .iter()
+                .map(|path| IdentifiedTrack {
+                    input: input(path, "Song"),
+                    content_hash: Some("a1:song".to_owned()),
+                })
+                .collect();
+            tracks::import_many(&mut conn, &seeded, &HashSet::new())
+                .await
+                .expect("seed");
+        }
+
+        let incoming = [IdentifiedTrack {
+            input: input("/elsewhere/song.mp3", "Song"),
+            content_hash: Some("a1:song".to_owned()),
+        }];
+        let gone = verified_gone(&state, &incoming)
+            .await
+            .expect("the check runs");
+
+        assert_eq!(gone, HashSet::from([moved]));
+    }
+
+    #[tokio::test]
+    async fn nothing_is_checked_for_files_that_could_not_be_hashed() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let state = state_over(dir.path()).await;
+        let incoming = [IdentifiedTrack {
+            input: input("/x.mp3", "X"),
+            content_hash: None,
+        }];
+
+        assert!(
+            verified_gone(&state, &incoming)
+                .await
+                .expect("runs")
+                .is_empty()
+        );
     }
 
     #[tokio::test]

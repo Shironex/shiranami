@@ -7,8 +7,9 @@
 //!
 //! [`reconcile`] is a port of `scanAndPersistFolder`
 //! (`apps/web/src/lib/scanHelpers.ts`) followed by what `db:tracks:add-many`
-//! does with the batch (hash each file, then `tracks::import_many` with a
-//! [`Path::exists`] check), and [`sweep_missing`] of the validation half of
+//! does with the batch when the rescan asks it to follow moves (hash each
+//! file, check the matching rows with `moved_away`, then
+//! `tracks::import_many`), and [`sweep_missing`] of the validation half of
 //! `useLibraryRescan.rescan` (`removeMissingTracks`), which runs against the
 //! library as it stands after persistence. Neither belongs in the crate; both
 //! belong in a test that documents what a scan actually causes.
@@ -41,7 +42,7 @@ use std::path::{Path, PathBuf};
 use shiranami_core::models::TrackCreateInput;
 use shiranami_db::repo::tracks::{self, IdentifiedTrack};
 use shiranami_library::scan::{ScannedFile, ignore_progress, scan_folder};
-use shiranami_library::{content_hashes, validate_files};
+use shiranami_library::{content_hashes, moved_away, validate_files};
 use sqlx::SqliteConnection;
 use sqlx::pool::PoolConnection;
 use tempfile::TempDir;
@@ -140,7 +141,22 @@ async fn reconcile(conn: &mut SqliteConnection, scanned: &[ScannedFile]) -> Pass
         })
         .collect();
 
-    let imported = tracks::import_many(conn, &identified, |path| Path::new(path).exists())
+    // The rescan follows moves: read the matching rows' paths, then decide
+    // which have moved away with the real guard. The fixture registers no
+    // music folders, so the guard's folder rule has nothing to check here
+    // (`identity/gone.rs` tests it); the file and volume rules apply.
+    let hashes: Vec<String> = identified
+        .iter()
+        .filter_map(|item| item.content_hash.clone())
+        .collect();
+    let gone: HashSet<String> = tracks::candidate_paths(conn, &hashes)
+        .await
+        .expect("the candidates read")
+        .into_iter()
+        .filter(|path| moved_away(path, &[] as &[String]))
+        .collect();
+
+    let imported = tracks::import_many(conn, &identified, &gone)
         .await
         .expect("the import runs");
     Pass {

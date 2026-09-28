@@ -17,12 +17,13 @@ import { dbBackupApi } from './db-backup';
 const tracksApi: DbTracksApi = {
   getAll: () => asContract<Track[]>(commands.dbTracksGetAll()),
   add: track => orUndefined(asContract<Track | null>(commands.dbTracksAdd(track))),
-  addMany: tracks => asContract<Track[]>(commands.dbTracksAddMany(tracks)),
+  addMany: (tracks, options) =>
+    asContract<Track[]>(commands.dbTracksAddMany(tracks, options?.followMoves ?? null)),
   remove: async id => {
     await commands.dbTracksRemove(id);
   },
-  removeMany: async ids => {
-    await commands.dbTracksRemoveMany(ids);
+  removeMany: async (ids, expectedPaths) => {
+    await commands.dbTracksRemoveMany(ids, expectedPaths ?? null);
   },
   update: (id, data) => orUndefined(asContract<Track | null>(commands.dbTracksUpdate(id, data))),
   updateMany: async updates => {
