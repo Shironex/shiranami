@@ -326,6 +326,26 @@ fn a_fragmented_m4a_is_identified_by_every_fragment_not_its_intro() {
     );
 }
 
+/// A plain (not fragmented) file with an `mdat, moov, mdat` layout: the span
+/// must not reach across `moov`, or a retag would change the identity.
+#[test]
+fn a_plain_m4a_with_moov_between_two_mdats_survives_a_retag() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let (head, tail) = (noise(300_000, 25), noise(300_000, 26));
+    let layout = |moov: usize| {
+        let mut file = mp4_box(b"ftyp", b"M4A \0\0\0\0isom");
+        file.extend(mp4_box(b"mdat", &head));
+        file.extend(mp4_box(b"moov", &vec![b'm'; moov]));
+        file.extend(mp4_box(b"mdat", &tail));
+        file
+    };
+
+    assert_eq!(
+        hash_of(dir.path(), "a.m4a", &layout(100)),
+        hash_of(dir.path(), "b.m4a", &layout(12_000))
+    );
+}
+
 #[test]
 fn a_box_size_that_would_overflow_is_malformed_not_a_panic() {
     let dir = tempfile::tempdir().expect("a temp dir");

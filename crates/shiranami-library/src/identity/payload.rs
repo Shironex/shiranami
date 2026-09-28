@@ -21,7 +21,7 @@
 //! | `ID3` (any number)     | skipped, then the rest is classified again      |
 //! | `fLaC`                 | after the last metadata block, to the end       |
 //! | `RIFF….WAVE`           | the body of the `data` chunk                    |
-//! | `….ftyp` (MP4, M4A)    | first `mdat` body to the end of the last `mdat`  |
+//! | `….ftyp` (MP4, M4A)    | first `mdat` body; if fragmented, to the last `mdat` |
 //! | `OggS`                 | the whole file (see below)                      |
 //! | anything else (MPEG)   | trailing ID3v1, APEv2, Lyrics3v2 and appended ID3v2 trimmed |
 //!
@@ -176,22 +176,30 @@ fn riff_data(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u
     Ok(None)
 }
 
-/// MP4/M4A: from the first `mdat` body to the end of the last `mdat`.
+/// MP4/M4A: the first `mdat` body, or for a fragmented file, from the first
+/// `mdat` body to the end of the last `mdat`.
 ///
 /// Tags live in `moov/udta` (or a top-level `meta`), and a writer that grows
 /// `moov` in front of `mdat` rewrites the chunk offsets in `moov`, not the
-/// samples. A plain file has one `mdat`, so the span is exactly its body. A
-/// **fragmented** file (DASH, as YouTube serves m4a) carries a `moof`/`mdat`
-/// pair per few seconds of audio after its `moov`; hashing only the first
-/// `mdat` would identify a song by its intro, so the span runs to the end of
-/// the last one. The `moof` boxes inside the span describe fragments and are
-/// not written by tag editors, and a trailing `mfra` index is left outside.
+/// samples. A plain file is identified by its first `mdat` body alone, even in
+/// an `mdat, moov, mdat` layout: a span across the middle would take in the
+/// `moov` a retag rewrites. A **fragmented** file (DASH, as YouTube serves
+/// m4a; recognised by any `moof` box) carries a `moof`/`mdat` pair per few
+/// seconds of audio after its `moov`; hashing only the first `mdat` would
+/// identify a song by its intro, so its span runs to the end of the last one.
+/// The `moof` boxes inside that span describe fragments and are not written by
+/// tag editors, and a trailing `mfra` index is left outside.
 fn mp4_mdat(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u64>>> {
     let mut at = start;
-    let mut span: Option<Range<u64>> = None;
+    let mut first: Option<Range<u64>> = None;
+    let mut last_end: Option<u64> = None;
+    let mut fragmented = false;
     for _ in 0..MP4_MAX_BOXES {
         if at >= len {
-            return Ok(span);
+            return Ok(first.map(|first| match (fragmented, last_end) {
+                (true, Some(end)) => first.start..end,
+                _ => first,
+            }));
         }
         let mut header = [0u8; 8];
         if read_at(file, at, &mut header)? < header.len() {
@@ -220,12 +228,14 @@ fn mp4_mdat(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u6
         if size < header_len {
             return Ok(None);
         }
-        if &header[4..8] == b"mdat" {
-            let end = next.min(len);
-            span = Some(match span {
-                Some(open) => open.start..end,
-                None => at + header_len..end,
-            });
+        match &header[4..8] {
+            b"mdat" => {
+                let end = next.min(len);
+                first.get_or_insert(at + header_len..end);
+                last_end = Some(end);
+            }
+            b"moof" => fragmented = true,
+            _ => {}
         }
         at = next;
     }
