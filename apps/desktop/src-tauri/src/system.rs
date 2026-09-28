@@ -246,12 +246,12 @@ impl AutostartBackend for PluginAutostart {
         } else {
             manager.disable()
         };
-        result.map_err(|error| MediaControlsError::Backend(error.to_string()))?;
-
-        // Whichever way the switch went, v1's own entry must not survive it:
-        // ours is now the one that decides.
+        // Whichever way the switch went, and whether or not the plugin's own
+        // write succeeded, v1's entry must not survive it. The plugin's
+        // `disable` fails with not-found when its own value is absent, which
+        // is the usual state for a v1 user turning the switch off.
         remove_v1_login_items();
-        Ok(())
+        result.map_err(|error| MediaControlsError::Backend(error.to_string()))
     }
 }
 
