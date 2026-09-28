@@ -37,10 +37,11 @@
 //! store is already the one way the renderer asks for this. The value is
 //! reconciled at boot and followed on the bus, like the two tray settings.
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use shiranami_core::store::{RendererStoreKey, SettingsStore};
+use shiranami_core::sync::lock_or_recover;
 use shiranami_media_controls::autostart::{Autostart, AutostartBackend, AutostartOutcome};
 use shiranami_media_controls::system::{CloseAction, MinimizeAction, SystemBehavior};
 use shiranami_media_controls::{MediaControlsError, Result as MediaResult};
@@ -256,18 +257,47 @@ impl AutostartBackend for PluginAutostart {
 /// a blocking worker because it is a file write on macOS and a registry write
 /// on Windows, and neither belongs on the thread that paints the first frame.
 pub fn watch_autostart(app: &AppHandle, settings: &Arc<SettingsStore>) {
-    let autostart = Arc::new(Autostart::new(PluginAutostart { app: app.clone() }));
+    let writer = AutostartWriter::new(PluginAutostart { app: app.clone() }, settings);
+    writer.follow_changes();
 
-    let boot = Arc::clone(&autostart);
-    let stored = settings.get(RendererStoreKey::SystemLaunchAtStartup);
-    tauri::async_runtime::spawn_blocking(move || {
-        report(boot.apply_persisted(stored.as_ref()));
-    });
+    tauri::async_runtime::spawn_blocking(move || writer.reconcile());
+}
 
-    settings.bus().subscribe(
-        RendererStoreKey::SystemLaunchAtStartup.path(),
-        move |event| report(autostart.apply_change(event)),
-    );
+/// Every login-item write, one at a time.
+///
+/// The boot write runs on a worker and a toggle arrives on the settings bus,
+/// so the two can overlap. A boot write that read the value before the toggle
+/// and wrote it after would put the old setting back. So every write takes the
+/// same lock, and the boot write reads the stored value only once it holds it:
+/// whichever runs last writes the latest value.
+struct AutostartWriter<B> {
+    autostart: Mutex<Autostart<B>>,
+    settings: Arc<SettingsStore>,
+}
+
+impl<B: AutostartBackend + Send + 'static> AutostartWriter<B> {
+    fn new(backend: B, settings: &Arc<SettingsStore>) -> Arc<Self> {
+        Arc::new(Self {
+            autostart: Mutex::new(Autostart::new(backend)),
+            settings: Arc::clone(settings),
+        })
+    }
+
+    /// Apply the value stored right now, as the boot write.
+    fn reconcile(&self) {
+        let autostart = lock_or_recover(&self.autostart);
+        let stored = self.settings.get(RendererStoreKey::SystemLaunchAtStartup);
+        report(autostart.apply_persisted(stored.as_ref()));
+    }
+
+    /// Apply every later change from the settings bus.
+    fn follow_changes(self: &Arc<Self>) {
+        let writer = Arc::clone(self);
+        self.settings.bus().subscribe(
+            RendererStoreKey::SystemLaunchAtStartup.path(),
+            move |event| report(lock_or_recover(&writer.autostart).apply_change(event)),
+        );
+    }
 }
 
 /// v1 logged a refused login-item write and carried on.
@@ -418,6 +448,50 @@ mod tests {
             MinimizeAction::HideToTray
         );
         assert_eq!(close_decision(None, true), CloseAction::Close);
+    }
+
+    /// Records every login-item write.
+    #[derive(Clone, Default)]
+    struct RecordingLoginItem {
+        writes: Arc<Mutex<Vec<bool>>>,
+    }
+
+    impl AutostartBackend for RecordingLoginItem {
+        fn set_enabled(&self, enabled: bool) -> MediaResult<()> {
+            lock_or_recover(&self.writes).push(enabled);
+            Ok(())
+        }
+    }
+
+    /// A toggle that lands before the boot write gets to run must not be
+    /// overwritten by the value the boot saw at launch.
+    #[test]
+    fn a_late_boot_write_writes_the_latest_value() {
+        if !shiranami_media_controls::autostart::is_supported() {
+            return;
+        }
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let (settings, _) = SettingsStore::load(dir.path().join("config.json"));
+        let settings = Arc::new(settings);
+        settings
+            .set(RendererStoreKey::SystemLaunchAtStartup, Value::Bool(true))
+            .expect("write");
+
+        let backend = RecordingLoginItem::default();
+        let writer = AutostartWriter::new(backend.clone(), &settings);
+        writer.follow_changes();
+
+        // The user turns it off before the boot worker has run.
+        settings
+            .set(RendererStoreKey::SystemLaunchAtStartup, Value::Bool(false))
+            .expect("write");
+        writer.reconcile();
+
+        assert_eq!(
+            lock_or_recover(&backend.writes).last(),
+            Some(&false),
+            "the boot write reads the stored value when it runs"
+        );
     }
 
     /// A quit before boot managed the state still exits.
