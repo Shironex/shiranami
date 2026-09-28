@@ -81,6 +81,25 @@ describe('MusicFoldersSection', () => {
     );
   });
 
+  it('two quick opt-outs both survive', async () => {
+    // The first write is still in flight when the second click lands.
+    const pending = () => new Promise<void>(() => {});
+    vi.mocked(window.electronAPI.store.set)
+      .mockImplementationOnce(pending)
+      .mockImplementationOnce(pending);
+    renderSection(<MusicFoldersSection />, folders);
+
+    const toggles = screen.getAllByRole('button', { name: 'Watch this folder for changes' });
+    await userEvent.click(toggles[0]);
+    await userEvent.click(toggles[1]);
+
+    await waitFor(() =>
+      expect(window.electronAPI.store.set).toHaveBeenLastCalledWith('settings', {
+        watchFoldersExcluded: ['f-1', 'f-2'],
+      })
+    );
+  });
+
   it('hides the per-folder controls while watching is off', () => {
     renderSection(<MusicFoldersSection />, folders, { watchFolders: false });
 

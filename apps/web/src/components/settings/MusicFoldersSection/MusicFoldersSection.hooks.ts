@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFoldersQuery } from '@/hooks/queries/useFolders';
 import {
-  folderWatchedPatch,
   useFolderWatchPrefsQuery,
+  useSetFolderWatched,
   watchFoldersPatch,
 } from '@/hooks/queries/useFolderWatchPrefs';
 import { useUpdateSettingsMutation } from '@/hooks/queries/useSettings';
@@ -33,6 +33,7 @@ export function useMusicFoldersSection(): IMusicFoldersSectionView {
   // not agreed to.
   const { data: watchPrefs } = useFolderWatchPrefsQuery();
   const updateSettings = useUpdateSettingsMutation();
+  const setFolderWatched = useSetFolderWatched();
   const excluded = watchPrefs?.excluded ?? [];
 
   const [subfolderDialogOpen, setSubfolderDialogOpen] = useState(false);
@@ -67,8 +68,7 @@ export function useMusicFoldersSection(): IMusicFoldersSectionView {
     watchEnabled: watchPrefs?.enabled ?? true,
     watchDisabled: !IS_ELECTRON || watchPrefs === undefined,
     onSetWatchEnabled: enabled => updateSettings.mutate(watchFoldersPatch(enabled)),
-    onSetFolderWatched: (id, watched) =>
-      updateSettings.mutate(folderWatchedPatch(excluded, id, watched)),
+    onSetFolderWatched: setFolderWatched,
     onDialogOpenChange,
     onSubfolderConfirm,
   };

@@ -1,4 +1,11 @@
-import { useSettingsQuery, type ElectronSettings } from './useSettings';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  settingsKeys,
+  useSettingsQuery,
+  useUpdateSettingsMutation,
+  type ElectronSettings,
+} from './useSettings';
 
 /**
  * The folder-watch settings, kept as fields inside the renderer `settings` blob
@@ -57,4 +64,30 @@ export function folderWatchedPatch(
 ) {
   const rest = excluded.filter(id => id !== folderId);
   return { [EXCLUDED_FIELD]: watched ? rest : [...rest, folderId] };
+}
+
+/**
+ * Opt one folder in or out, from the **latest** value rather than the one on
+ * screen.
+ *
+ * The settings mutation writes the whole blob and only refetches after the
+ * write lands, so two quick toggles computed from the rendered list would each
+ * start from the same stale list and the second would drop the first. This
+ * reads the cached blob at click time, writes the result back into the cache
+ * straight away, and then persists it; the mutation merges over that same
+ * cache, and a failed write resyncs it from disk.
+ */
+export function useSetFolderWatched(): (folderId: string, watched: boolean) => void {
+  const queryClient = useQueryClient();
+  const { mutate } = useUpdateSettingsMutation();
+
+  return useCallback(
+    (folderId, watched) => {
+      const current = queryClient.getQueryData<ElectronSettings | null>(settingsKeys.all) ?? {};
+      const patch = folderWatchedPatch(readFolderWatchPrefs(current).excluded, folderId, watched);
+      queryClient.setQueryData<ElectronSettings | null>(settingsKeys.all, { ...current, ...patch });
+      mutate(patch);
+    },
+    [queryClient, mutate]
+  );
 }
