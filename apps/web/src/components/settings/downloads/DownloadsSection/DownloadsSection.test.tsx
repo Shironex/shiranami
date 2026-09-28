@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import DownloadsSection from './DownloadsSection';
@@ -11,6 +12,17 @@ const settings = vi.hoisted(() => ({ value: {} as DownloadsSettings }));
 
 vi.mock('@/components/settings/downloads/useDownloadsSettings', () => ({
   useDownloadsSettings: () => settings.value,
+}));
+
+const autoUpdate = vi.hoisted(() => ({ setEnabled: vi.fn() }));
+
+vi.mock('@/components/settings/downloads/useToolAutoUpdate', () => ({
+  useToolAutoUpdate: () => ({
+    enabled: false,
+    disabled: false,
+    record: null,
+    setEnabled: autoUpdate.setEnabled,
+  }),
 }));
 
 function makeSettings(overrides: Partial<DownloadsSettings> = {}): DownloadsSettings {
@@ -67,5 +79,17 @@ describe('DownloadsSection', () => {
 
     expect(screen.queryByText('/usr/local/bin/yt-dlp')).not.toBeInTheDocument();
     expect(container.firstChild).toBeTruthy();
+  });
+
+  it('offers the automatic-update opt-in beside the tool rows', async () => {
+    const user = userEvent.setup();
+    settings.value = makeSettings();
+    render(<DownloadsSection />);
+
+    const toggle = screen.getByRole('switch', { name: /up to date automatically/i });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+    expect(autoUpdate.setEnabled).toHaveBeenCalledWith(true);
   });
 });

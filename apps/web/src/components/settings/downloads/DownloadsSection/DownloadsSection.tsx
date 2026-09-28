@@ -3,6 +3,7 @@ import { SettingsCard } from '@/components/settings/SettingsCard';
 import { DownloadLocationPanel } from '@/components/settings/downloads/DownloadLocationPanel';
 import { DownloadsSectionSkeleton } from '@/components/settings/downloads/DownloadsSectionSkeleton';
 import { InstallProgressBar } from '@/components/settings/downloads/InstallProgressBar';
+import { ToolAutoUpdatePanel } from '@/components/settings/downloads/ToolAutoUpdatePanel';
 import { ToolStatusRow } from '@/components/settings/downloads/ToolStatusRow';
 import { ToolVersionBlock } from '@/components/settings/downloads/ToolVersionBlock';
 import { Button } from '@/components/ui/button';
@@ -142,6 +143,10 @@ export default function DownloadsSection() {
               ) : (
                 <p className="text-xs text-muted-foreground/60 px-1">{s.ffmpegHint}</p>
               )}
+
+              <div className="border-t border-border/20 pt-3 mt-3" />
+
+              <ToolAutoUpdatePanel {...s.autoUpdate} />
             </>
           )}
         </div>

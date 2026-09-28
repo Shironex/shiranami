@@ -820,7 +820,14 @@
     "ffmpegInstalled": "ffmpeg installed",
     "ffmpegNotInstalled": "ffmpeg not installed",
     "recommended": "recommended",
-    "refresh": "Refresh tool status"
+    "refresh": "Refresh tool status",
+    "autoUpdate": {
+      "label": "Keep yt-dlp and ffmpeg up to date automatically",
+      "description": "Checks yt-dlp once a day and ffmpeg once a week, and installs a new version only when no download is running. yt-dlp is also checked right away when a download fails because a site changed.",
+      "updatedTo": "Updated automatically to {{version}}",
+      "checkedAt": "Last checked {{when}}",
+      "notChecked": "Not checked yet"
+    }
   },
   "upd": {
     "title": "Updates",

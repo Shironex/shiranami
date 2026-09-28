@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
+import { useToolAutoUpdate } from '@/components/settings/downloads/useToolAutoUpdate';
 import type { IDownloadsSectionView } from './DownloadsSection.types';
 
 /**
@@ -10,6 +11,8 @@ import type { IDownloadsSectionView } from './DownloadsSection.types';
 export function useDownloadsSection(): IDownloadsSectionView {
   const { t } = useTranslation('settings');
   const s = useDownloadsSettings();
+  // An automatic update while the card is open refreshes the version rows.
+  const autoUpdate = useToolAutoUpdate(s.handleRefresh);
 
   const ytdlpInstalledVersionText = s.ytdlpVersion
     ? `v${s.ytdlpVersion}`
@@ -60,6 +63,13 @@ export function useDownloadsSection(): IDownloadsSectionView {
     ffmpegInstalledVersionText,
     ffmpegLatestText,
     ffmpegHint,
+
+    autoUpdate: {
+      enabled: autoUpdate.enabled,
+      disabled: autoUpdate.disabled,
+      onEnabledChange: autoUpdate.setEnabled,
+      record: autoUpdate.record,
+    },
 
     locationPathDisplay,
     downloadLocationIsDefault: s.downloadLocationIsDefault,
