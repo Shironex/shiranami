@@ -342,3 +342,58 @@ async fn a_pending_swap_is_not_started_over() {
     assert_eq!(read(&backup_path(&final_path)).await, "known good");
     assert_eq!(read(&marker_path(&final_path)).await, "1");
 }
+
+/// A torn marker on a first install, crashed before anything moved in: there
+/// is nothing to restore, so the marker goes after one honest report and
+/// never blocks a later install.
+#[tokio::test]
+async fn a_marker_with_nothing_to_restore_is_cleared_after_one_report() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let ffmpeg = temp.path().join("ffmpeg");
+    let ffprobe = temp.path().join("ffprobe");
+    write(&marker_path(&ffmpeg), "").await;
+
+    assert!(
+        !recover(&[ffmpeg.clone(), ffprobe.clone()]).await,
+        "reported once: the pair is not there"
+    );
+    assert!(!is_pending(&[ffmpeg.clone(), ffprobe.clone()]).await);
+    assert!(recover(&[ffmpeg, ffprobe]).await, "and never again");
+}
+
+/// Gate probe (`commit_probe.rs`): the marker cannot be removed at commit.
+/// Every backup must stay, so the still-pending marker rolls the whole pair
+/// back to one build rather than half of one. A non-empty directory stands in
+/// for the undeletable marker.
+#[tokio::test]
+async fn a_commit_that_cannot_remove_the_marker_keeps_every_backup() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let ffmpeg = temp.path().join("ffmpeg");
+    let ffprobe = temp.path().join("ffprobe");
+    let (s1, s2) = (temp.path().join("s1"), temp.path().join("s2"));
+    write(&ffmpeg, "B ffmpeg").await;
+    write(&ffprobe, "B ffprobe").await;
+    write(&s1, "C ffmpeg").await;
+    write(&s2, "C ffprobe").await;
+    let promoted = promote_all(&[(s1, ffmpeg.clone()), (s2, ffprobe.clone())])
+        .await
+        .expect("promotes");
+
+    let marker = marker_path(&ffmpeg);
+    tokio::fs::remove_file(&marker)
+        .await
+        .expect("swap the marker");
+    tokio::fs::create_dir(&marker).await.expect("mkdir");
+    write(&marker.join("held"), "").await;
+
+    commit(&promoted).await;
+
+    assert!(is_pending(&[ffmpeg.clone(), ffprobe.clone()]).await);
+    assert_eq!(read(&backup_path(&ffmpeg)).await, "B ffmpeg");
+    assert_eq!(read(&backup_path(&ffprobe)).await, "B ffprobe");
+
+    // The pending marker (unreadable, so torn) rolls the pair back as one.
+    recover(&[ffmpeg.clone(), ffprobe.clone()]).await;
+    assert_eq!(read(&ffmpeg).await, "B ffmpeg");
+    assert_eq!(read(&ffprobe).await, "B ffprobe");
+}

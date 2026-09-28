@@ -25,10 +25,11 @@
 //! # A marker makes the pair one unit
 //!
 //! Before the first rename, [`promote_all`] writes `<first binary>.swapping`,
-//! recording which binaries had a predecessor. It is removed first thing in
-//! [`commit`], and by a successful [`roll_back`]. So a `.swapping` file on disk
-//! means exactly one thing: a swap started and was neither committed nor
-//! rolled back. [`recover`] acts only then, and rolls the **whole** pair back
+//! recording which binaries had a predecessor. [`commit`] removes it before it
+//! touches any backup, and keeps every backup if the removal fails; a
+//! [`roll_back`] removes it once nothing retryable is left. So a `.swapping`
+//! file on disk means exactly one thing: a swap started and was neither
+//! committed nor fully rolled back. [`recover`] acts only then, and rolls the **whole** pair back
 //! to the previous build, whatever point the crash hit: after the first
 //! binary was promoted and before the second was touched, between the two
 //! renames of one binary, or after both. A crash after the new pair was probed
@@ -42,7 +43,20 @@
 //! binary had a predecessor": recovery then restores whatever backups are
 //! there and **never removes a binary**. The cost is that an interrupted
 //! *first* install may be left in place rather than removed, which is the
-//! harmless direction.
+//! harmless direction. A torn record cannot tell a mid-swap `.old` from a stale
+//! one, so a `.old` beside a missing binary is restored even though it might
+//! be an older build: that keeps the tool working, where skipping it would
+//! leave no binary at all, and the next update replaces it.
+//!
+//! # A marker never wedges installs
+//!
+//! [`recover`] keeps the marker only when a rename or removal it attempted
+//! actually failed, which is worth retrying (a file still in use). When a
+//! binary has neither its final file nor a `.old`, there is nothing to put
+//! back, so the marker goes: recovery reports the pair inconsistent for that
+//! one call and every later install proceeds. A marker whose `.old` exists but
+//! could not be restored is never cleared, because that `.old` may be the last
+//! working copy.
 //!
 //! Without a marker, a `.old` file is only ever a leftover (Windows could not
 //! delete a `.old` that was still running) and is never restored: restoring it
@@ -178,8 +192,8 @@ async fn promote_one(staged: &Path, final_path: &Path, had_previous: bool) -> Re
 }
 
 /// What [`promote_all`] answers when a swap of the same binaries is pending.
-pub const SWAP_PENDING: &str =
-    "An earlier update of this tool could not be undone yet, so this one was not started";
+pub const SWAP_PENDING: &str = "An earlier update of this tool was interrupted and its previous \
+     version could not be put back yet. Restart Shiranami, or close anything using the tool, and try again";
 
 /// What [`promote_all`] answers when a stale backup cannot be cleared.
 pub const STALE_BACKUP: &str = "A previous copy of this tool could not be cleared away \
@@ -254,9 +268,15 @@ pub async fn roll_back(promoted: &[Promoted]) -> bool {
 /// that did not is removed, so the pair is the previous build again.
 ///
 /// Answers `true` when the pair is consistent afterwards: no swap was pending,
-/// or every restore worked (the marker is then removed). Answers `false` if
-/// any restore failed; the marker stays, so the next call tries again, and no
-/// binary was deleted to get there.
+/// or every restore worked and the marker is gone. Answers `false` otherwise,
+/// in one of two ways that callers tell apart with [`is_pending`]:
+///
+/// - **Retryable.** A restore rename, a removal or the marker removal failed.
+///   The marker stays, so the next call tries again, and nothing was deleted
+///   to get there.
+/// - **Nothing left to restore.** A binary had neither its final file nor a
+///   `.old`. The marker is removed anyway, so this is reported once and never
+///   blocks a later install.
 ///
 /// Callers must hold the tool's install lock (or know no install can run), or
 /// this would read a live swap as an interrupted one.
@@ -265,13 +285,19 @@ pub async fn recover(finals: &[PathBuf]) -> bool {
         return true;
     };
     let marker = marker_path(first);
-    let Ok(record) = tokio::fs::read_to_string(&marker).await else {
+    if !exists(&marker).await {
         return true;
-    };
+    }
 
     tracing::warn!(?finals, "rolling back an unfinished binary swap");
-    let record = parse_record(&record, finals.len());
+    // A marker that exists but cannot be read is as torn as an empty one.
+    let record = tokio::fs::read_to_string(&marker)
+        .await
+        .ok()
+        .and_then(|record| parse_record(&record, finals.len()));
     let mut consistent = true;
+    // Only a failed rename or removal keeps the marker: that is retryable.
+    let mut retry = false;
 
     for (index, final_path) in finals.iter().enumerate() {
         let backup = backup_path(final_path);
@@ -283,21 +309,47 @@ pub async fn recover(finals: &[PathBuf]) -> bool {
         let had_previous = record.as_ref().is_none_or(|record| record[index]);
 
         if !had_previous {
-            remove_quietly(final_path).await;
+            if !remove_file(final_path).await {
+                consistent = false;
+                retry = true;
+            }
         } else if exists(&backup).await {
-            consistent &= restore(&backup, final_path).await;
+            if !restore(&backup, final_path).await {
+                consistent = false;
+                retry = true;
+            }
         } else if !exists(final_path).await {
-            // Neither the binary nor its backup: nothing left to restore.
+            // Neither the binary nor its backup: nothing left to restore, and
+            // no retry would change that. Reported, then the marker goes, so
+            // it cannot block every later install of this tool.
             tracing::error!(path = %final_path.display(), "a binary and its backup are both missing");
             consistent = false;
         }
         // Otherwise it was never set aside: the previous build is still there.
     }
 
-    if consistent {
-        remove_quietly(&marker).await;
+    if !retry && !remove_marker(&marker).await {
+        consistent = false;
     }
     consistent
+}
+
+/// Remove a file, treating "already gone" as success. Answers whether the
+/// file is gone.
+async fn remove_file(path: &Path) -> bool {
+    match tokio::fs::remove_file(path).await {
+        Ok(()) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => true,
+        Err(error) => {
+            tracing::warn!(path = %path.display(), %error, "could not remove a file");
+            false
+        }
+    }
+}
+
+/// Remove a swap marker. Answers whether it is gone.
+async fn remove_marker(marker: &Path) -> bool {
+    remove_file(marker).await
 }
 
 /// A marker's record: one `0` or `1` per binary, or `None` when it is not
@@ -335,10 +387,15 @@ async fn exists(path: &Path) -> bool {
 /// A backup that cannot be removed (Windows, still running) is left for the
 /// next promotion to sweep. See the module docs.
 pub async fn commit(promoted: &[Promoted]) {
-    // The marker first: from here on the new pair is the installed one, and a
-    // crash below leaves only leftover backups, which are never restored.
-    if let Some(first) = promoted.first() {
-        remove_quietly(&marker_path(&first.final_path)).await;
+    // The marker first: once it is gone the new pair is the installed one, and
+    // a crash below leaves only leftover backups, which are never restored. If
+    // it cannot be removed, the swap is still pending, so every backup stays:
+    // deleting some of them would leave that marker rolling back a pair with
+    // only half its predecessors.
+    if let Some(first) = promoted.first()
+        && !remove_marker(&marker_path(&first.final_path)).await
+    {
+        return;
     }
     for backup in promoted.iter().filter_map(|entry| entry.backup.as_ref()) {
         remove_quietly(backup).await;
