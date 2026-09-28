@@ -109,6 +109,26 @@ impl RootIndex {
         best.map(|(id, _)| id)
     }
 
+    /// The ids of every root a "rescan here" signal for `path` covers: roots
+    /// containing it (the OS lost events somewhere below a root) and roots
+    /// inside it (it lost them for a whole volume or a parent directory).
+    ///
+    /// Unlike [`RootIndex::attribute`] there is no depth limit and no
+    /// innermost-only rule, because the signal says where events were lost, not
+    /// which file changed.
+    pub fn touching(&self, path: &Path) -> Vec<&str> {
+        self.entries
+            .iter()
+            .filter(|entry| {
+                entry
+                    .spellings
+                    .iter()
+                    .any(|spelling| path.starts_with(spelling) || spelling.starts_with(path))
+            })
+            .map(|entry| entry.id.as_str())
+            .collect()
+    }
+
     /// The registered path of the root with `id`.
     pub fn path_of(&self, id: &str) -> Option<&Path> {
         self.entries
@@ -167,6 +187,21 @@ mod tests {
             "six components: a file in a directory five levels down is scanned"
         );
         assert_eq!(index.attribute(Path::new("/m/1/2/3/4/5/6/a.mp3")), None);
+    }
+
+    #[test]
+    fn a_rescan_signal_covers_the_roots_above_and_below_it() {
+        let index = RootIndex::new(&[
+            root("a", "/Volumes/usb/music"),
+            root("b", "/Users/me/Music"),
+        ]);
+
+        assert_eq!(
+            index.touching(Path::new("/Volumes/usb/music/deep/x")),
+            ["a"]
+        );
+        assert_eq!(index.touching(Path::new("/Volumes/usb")), ["a"]);
+        assert!(index.touching(Path::new("/tmp")).is_empty());
     }
 
     #[test]

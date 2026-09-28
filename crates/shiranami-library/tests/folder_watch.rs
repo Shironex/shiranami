@@ -2,8 +2,8 @@
 //!
 //! Two halves. The fake-backend tests pin the rules that must not depend on how
 //! fast an OS delivers events: which folders are watched and unwatched as the
-//! root set changes, that a folder which fails to watch is retried, that stop
-//! is clean. The real-backend test proves the whole chain against `notify` in a
+//! root set changes, that a folder which fails to watch is retried, that a
+//! lost-events signal is scoped, that stop is clean and bounded. The real-backend test proves the whole chain against `notify` in a
 //! temp dir, with generous deadlines so a slow CI machine waits rather than
 //! fails.
 
@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use shiranami_library::watch::{
-    EventSender, FolderWatcher, RawEvent, RawKind, Timing, WatchBackend, WatchRoot,
+    EventSender, FolderWatcher, RawEvent, RawKind, STOP_TIMEOUT, Timing, WatchBackend, WatchRoot,
 };
 
 /// Short enough that a test finishes in well under a second of waiting.
@@ -22,6 +22,7 @@ const FAST: Timing = Timing {
     stable_for: Duration::from_millis(100),
     give_up_after: Duration::from_secs(30),
     tick: Duration::from_millis(20),
+    rearm: None,
 };
 
 /// Generous, because a missed deadline here is a flaky test, not a finding.
@@ -47,16 +48,19 @@ impl Fake {
         self.calls.lock().expect("calls").clone()
     }
 
-    fn send(&self, kind: RawKind, path: &Path) {
+    fn sender(&self) -> EventSender {
         self.events
             .lock()
             .expect("sender")
-            .as_ref()
+            .clone()
             .expect("the watcher has started")
-            .event(RawEvent {
-                kind,
-                paths: vec![path.to_path_buf()],
-            });
+    }
+
+    fn send(&self, kind: RawKind, path: &Path) {
+        self.sender().event(RawEvent {
+            kind,
+            paths: vec![path.to_path_buf()],
+        });
     }
 }
 
@@ -87,10 +91,14 @@ impl WatchBackend for Fake {
 }
 
 fn start_fake(fake: &Fake) -> (FolderWatcher, mpsc::Receiver<Vec<String>>) {
+    start_fake_with(fake, FAST)
+}
+
+fn start_fake_with(fake: &Fake, timing: Timing) -> (FolderWatcher, mpsc::Receiver<Vec<String>>) {
     let (batches, received) = mpsc::channel();
     let handle = fake.clone();
     let watcher = FolderWatcher::start(
-        FAST,
+        timing,
         Box::new(move |ids| {
             let _ = batches.send(ids);
         }),
@@ -121,7 +129,7 @@ fn settle(fake: &Fake, expected_calls: usize) {
 }
 
 #[test]
-fn roots_are_watched_updated_and_released() {
+fn roots_are_watched_updated_rearmed_and_released() {
     let a = tempfile::tempdir().expect("a");
     let b = tempfile::tempdir().expect("b");
     let fake = Fake::default();
@@ -130,18 +138,23 @@ fn roots_are_watched_updated_and_released() {
     watcher.set_roots(vec![root("a", a.path()), root("b", b.path())]);
     settle(&fake, 2);
     watcher.set_roots(vec![root("b", b.path())]);
-    settle(&fake, 3);
+    settle(&fake, 5);
     watcher.stop();
 
+    let (a, b) = (a.path().to_path_buf(), b.path().to_path_buf());
     assert_eq!(
         fake.calls(),
         [
-            Call::Watch(a.path().to_path_buf()),
-            Call::Watch(b.path().to_path_buf()),
-            Call::Unwatch(a.path().to_path_buf()),
-            Call::Unwatch(b.path().to_path_buf()),
+            Call::Watch(a.clone()),
+            Call::Watch(b.clone()),
+            Call::Unwatch(a),
+            // A kept root is re-armed on every refresh, in case the OS dropped
+            // its watch without saying so.
+            Call::Unwatch(b.clone()),
+            Call::Watch(b.clone()),
+            Call::Unwatch(b),
         ],
-        "an unchanged root is not re-watched, a removed one is released, and stop releases the rest"
+        "a removed root is released, a kept one re-armed, and stop releases the rest"
     );
 }
 
@@ -266,5 +279,93 @@ fn a_file_written_into_a_real_watched_folder_is_reported() {
     assert!(
         received.recv_timeout(Duration::from_millis(500)).is_err(),
         "a stopped watcher reports nothing"
+    );
+}
+
+#[test]
+fn a_lost_events_signal_covers_only_the_watched_folder_it_names() {
+    let a = tempfile::tempdir().expect("a");
+    let b = tempfile::tempdir().expect("b");
+    let refused = tempfile::tempdir().expect("refused");
+    let fake = Fake::default();
+    fake.refuse
+        .lock()
+        .expect("refuse")
+        .push(refused.path().to_path_buf());
+    let (watcher, batches) = start_fake(&fake);
+    watcher.set_roots(vec![
+        root("a", a.path()),
+        root("b", b.path()),
+        root("refused", refused.path()),
+    ]);
+    settle(&fake, 3);
+
+    fake.sender().rescan(vec![a.path().join("deep")]);
+    assert_eq!(batches.recv_timeout(DEADLINE).expect("a batch"), ["a"]);
+
+    fake.sender().rescan(Vec::new());
+    assert_eq!(
+        batches.recv_timeout(DEADLINE).expect("a batch"),
+        ["a", "b"],
+        "with no path, every watched folder, and never the one that failed to watch"
+    );
+    watcher.stop();
+}
+
+#[test]
+fn existing_roots_are_rearmed_periodically_when_asked() {
+    let a = tempfile::tempdir().expect("a");
+    let fake = Fake::default();
+    let (watcher, _batches) = start_fake_with(
+        &fake,
+        Timing {
+            rearm: Some(Duration::from_millis(30)),
+            ..FAST
+        },
+    );
+    watcher.set_roots(vec![root("a", a.path())]);
+
+    // One watch from the refresh, then at least two more from re-arming.
+    settle(&fake, 5);
+    watcher.stop();
+    let watches = fake
+        .calls()
+        .iter()
+        .filter(|call| matches!(call, Call::Watch(_)))
+        .count();
+    assert!(watches >= 3, "{:?}", fake.calls());
+}
+
+#[test]
+fn stop_does_not_wait_forever_for_a_stuck_thread() {
+    let a = tempfile::tempdir().expect("a");
+    let fake = Fake::default();
+    let handle = fake.clone();
+    let (entered, stuck) = mpsc::channel();
+    let watcher = FolderWatcher::start(
+        FAST,
+        // A sink that never returns stands in for a filesystem call on a dead
+        // network share.
+        Box::new(move |_| {
+            let _ = entered.send(());
+            std::thread::sleep(Duration::from_secs(30));
+        }),
+        move |events| {
+            *handle.events.lock().expect("sender") = Some(events);
+            Ok(handle)
+        },
+    )
+    .expect("the watcher starts");
+    watcher.set_roots(vec![root("a", a.path())]);
+    settle(&fake, 1);
+    fake.send(RawKind::Remove, &a.path().join("gone.mp3"));
+    stuck.recv_timeout(DEADLINE).expect("the thread is stuck");
+
+    let started = std::time::Instant::now();
+    watcher.stop();
+    assert!(
+        started.elapsed() < STOP_TIMEOUT + Duration::from_secs(1),
+        "stop returned after {:?}",
+        started.elapsed()
     );
 }

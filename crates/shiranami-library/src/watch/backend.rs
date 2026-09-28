@@ -13,16 +13,23 @@
 //! `notify` calls its handler on its own thread. The handler does nothing but
 //! translate the event and send it to the service's thread through an
 //! [`EventSender`], so a slow `stat` or a probe never runs on the OS watcher's
-//! thread and a burst of events is queued rather than dropped.
+//! thread.
+//!
+//! The channel is **bounded**. If the service thread falls behind (a stale
+//! network share stalling its probes) the queue does not grow without limit and
+//! the OS watcher's thread is never blocked: a send that would overflow sets a
+//! flag instead, and the service treats the flag as "events were lost" for every
+//! watched folder, which is what it would have been told anyway.
 
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, TrySendError};
 
 use notify::event::ModifyKind;
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher as _};
 
 use super::filter::RawKind;
-use super::roots::WatchRoot;
 
 /// One event, as the service consumes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,36 +40,50 @@ pub struct RawEvent {
     pub paths: Vec<PathBuf>,
 }
 
-/// What the service's thread receives.
+/// What the service's thread receives on the event channel.
 #[derive(Debug)]
 pub(crate) enum Message {
     /// A filesystem event from the backend.
     Event(RawEvent),
-    /// The backend lost events and cannot say which. Every folder is changed.
-    Rescan,
-    /// The set of folders to watch, replacing the previous one.
-    Roots(Vec<WatchRoot>),
-    /// Shut down.
-    Stop,
+    /// The backend lost events under these paths. Empty means it cannot say
+    /// where, and every watched folder is changed.
+    Rescan(Vec<PathBuf>),
+    /// Nothing happened: look at the control channel.
+    Wake,
 }
 
 /// The handle a backend reports events through.
 ///
 /// Cheap to clone. Sending after the service has stopped is a silent no-op: the
 /// OS watcher can deliver a last event while it is being torn down, and that
-/// is not an error.
+/// is not an error. Sending into a full queue sets the overflow flag instead of
+/// blocking (see the module docs).
 #[derive(Debug, Clone)]
-pub struct EventSender(pub(crate) mpsc::Sender<Message>);
+pub struct EventSender {
+    pub(crate) sender: mpsc::SyncSender<Message>,
+    pub(crate) overflow: Arc<AtomicBool>,
+}
 
 impl EventSender {
     /// Report an event.
     pub fn event(&self, event: RawEvent) {
-        let _ = self.0.send(Message::Event(event));
+        self.send(Message::Event(event));
     }
 
-    /// Report that events were lost.
-    pub fn rescan(&self) {
-        let _ = self.0.send(Message::Rescan);
+    /// Report that events were lost under `paths`, or anywhere if it is empty.
+    pub fn rescan(&self, paths: Vec<PathBuf>) {
+        self.send(Message::Rescan(paths));
+    }
+
+    pub(crate) fn wake(&self) {
+        // A full queue will wake the thread anyway.
+        let _ = self.sender.try_send(Message::Wake);
+    }
+
+    fn send(&self, message: Message) {
+        if let Err(TrySendError::Full(_)) = self.sender.try_send(message) {
+            self.overflow.store(true, Ordering::Relaxed);
+        }
     }
 }
 
@@ -120,19 +141,21 @@ impl WatchBackend for NotifyBackend {
 /// Translate one `notify` result and send it on.
 fn forward(events: &EventSender, result: notify::Result<notify::Event>) {
     match result {
-        Ok(event) if event.need_rescan() => events.rescan(),
+        // FSEvents' `MustScanSubDirs` carries the directory it gave up on, so
+        // the rescan can be scoped to the folder that owns it.
+        Ok(event) if event.need_rescan() => events.rescan(event.paths),
         Ok(event) => events.event(RawEvent {
             kind: raw_kind(event.kind),
             paths: event.paths,
         }),
         Err(error) => {
-            // Errors carry no reliable path attribution (a Windows buffer
-            // overflow, a watched root that vanished). A rescan of every
-            // watched folder is the safe reading: it can only find what is
-            // really on disk, and the service will not report a folder that is
-            // itself missing.
+            // An error may name the path it is about (a watched root that
+            // vanished); when it does not (a Windows buffer overflow), every
+            // watched folder is rescanned. That is safe: the rescan only finds
+            // what is really on disk, and the renderer refuses deletions from a
+            // folder that has gone missing.
             tracing::warn!(%error, "the folder watcher reported an error");
-            events.rescan();
+            events.rescan(error.paths);
         }
     }
 }
@@ -185,24 +208,51 @@ mod tests {
         );
     }
 
+    fn channel(capacity: usize) -> (EventSender, mpsc::Receiver<Message>) {
+        let (sender, receiver) = mpsc::sync_channel(capacity);
+        let events = EventSender {
+            sender,
+            overflow: Arc::new(AtomicBool::new(false)),
+        };
+        (events, receiver)
+    }
+
     #[test]
-    fn a_lost_events_flag_becomes_a_rescan() {
-        let (sender, receiver) = mpsc::channel();
-        let events = EventSender(sender);
+    fn a_lost_events_flag_becomes_a_rescan_of_its_path() {
+        let (events, receiver) = channel(8);
 
         forward(
             &events,
-            Ok(notify::Event::new(EventKind::Other).set_flag(Flag::Rescan)),
+            Ok(notify::Event::new(EventKind::Other)
+                .set_flag(Flag::Rescan)
+                .add_path("/m/deep".into())),
         );
         forward(
             &events,
             Ok(notify::Event::new(EventKind::Create(CreateKind::File)).add_path("/m/a.mp3".into())),
         );
 
-        assert!(matches!(receiver.recv(), Ok(Message::Rescan)));
+        assert!(matches!(
+            receiver.recv(),
+            Ok(Message::Rescan(ref paths)) if paths == &[PathBuf::from("/m/deep")]
+        ));
         assert!(matches!(
             receiver.recv(),
             Ok(Message::Event(RawEvent { kind: RawKind::Create, ref paths })) if paths == &[PathBuf::from("/m/a.mp3")]
         ));
+    }
+
+    #[test]
+    fn a_full_queue_sets_the_overflow_flag_instead_of_blocking() {
+        let (events, _receiver) = channel(1);
+        let event = || RawEvent {
+            kind: RawKind::Create,
+            paths: vec![PathBuf::from("/m/a.mp3")],
+        };
+
+        events.event(event());
+        assert!(!events.overflow.load(Ordering::Relaxed));
+        events.event(event());
+        assert!(events.overflow.load(Ordering::Relaxed));
     }
 }

@@ -22,6 +22,12 @@
 //! or renamed moments later, so reacting to them would be a rescan racing a
 //! file that is about to vanish. The final rename is the event that matters.
 //!
+//! The app's own tag writer is the third source
+//! (`shiranami_metadata::write::atomic`): it writes a hidden sibling named
+//! `.{stem}.{pid}.{nanos}.tmp.{ext}` and renames it over the track. Hidden files
+//! are ignored outright (macOS sidecars, `.DS_Store`, editors' swap files), and
+//! so is any name with a `.tmp.` segment. See [`is_ignored`].
+//!
 //! # A vanished path has no file type
 //!
 //! A removed directory cannot be stat-ed, and Windows reports a removal without
@@ -103,7 +109,7 @@ pub fn classify(kind: RawKind, path: &Path, existence: Existence) -> Option<Chan
     }
 
     let name = path.file_name()?.to_string_lossy();
-    if is_partial(&name) {
+    if is_ignored(&name) {
         return None;
     }
 
@@ -121,6 +127,12 @@ pub fn classify(kind: RawKind, path: &Path, existence: Existence) -> Option<Chan
         }
         Existence::Gone => None,
     }
+}
+
+/// Whether a file name is never a library change: hidden, a temporary write, or
+/// a download or copy still in progress.
+pub fn is_ignored(name: &str) -> bool {
+    name.starts_with('.') || name.to_lowercase().contains(".tmp.") || is_partial(name)
 }
 
 /// Whether a file name is a download or copy still in progress.
@@ -168,7 +180,7 @@ pub fn is_partial(name: &str) -> bool {
 /// rescan, and the cost of a wrong "no" is a deleted album staying in the
 /// library until the next manual rescan, so the test leans towards "yes".
 pub fn looks_like_directory(name: &str) -> bool {
-    if is_partial(name) {
+    if is_ignored(name) {
         return false;
     }
     let Some(dot) = name.rfind('.') else {
@@ -241,6 +253,25 @@ mod tests {
                 "{name}: the rename away from a partial name is not a removed folder"
             );
         }
+    }
+
+    #[test]
+    fn the_apps_own_tag_writes_and_hidden_files_are_ignored() {
+        // `shiranami_metadata::write::atomic`'s temp name, and its removal when
+        // it is renamed over the track.
+        let temp = Path::new("/m/.Song.4242.1790000000000000000.tmp.mp3");
+        assert_eq!(classify(RawKind::Create, temp, Existence::File), None);
+        assert_eq!(classify(RawKind::Rename, temp, Existence::Gone), None);
+
+        for name in ["/m/._Song.mp3", "/m/.DS_Store", "/m/.hidden.flac"] {
+            assert_eq!(
+                classify(RawKind::Create, Path::new(name), Existence::File),
+                None,
+                "{name}"
+            );
+        }
+        assert!(is_ignored("song.tmp.flac"));
+        assert!(!is_ignored("Song.mp3"));
     }
 
     #[test]

@@ -12,16 +12,17 @@
 //! from the OS, [`roots`] attributes it to a folder, [`filter`] decides whether
 //! it is a library change, [`coalesce`] batches it per folder behind a quiet
 //! window and a size-stability gate, and [`service`] runs all of that on its
-//! own thread and hands each batch to the shell.
+//! own thread (the loop itself is `worker`) and hands each batch to the shell.
 
 pub mod backend;
 pub mod coalesce;
 pub mod filter;
 pub mod roots;
 pub mod service;
+mod worker;
 
 pub use backend::{EventSender, NotifyBackend, RawEvent, WatchBackend};
 pub use coalesce::{Coalescer, Fingerprint, Probe, Timing};
-pub use filter::{Change, Existence, RawKind, classify, is_partial};
+pub use filter::{Change, Existence, RawKind, classify, is_ignored, is_partial};
 pub use roots::{RootIndex, WatchRoot};
-pub use service::{BatchSink, FolderWatcher, WatchError};
+pub use service::{BatchSink, FolderWatcher, STOP_TIMEOUT, WatchError};

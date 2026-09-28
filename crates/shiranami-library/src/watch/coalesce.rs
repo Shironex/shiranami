@@ -27,9 +27,12 @@
 //! ends, the folder goes quiet, and one batch covers all of it.
 //!
 //! The one exception is a file that never settles (a recorder appending for an
-//! hour, a handle leaked open). After [`Timing::give_up_after`] it stops holding
-//! its folder hostage and is logged, so the rest of that folder's changes still
-//! arrive.
+//! hour, a handle leaked open). Its give-up clock runs from when it was first
+//! seen and is checked on **every** tick, quiet window or not, because a file
+//! that is written continuously also keeps its folder from ever going quiet.
+//! After [`Timing::give_up_after`] the folder is reported anyway and the stall
+//! is logged, so a continuous writer delays that folder's other changes by at
+//! most that long rather than forever.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -49,6 +52,9 @@ pub struct Timing {
     /// How often the service wakes to check. Not used by the coalescer itself,
     /// kept here so one value configures the whole watcher.
     pub tick: Duration,
+    /// How often every existing root is re-watched, if at all. See
+    /// `watch::worker` for why this is Windows-only by default.
+    pub rearm: Option<Duration>,
 }
 
 impl Timing {
@@ -63,6 +69,11 @@ impl Timing {
         stable_for: Duration::from_secs(1),
         give_up_after: Duration::from_secs(10 * 60),
         tick: Duration::from_millis(500),
+        rearm: if cfg!(windows) {
+            Some(Duration::from_secs(5 * 60))
+        } else {
+            None
+        },
     };
 }
 
@@ -176,7 +187,8 @@ impl Coalescer {
     /// pending set.
     ///
     /// `probe` is called only for folders past their quiet window, so a storm
-    /// in progress costs no filesystem reads.
+    /// in progress costs no filesystem reads. The give-up bound is checked for
+    /// every folder, quiet or not: see the module docs.
     pub fn drain_due(
         &mut self,
         now: Instant,
@@ -186,6 +198,15 @@ impl Coalescer {
         let mut due = Vec::new();
 
         for (id, pending) in &mut self.folders {
+            if let Some(stalled) = stalled_file(pending, now, &timing) {
+                tracing::warn!(
+                    path = %stalled.display(),
+                    "a watched file kept changing; reporting its folder without waiting for it"
+                );
+                due.push(id.clone());
+                continue;
+            }
+
             let quiet = pending
                 .last_change
                 .is_some_and(|last| now.saturating_duration_since(last) >= timing.quiet);
@@ -209,6 +230,17 @@ impl Coalescer {
     }
 }
 
+/// A file in `pending` that has been changing for longer than the give-up bound.
+fn stalled_file<'a>(pending: &'a Pending, now: Instant, timing: &Timing) -> Option<&'a Path> {
+    pending
+        .files
+        .iter()
+        .find(|(_, sighting)| {
+            now.saturating_duration_since(sighting.first_seen) >= timing.give_up_after
+        })
+        .map(|(path, _)| path.as_path())
+}
+
 /// Probe one written file and say whether it no longer holds its folder back.
 fn settle(
     path: &Path,
@@ -217,14 +249,6 @@ fn settle(
     timing: &Timing,
     probe: &mut impl FnMut(&Path) -> Probe,
 ) -> bool {
-    if now.saturating_duration_since(sighting.first_seen) >= timing.give_up_after {
-        tracing::warn!(
-            path = %path.display(),
-            "a watched file kept changing; reporting its folder without waiting for it"
-        );
-        return true;
-    }
-
     match probe(path) {
         Probe::Gone => true,
         Probe::Busy => false,
@@ -248,6 +272,7 @@ mod tests {
         stable_for: Duration::from_secs(1),
         give_up_after: Duration::from_secs(60),
         tick: Duration::from_millis(500),
+        rearm: None,
     };
 
     fn at(start: Instant, millis: u64) -> Instant {
@@ -417,6 +442,40 @@ mod tests {
         assert_eq!(
             coalescer.drain_due(at(start, 60_000), |_| Probe::Busy),
             ["a"]
+        );
+    }
+
+    /// The gate's scenario: a write every 500 ms for an hour, next to a file
+    /// that settled at once. Every write restarts the quiet window, so only the
+    /// give-up bound can ever report the folder.
+    #[test]
+    fn a_continuous_writer_cannot_hold_its_folder_forever() {
+        let start = Instant::now();
+        let mut coalescer = Coalescer::new(TIMING);
+        coalescer.record("a", written("/m/done.mp3"), start);
+
+        let mut batches = Vec::new();
+        for tick in 0..(60 * 60 * 2u64) {
+            let now = at(start, tick * 500);
+            coalescer.record("a", written("/m/recording.wav"), now);
+            let due = coalescer.drain_due(now, |_| size(tick));
+            if !due.is_empty() {
+                batches.push(tick * 500);
+            }
+        }
+
+        assert!(
+            !batches.is_empty(),
+            "a folder with a continuous writer must still be reported"
+        );
+        assert!(
+            batches[0] <= 60_000,
+            "the first batch arrives at the give-up bound, not later: {batches:?}"
+        );
+        assert!(
+            batches.len() >= 50,
+            "and keeps arriving about once per bound for the whole hour: {}",
+            batches.len()
         );
     }
 
