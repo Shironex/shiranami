@@ -32,9 +32,13 @@ export interface ScanAndPersistOptions {
    * Re-point tracks whose files have moved away instead of inserting the moved
    * files as new tracks. Only the rescan sets this: it is the one flow that
    * also sweeps missing tracks. The backend counts a file as moved only when
-   * it is definitely not found while its volume and music folder definitely
-   * exist and are not empty, so an unmounted drive, a leftover empty mount
-   * point or a share answering with errors does not qualify.
+   * it is definitely not found while its volume, its music folder and its
+   * nearest existing parent folder definitely exist and hold real entries
+   * (not just OS files). An unmounted drive, a leftover mount point (nested
+   * or not) or a share answering with errors does not qualify, and neither do
+   * files moved out of a folder left empty. Accepted residuals that can still
+   * qualify: Windows Offline Files, a different drive taking the same letter,
+   * two FAT sticks with the same label.
    */
   followMoves?: boolean;
 }
