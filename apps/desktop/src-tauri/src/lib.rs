@@ -31,6 +31,7 @@ pub mod shortcuts;
 pub mod state;
 pub mod tray;
 pub mod updater;
+pub mod watch;
 pub mod window;
 pub mod wire;
 
@@ -259,6 +260,7 @@ pub fn run() {
 
             // §2.8 step 6: everything with no first-paint dependency.
             boot::reconcile::spawn(&handle, e2e, &booted.handles);
+            watch::install(&handle, e2e);
 
             Ok(())
         })
@@ -289,6 +291,7 @@ pub fn run() {
 /// eating the tail of every session's log.
 fn shutdown(app: &tauri::AppHandle) {
     tracing::info!("exit requested; shutting down");
+    watch::stop(app);
     stop_media_server(app);
     tracing::info!("graceful shutdown complete");
 
