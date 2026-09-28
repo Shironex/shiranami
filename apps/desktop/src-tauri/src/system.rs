@@ -246,7 +246,59 @@ impl AutostartBackend for PluginAutostart {
         } else {
             manager.disable()
         };
-        result.map_err(|error| MediaControlsError::Backend(error.to_string()))
+        result.map_err(|error| MediaControlsError::Backend(error.to_string()))?;
+
+        // Whichever way the switch went, v1's own entry must not survive it:
+        // ours is now the one that decides.
+        remove_v1_login_items();
+        Ok(())
+    }
+}
+
+/// The `Run` value names v1 may have written on Windows.
+///
+/// v1 called Electron's `app.setLoginItemSettings({ openAtLogin })` and never
+/// `setAppUserModelId`, so the value was named after Electron's default
+/// AppUserModelId, `electron.app.<app name>`. The app name is the packaged
+/// `package.json`'s `productName`, or its `name` when there is none, and the
+/// repo alone cannot say which the shipped build had, so both are cleared. The
+/// plugin's own value is `Shiranami`, which neither of these can collide with.
+const V1_RUN_VALUE_NAMES: [&str; 2] = ["electron.app.Shiranami", "electron.app.@shiranami/desktop"];
+
+/// Delete v1's Windows login item, if one is still there.
+///
+/// A migrated v1 user who turns the switch off would otherwise keep launching
+/// at login from v1's entry, which the v2 installer's uninstall of v1 does not
+/// touch (Electron wrote it at runtime, not the installer). Windows only: on
+/// macOS, v1's entry is an `SMAppService` login item that cannot be removed
+/// without new native code, and is a one-time manual cleanup instead.
+///
+/// Compiled everywhere so the call is type-checked on every platform, and only
+/// acted on where it means something.
+fn remove_v1_login_items() {
+    if !cfg!(windows) {
+        return;
+    }
+
+    for name in V1_RUN_VALUE_NAMES {
+        // The path is never read: `disable` only deletes the value by name.
+        let entry = match auto_launch::AutoLaunchBuilder::new()
+            .set_app_name(name)
+            .set_app_path("unused")
+            .build()
+        {
+            Ok(entry) => entry,
+            Err(error) => {
+                tracing::debug!(%error, name, "could not address v1's login item");
+                continue;
+            }
+        };
+
+        match entry.disable() {
+            Ok(()) => tracing::info!(name, "removed v1's login item"),
+            Err(auto_launch::Error::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => tracing::warn!(%error, name, "could not remove v1's login item"),
+        }
     }
 }
 
@@ -492,6 +544,15 @@ mod tests {
             Some(&false),
             "the boot write reads the stored value when it runs"
         );
+    }
+
+    /// v1's entries are never ours to confuse with the plugin's.
+    #[test]
+    fn the_v1_value_names_are_not_the_plugins() {
+        for name in V1_RUN_VALUE_NAMES {
+            assert!(name.starts_with("electron.app."), "{name}");
+            assert_ne!(name, "Shiranami");
+        }
     }
 
     /// A quit before boot managed the state still exits.
