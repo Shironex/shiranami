@@ -641,6 +641,12 @@ export function useAudioEngine() {
       outgoingDeck: activeDeckRef.current,
       incomingDeck: incomingDeckId,
     };
+    // A crossfade takes the deck gains over from a running sleep fade, which
+    // ends here. The rule is the old frame loop's, and it keeps one invariant:
+    // the sleep fade is never active while a crossfade is. If the timer is
+    // still fading when the crossfade completes, `completeCrossfade` starts a
+    // fresh fade on the new deck.
+    sleepFadeRef.current.active = false;
     // Both ramps run on the audio clock from here, so the crossfade completes
     // on time even with the window hidden to the tray.
     scheduleCrossfadeRamps();
@@ -924,13 +930,14 @@ export function useAudioEngine() {
       // the volume once the deck is silent. Restoring here instead would put
       // the full volume back for a moment before the pause. So wait a
       // microtask, and restore only if playback is still going (the timer was
-      // cancelled mid-fade).
+      // cancelled mid-fade). The fade itself always ends here, whatever
+      // happens to the volume.
       queueMicrotask(() => {
         const sf = sleepFadeRef.current;
-        if (!sf.active || !usePlaybackStore.getState().isPlaying) return;
-        if (crossfadeRef.current.active) return;
+        if (!sf.active) return;
+        if (!usePlaybackStore.getState().isPlaying) return;
         sf.active = false;
-        setVolume(activeDeckRef.current, userVolume());
+        if (!crossfadeRef.current.active) setVolume(activeDeckRef.current, userVolume());
       });
     });
   }, []);
@@ -1127,13 +1134,20 @@ export function useAudioEngine() {
       // prior volume now that we're paused — neither the volume-sync effect
       // (deps don't include isPlaying) nor the play effect (only sets gain on
       // first init) would otherwise un-silence the deck on the next play.
-      if (sleepFadeRef.current.active && !crossfadeRef.current.active) {
+      // A pause ends the fade whatever else is going on; only the volume
+      // restore waits while a crossfade owns the gains (its completion sets
+      // them).
+      if (sleepFadeRef.current.active || usePlaybackStore.getState()._sleepFading) {
+        const wasFading = sleepFadeRef.current.active;
         sleepFadeRef.current.active = false;
-        setVolume(activeDeckRef.current, isMuted ? 0 : volume);
+        if (wasFading && !crossfadeRef.current.active) {
+          setVolume(activeDeckRef.current, isMuted ? 0 : volume);
+        }
         // A manual pause mid-fade abandons the fade entirely — clear the
         // store signal so resuming doesn't re-trigger the ramp. (When the
         // fade completes naturally the sleep-timer store has already cleared
-        // this, so this only matters for the manual-pause path.)
+        // this, so this only matters for the manual-pause path, including a
+        // fade that was waiting behind a crossfade.)
         if (usePlaybackStore.getState()._sleepFading) {
           usePlaybackStore.getState()._setSleepFading(false);
         }

@@ -22,15 +22,21 @@ import {
 const graph = vi.hoisted(() => ({
   ramps: [] as Array<{ deck: 'A' | 'B'; values: number[]; duration: number }>,
   gains: [] as Array<{ deck: 'A' | 'B'; value: number }>,
+  /** Every gain decision in order: a plain set, or a ramp and where it ends. */
+  last: { A: null, B: null } as Record<'A' | 'B', number | null>,
 }));
 
 vi.mock('@/lib/audioAnalyser', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/audioAnalyser')>()),
   initAnalyser: vi.fn(),
   destroyAnalyser: vi.fn(),
-  setDeckGain: vi.fn((deck: 'A' | 'B', value: number) => graph.gains.push({ deck, value })),
+  setDeckGain: vi.fn((deck: 'A' | 'B', value: number) => {
+    graph.gains.push({ deck, value });
+    graph.last[deck] = value;
+  }),
   rampDeckGain: vi.fn((deck: 'A' | 'B', values: readonly number[], duration: number) => {
     graph.ramps.push({ deck, values: [...values], duration });
+    graph.last[deck] = values.at(-1) ?? null;
     return true;
   }),
   isAnalyserReady: () => true,
@@ -147,6 +153,7 @@ beforeEach(() => {
   FakeAudio.decks = [];
   graph.ramps = [];
   graph.gains = [];
+  graph.last = { A: null, B: null };
   vi.stubGlobal('Audio', FakeAudio);
   // A hidden window: frames are requested and never delivered.
   vi.stubGlobal(
@@ -258,6 +265,116 @@ describe('the playback clock with no animation frames', () => {
     elapse(10_000);
 
     expect(usePlaybackStore.getState().currentTime).toBeGreaterThan(9.5);
+  });
+});
+
+/**
+ * A sleep fade that is running when the crossfade window arrives. The crossfade
+ * takes the gains over and the fade ends; whatever the user or the timer does
+ * during the crossfade, the next track must end up audible. The regression
+ * this pins: the fade stayed marked active through the crossfade, and the next
+ * track was then "faded" from a start time long past, straight to silence.
+ */
+describe('a sleep fade overlapping a crossfade', () => {
+  function crossfadeDuringSleepFade(sleepFadeDuration: number) {
+    play([track('a'), track('b')], {
+      crossfadeEnabled: true,
+      crossfadeDuration: 4,
+      sleepFadeDuration,
+    });
+    renderHook(() => useAudioEngine());
+    const [deckA] = FakeAudio.decks;
+    act(() => {
+      deckA.currentTime = TRACK_SECONDS - 8;
+    });
+    elapse(500);
+    act(() => {
+      usePlaybackStore.getState()._setSleepFading(true);
+    });
+    // Into the crossfade window: the crossfade starts while the fade runs.
+    elapse(4000);
+    expect(graph.ramps.some(ramp => ramp.deck === 'B')).toBe(true);
+  }
+
+  /** The gain the deck is left at: a plain set, or where its last ramp ends. */
+  function settledGain(deck: 'A' | 'B'): number | null {
+    return graph.last[deck];
+  }
+
+  it('(d) cancelling the sleep timer mid-crossfade leaves the next track audible', async () => {
+    crossfadeDuringSleepFade(12);
+
+    await act(async () => {
+      usePlaybackStore.getState()._setSleepFading(false);
+      await Promise.resolve();
+    });
+    elapse(5000);
+
+    expect(usePlaybackStore.getState().currentTrack?.id).toBe('b');
+    expect(usePlaybackStore.getState().isPlaying).toBe(true);
+    expect(settledGain('B')).toBeCloseTo(0.8, 2);
+  });
+
+  it('(b) the timer pausing mid-crossfade, then a later play, is audible', async () => {
+    crossfadeDuringSleepFade(8);
+
+    await act(async () => {
+      // Exactly what the sleep timer's fade timeout does.
+      const s = usePlaybackStore.getState();
+      s._setSleepFading(false);
+      s.pause();
+      await Promise.resolve();
+    });
+    elapse(60_000);
+    await act(async () => {
+      usePlaybackStore.getState().play();
+      await Promise.resolve();
+    });
+    elapse(1000);
+
+    expect(usePlaybackStore.getState().currentTrack?.id).toBe('b');
+    expect(usePlaybackStore.getState().isPlaying).toBe(true);
+    expect(settledGain('B')).toBeCloseTo(0.8, 2);
+  });
+
+  /**
+   * Nobody intervenes: the timer is still fading when the crossfade completes.
+   * The crossfade ended the old fade, so the next track gets a fresh one from
+   * the user's volume, the old frame loop's behaviour, rather than inheriting
+   * a fade whose start time lies in the previous track.
+   */
+  it('(e) a fade still running after the crossfade starts afresh on the next track', () => {
+    crossfadeDuringSleepFade(30);
+
+    elapse(5000);
+
+    expect(usePlaybackStore.getState().currentTrack?.id).toBe('b');
+    const onB = graph.ramps.filter(ramp => ramp.deck === 'B');
+    // The fresh fade: the full length, from the user's volume. (Later ramps
+    // on B are the same fade rescheduled from its progress.)
+    const fresh = onB.find(ramp => ramp.duration > 29);
+    expect(fresh, 'a full-length fade starts on the next track').toBeDefined();
+    expect(fresh!.values.at(0)).toBeCloseTo(0.8, 2);
+    expect(onB.at(-1)!.values.at(-1), 'it still ends in silence').toBeCloseTo(0, 5);
+  });
+
+  it('(c) a manual pause and resume during that crossfade is audible', async () => {
+    crossfadeDuringSleepFade(12);
+
+    await act(async () => {
+      usePlaybackStore.getState().pause();
+      await Promise.resolve();
+    });
+    elapse(30_000);
+    await act(async () => {
+      usePlaybackStore.getState().play();
+      await Promise.resolve();
+    });
+    elapse(1000);
+
+    expect(usePlaybackStore.getState().currentTrack?.id).toBe('b');
+    expect(usePlaybackStore.getState().isPlaying).toBe(true);
+    expect(settledGain('B')).toBeCloseTo(0.8, 2);
   });
 });
 
