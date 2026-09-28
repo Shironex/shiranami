@@ -142,17 +142,40 @@ impl SystemState {
     }
 }
 
-/// What a close request should do, or a plain close before boot managed the
-/// state (a window closed during a failed boot must still close).
+/// What a close request should do.
+///
+/// A plain close before boot managed the state (a window closed during a
+/// failed boot must still close), and a plain close when there is no tray:
+/// the tray is the only way back to a hidden window on Windows, so hiding with
+/// no tray (a desktop that refused one, or the harness) would strand the app
+/// running and unreachable.
 pub fn close_action(app: &AppHandle) -> CloseAction {
-    app.try_state::<SystemState>()
-        .map_or(CloseAction::Close, |state| state.on_close())
+    close_decision(
+        app.try_state::<SystemState>().as_deref(),
+        app.try_state::<crate::tray::Tray>().is_some(),
+    )
 }
 
-/// What a minimize should do, with the same fallback as [`close_action`].
+/// What a minimize should do, with the same fallbacks as [`close_action`].
 pub fn minimize_action(app: &AppHandle) -> MinimizeAction {
-    app.try_state::<SystemState>()
-        .map_or(MinimizeAction::Minimize, |state| state.on_minimize())
+    minimize_decision(
+        app.try_state::<SystemState>().as_deref(),
+        app.try_state::<crate::tray::Tray>().is_some(),
+    )
+}
+
+fn close_decision(state: Option<&SystemState>, has_tray: bool) -> CloseAction {
+    match state {
+        Some(state) if has_tray => state.on_close(),
+        _ => CloseAction::Close,
+    }
+}
+
+fn minimize_decision(state: Option<&SystemState>, has_tray: bool) -> MinimizeAction {
+    match state {
+        Some(state) if has_tray => state.on_minimize(),
+        _ => MinimizeAction::Minimize,
+    }
 }
 
 /// Set the quit flag. Idempotent, and safe before the state is managed.
@@ -368,6 +391,33 @@ mod tests {
             "a close during the quit must not be turned into a hide"
         );
         assert!(state.is_quitting());
+    }
+
+    /// No tray, no hiding: the tray is the way back to a hidden window, so a
+    /// desktop without one keeps the ordinary close and minimize even with
+    /// both switches on.
+    #[test]
+    fn without_a_tray_nothing_is_hidden() {
+        let (_dir, settings) = store();
+        settings
+            .set(RendererStoreKey::SystemCloseToTray, Value::Bool(true))
+            .expect("write");
+        settings
+            .set(RendererStoreKey::SystemMinimizeToTray, Value::Bool(true))
+            .expect("write");
+        let state = SystemState::new(SystemPrefs::watch(&settings));
+
+        assert_eq!(close_decision(Some(&state), false), CloseAction::Close);
+        assert_eq!(
+            minimize_decision(Some(&state), false),
+            MinimizeAction::Minimize
+        );
+        assert_eq!(close_decision(Some(&state), true), CloseAction::HideToTray);
+        assert_eq!(
+            minimize_decision(Some(&state), true),
+            MinimizeAction::HideToTray
+        );
+        assert_eq!(close_decision(None, true), CloseAction::Close);
     }
 
     /// A quit before boot managed the state still exits.
