@@ -13,6 +13,8 @@ export interface IPlayerOverflowMenuView {
   readonly showSleepTimer: boolean;
   /** Whether the equalizer entry is visible. */
   readonly showEqualizer: boolean;
+  /** Whether the ambience mixer entry is visible. */
+  readonly showAmbience: boolean;
   /** Whether the compact-mode entry is visible. */
   readonly showCompactButton: boolean;
   /** Whether the visualizer entry is visible. */

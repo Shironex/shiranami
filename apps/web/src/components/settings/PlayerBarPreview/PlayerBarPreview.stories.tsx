@@ -41,12 +41,12 @@ export default meta;
 
 type Story = StoryObj<typeof PlayerBarPreview>;
 
-/** Shipping defaults — all eleven optional elements plus the waveform seekbar. */
+/** Shipping defaults — all twelve optional elements plus the waveform seekbar. */
 export const AllElements: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('img', { name: 'Player bar preview' })).toBeInTheDocument();
-    await expect(canvasElement.querySelectorAll(ELEMENT)).toHaveLength(11);
+    await expect(canvasElement.querySelectorAll(ELEMENT)).toHaveLength(12);
     await expect(canvasElement.querySelector(WAVE_STRIP)?.children).toHaveLength(24);
   },
 };

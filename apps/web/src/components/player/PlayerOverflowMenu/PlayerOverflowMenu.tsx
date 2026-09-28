@@ -5,10 +5,11 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { IconButton } from '@/components/ui/icon-button';
 import { SleepTimer } from '../SleepTimer';
 import { EqualizerPanel } from '../EqualizerPanel';
+import { AmbienceMixer } from '../AmbienceMixer';
 import { usePlayerOverflowMenu } from './PlayerOverflowMenu.hooks';
 
 /**
- * Secondary player controls (sleep timer, EQ, compact mode, visualizer) collapsed
+ * Secondary player controls (sleep timer, EQ, ambience, compact mode, visualizer) collapsed
  * into a single "more" popover at narrow widths. Preserves each child's own
  * popover and active state.
  */
@@ -19,6 +20,7 @@ export default function PlayerOverflowMenu() {
     showVisualizer,
     showSleepTimer,
     showEqualizer,
+    showAmbience,
     showCompactButton,
     showVisualizerButton,
     compactTooltip,
@@ -46,6 +48,7 @@ export default function PlayerOverflowMenu() {
         <div className="flex items-center gap-0.5">
           {showSleepTimer && <SleepTimer />}
           {showEqualizer && <EqualizerPanel />}
+          {showAmbience && <AmbienceMixer />}
           {showCompactButton && (
             <Tooltip>
               <TooltipTrigger asChild>
