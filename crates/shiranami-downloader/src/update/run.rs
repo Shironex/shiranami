@@ -393,28 +393,64 @@ mod tests {
         runner.wait_for(1).await;
     }
 
+    /// Counts the processes it is asked to run, and runs none.
+    #[derive(Default)]
+    struct Counting(std::sync::atomic::AtomicUsize);
+
+    #[async_trait::async_trait]
+    impl crate::spawn::ProcessRunner for Counting {
+        async fn run(
+            &self,
+            _spec: crate::spawn::ProcessSpec,
+            _lines: Option<&(dyn crate::spawn::LineSink + '_)>,
+            _cancel: &CancellationToken,
+        ) -> std::result::Result<crate::spawn::ProcessOutput, crate::spawn::ProcessError> {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Ok(crate::spawn::ProcessOutput::default())
+        }
+    }
+
     /// evermeet.cx publishes no checksum, so ffmpeg on macOS is never checked
-    /// or touched unattended: no lock, no request, no process.
+    /// or touched unattended. With an installed pair on disk, an update that
+    /// went ahead would first probe its version (a process) alongside asking
+    /// evermeet.cx for the latest one (a request); zero processes run means
+    /// the manager was never reached, so no request was made either.
     #[tokio::test]
     async fn ffmpeg_is_never_updated_unattended_on_macos() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        tokio::fs::write(temp.path().join("ffmpeg"), b"old")
+            .await
+            .expect("write");
+        tokio::fs::write(temp.path().join("ffprobe"), b"old")
+            .await
+            .expect("write");
         let client = Arc::new(shiranami_net::HttpClient::new().expect("the client builds"));
-        let runner: Arc<dyn crate::spawn::ProcessRunner> =
-            Arc::new(crate::spawn::TokioRunner::new());
-        let bin = PathBuf::from("/nonexistent/bin");
+        let runner = Arc::new(Counting::default());
+        let as_runner = || Arc::clone(&runner) as Arc<dyn crate::spawn::ProcessRunner>;
+        let bin = temp.path().to_path_buf();
         let tools = Tools::new(
             YtDlpManager::new(
                 bin.clone(),
                 Platform::MacOs,
                 Arc::clone(&client),
-                Arc::clone(&runner),
+                as_runner(),
             ),
-            FfmpegManager::new(bin, Platform::MacOs, client, runner),
+            FfmpegManager::new(bin, Platform::MacOs, client, as_runner()),
+        );
+        assert!(
+            tools.ffmpeg.is_installed().await,
+            "an update would have something to do"
         );
         let gate = QueueGate::new(queue(&Arc::new(Parked::default())));
 
         let outcome = update_tool(Tool::Ffmpeg, &tools, &gate).await;
 
         assert_eq!(outcome, UpdateOutcome::NotSupported);
+        assert_eq!(
+            runner.0.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "no version probe, so the manager (and its request) was never reached"
+        );
         assert!(!tools.ffmpeg.is_installing());
     }
 
