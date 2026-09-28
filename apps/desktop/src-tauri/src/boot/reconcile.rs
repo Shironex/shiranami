@@ -73,6 +73,7 @@ fn hydrate_download_queue(app: &AppHandle) {
         // Never fails: the crate logs a failed read and starts empty, because
         // v1's call sat inside IPC registration where a throw would silently
         // skip every handler registered after it.
+        crate::downloads::auto_update::recover_interrupted_swaps(&state).await;
         queue.hydrate_and_resume().await;
         tracing::debug!("the download queue is hydrated");
     });

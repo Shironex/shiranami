@@ -122,6 +122,20 @@ fn save_state(settings: &SettingsStore, state: &ToolAutoUpdateState) {
     }
 }
 
+/// Roll back any binary swap a crash left unfinished, before anything spawns.
+///
+/// Called by the queue's boot-time hydrate before it resumes downloads, so a
+/// resumed download never starts against a half-swapped yt-dlp or a mixed
+/// ffmpeg pair. The check is each manager's `is_installed`, which rolls a
+/// pending swap back first (`bin::swap::recover`); with no swap pending it is
+/// four file-existence checks. Runs whether or not automatic updates are on,
+/// because a manual install can be interrupted too.
+pub async fn recover_interrupted_swaps(state: &AppState) {
+    if let Some(services) = state.deferred().downloader.as_deref() {
+        services.tools().check().await;
+    }
+}
+
 /// Everything one update pass needs, built once at boot.
 struct AutoUpdater {
     settings: Arc<SettingsStore>,
