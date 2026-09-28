@@ -54,7 +54,8 @@ pub use download_queue::{
 };
 pub use downloader::{
     CachedToolStatus, DependencyCheck, DependencyInstallProgress, DownloadLocation,
-    DownloadProgress, DownloadProgressStatus, InstallProgress, ToolStatus,
+    DownloadProgress, DownloadProgressStatus, InstallProgress, ToolAutoUpdateState, ToolStatus,
+    ToolUpdateRecord,
 };
 pub use folder::WatchedFolder;
 pub use history::{

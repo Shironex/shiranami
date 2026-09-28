@@ -128,6 +128,11 @@ pub enum MainStoreKey {
     /// keeps showing the user's wallpaper.
     #[serde(rename = "appearance.backgroundLibrary")]
     AppearanceBackgroundLibrary,
+    /// Automatic tool updating's bookkeeping: last checks, last installed
+    /// versions. Main-only like every `downloads.*` key; the renderer reads it
+    /// through `downloader:get-auto-update-status`.
+    #[serde(rename = "downloads.autoUpdate")]
+    DownloadsAutoUpdate,
 }
 
 impl RendererStoreKey {
@@ -182,7 +187,7 @@ impl RendererStoreKey {
 
 impl MainStoreKey {
     /// Every main-only key.
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::DiscordRpcSettings,
         Self::CompactWindowBounds,
         Self::DownloadsLocation,
@@ -193,6 +198,7 @@ impl MainStoreKey {
         Self::V2CrossoverPinged,
         Self::AppearanceCustomBackground,
         Self::AppearanceBackgroundLibrary,
+        Self::DownloadsAutoUpdate,
     ];
 
     /// The electron-store dot path this key lives at in the document.
@@ -211,6 +217,7 @@ impl MainStoreKey {
             Self::V2CrossoverPinged => "v2.crossoverPinged",
             Self::AppearanceCustomBackground => "appearance.customBackground",
             Self::AppearanceBackgroundLibrary => "appearance.backgroundLibrary",
+            Self::DownloadsAutoUpdate => "downloads.autoUpdate",
         }
     }
 }
