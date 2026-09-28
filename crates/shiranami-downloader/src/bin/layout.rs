@@ -131,6 +131,22 @@ pub fn yt_dlp_asset_url(platform: Platform) -> String {
     format!("{YT_DLP_RELEASE_BASE}/{}", yt_dlp_asset_name(platform))
 }
 
+/// Whether `tag` is safe to put in a release URL's path.
+///
+/// The tag comes from GitHub's API response, and it is spliced into a path.
+/// yt-dlp's tags are dates (`2026.09.20`), so the allowed set is small on
+/// purpose: ASCII letters, digits, `.`, `_` and `-`, which rules out `/`, `%`,
+/// `?`, `#` and anything else that would make it more than one path segment.
+/// `.` and `..` on their own are refused too.
+pub fn is_release_tag(tag: &str) -> bool {
+    !tag.is_empty()
+        && tag != "."
+        && tag != ".."
+        && tag
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+}
+
 /// One file of a yt-dlp release under `releases`: the release named `tag`, or
 /// whichever is latest when `tag` is `None`.
 ///
@@ -224,6 +240,44 @@ mod tests {
             yt_dlp_asset_url(Platform::MacOs),
             "the unpinned URL is the one installs have always used"
         );
+    }
+
+    /// `fetch::check_hop` refuses every hop that leaves https, which only means
+    /// "every hop is https" because every starting point is.
+    #[test]
+    fn every_upstream_is_https() {
+        for url in [
+            YT_DLP_RELEASE_BASE,
+            YT_DLP_RELEASE_API,
+            YT_DLP_RELEASES,
+            FFMPEG_MAC_URL,
+            FFPROBE_MAC_URL,
+            FFMPEG_MAC_INFO_URL,
+            FFMPEG_WINDOWS_URL,
+            FFMPEG_WINDOWS_SHA256_URL,
+            FFMPEG_WINDOWS_VERSION_URL,
+        ] {
+            assert!(url.starts_with("https://"), "{url}");
+        }
+    }
+
+    #[test]
+    fn only_plain_release_tags_are_accepted() {
+        for tag in ["2026.09.20", "2026.09.20.232105", "v1.2.3-rc_1", "nightly"] {
+            assert!(is_release_tag(tag), "{tag}");
+        }
+        for tag in [
+            "",
+            "../../evil",
+            "2026.09.20/../x",
+            "a b",
+            "tag?x=1",
+            "tag#frag",
+            "%2e%2e",
+            "tag\\x",
+        ] {
+            assert!(!is_release_tag(tag), "{tag}");
+        }
     }
 
     #[test]
