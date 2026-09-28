@@ -13,6 +13,10 @@
 //!
 //! It answers even when the downloader was never built (E2E), because the
 //! record is just a settings read and an empty one is a true answer.
+//!
+//! The record's `installing` flags are the one live part: they are read from
+//! each tool's install lock on every call, so the panel can disable its update
+//! button while an install (manual or automatic) is running.
 
 use shiranami_core::models::ToolAutoUpdateState;
 use tauri::State;
@@ -26,5 +30,10 @@ use crate::state::AppState;
 pub async fn downloader_get_auto_update_status(
     state: State<'_, AppState>,
 ) -> CommandResult<ToolAutoUpdateState> {
-    Ok(crate::downloads::auto_update::load_state(state.settings()))
+    let mut record = crate::downloads::auto_update::load_state(state.settings());
+    if let Some(services) = state.deferred().downloader.as_deref() {
+        record.ytdlp.installing = services.tools().ytdlp.is_installing();
+        record.ffmpeg.installing = services.tools().ffmpeg.is_installing();
+    }
+    Ok(record)
 }

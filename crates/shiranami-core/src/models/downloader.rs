@@ -91,6 +91,15 @@ pub struct ToolUpdateRecord {
     /// only once this repeats, so one flaky mirror stays in the log.
     #[serde(default)]
     pub consecutive_failures: u32,
+    /// Whether an install of this tool (manual or automatic) is in progress
+    /// right now.
+    ///
+    /// Live, not bookkeeping: `downloader:get-auto-update-status` fills it
+    /// from the tool's install lock on every read, and nothing ever persists
+    /// it as `true`. The settings panel disables its update button meanwhile,
+    /// since a click would only queue behind the running install.
+    #[serde(default)]
+    pub installing: bool,
 }
 
 /// Automatic tool updating's persisted state, which the Downloads settings card

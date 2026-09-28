@@ -3947,6 +3947,16 @@ export type ToolUpdateRecord = {
 	 *  only once this repeats, so one flaky mirror stays in the log.
 	 */
 	consecutiveFailures?: number,
+	/**
+	 *  Whether an install of this tool (manual or automatic) is in progress
+	 *  right now.
+	 * 
+	 *  Live, not bookkeeping: `downloader:get-auto-update-status` fills it
+	 *  from the tool's install lock on every read, and nothing ever persists
+	 *  it as `true`. The settings panel disables its update button meanwhile,
+	 *  since a click would only queue behind the running install.
+	 */
+	installing?: boolean,
 };
 
 /**  A library track, exactly as the `tracks` table stores it. */

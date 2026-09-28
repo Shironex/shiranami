@@ -27,7 +27,8 @@
 //! - **Scheduled.** A first pass [`FIRST_CHECK_DELAY`] after boot, off the
 //!   startup path, then every [`TICK`]. Each pass updates whatever
 //!   `policy::due_tools` says is due, so the hourly tick costs nothing while
-//!   nothing is.
+//!   nothing is. ffmpeg is never due on macOS: evermeet.cx publishes no
+//!   checksum, so it is only ever replaced by the user's own click there.
 //! - **A failed download** that `failure_kind` reads as a site change checks
 //!   yt-dlp immediately, ignoring its 24 h window, at most once an hour. If a
 //!   newer yt-dlp lands, the downloads that failed that way are retried, each
@@ -56,6 +57,7 @@ use shiranami_core::sync::lock_or_recover;
 use shiranami_core::time::now_ms;
 use shiranami_core::{SystemNotice, SystemNoticeLevel, SystemNoticeSource};
 use shiranami_downloader::DownloaderError;
+use shiranami_downloader::bin::Platform;
 use shiranami_downloader::queue::{DownloadQueue, FailureObserver};
 use shiranami_downloader::spawn::failure_kind;
 use shiranami_downloader::update::{QueueGate, UpdateOutcome, policy, update_tool};
@@ -101,7 +103,13 @@ pub fn load_state(settings: &SettingsStore) -> ToolAutoUpdateState {
 }
 
 fn save_state(settings: &SettingsStore, state: &ToolAutoUpdateState) {
-    let saved = serde_json::to_value(state)
+    // `installing` is live state from the install locks, filled in per read by
+    // the status command. It is never bookkeeping, so it is never written.
+    let mut state = state.clone();
+    state.ytdlp.installing = false;
+    state.ffmpeg.installing = false;
+
+    let saved = serde_json::to_value(&state)
         .map_err(|error| error.to_string())
         .and_then(|value| {
             settings
@@ -198,7 +206,9 @@ impl AutoUpdater {
     async fn scheduled_pass(&self) {
         let _running = self.running.lock().await;
 
-        for tool in policy::due_tools(&load_state(&self.settings), now_ms()) {
+        // `HOST`, not a parameter: ffmpeg on macOS is never due (its upstream
+        // publishes no checksum; see `update::policy`).
+        for tool in policy::due_tools(&load_state(&self.settings), now_ms(), Platform::HOST) {
             let outcome = self.update(tool).await;
             self.record(tool, &outcome);
         }
