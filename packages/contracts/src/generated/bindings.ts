@@ -1385,7 +1385,13 @@ export const commands = {
 	 *  coordinates.
 	 */
 	weatherGetCurrent: (coords: Coordinates) => __TAURI_INVOKE<WeatherCurrent>("weather_get_current", { coords }),
-	/**  `window:minimize`. */
+	/**
+	 *  `window:minimize`, or a hide when `system.minimizeToTray` is on.
+	 * 
+	 *  v1 did the same from its `minimize` listener. Tauri has no such event, so
+	 *  the titlebar's button is where the setting is honoured; a minimize the OS
+	 *  performs is caught by the resize hook in `crate::window`.
+	 */
 	windowMinimize: () => __TAURI_INVOKE<void>("window_minimize"),
 	/**
 	 *  `window:maximize` — a **toggle**, not a maximize.

@@ -148,7 +148,7 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
 
     match id {
         TrayItemId::Show => crate::focus_main_window(app),
-        TrayItemId::Quit => app.exit(0),
+        TrayItemId::Quit => crate::system::quit(app),
         other => send_command(app, other.command()),
     }
 }

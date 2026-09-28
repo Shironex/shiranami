@@ -29,6 +29,7 @@ pub mod paths;
 pub mod seam;
 pub mod shortcuts;
 pub mod state;
+pub mod system;
 pub mod tray;
 pub mod updater;
 pub mod window;
@@ -64,6 +65,11 @@ pub fn run() {
     // the same instance the bindings were exported from, or the renderer calls
     // names the handler does not answer to.
     let specta = bindings::builder();
+
+    // Close and minimize to tray. Managed on the builder rather than in
+    // `setup` so it exists before the first window event and the first tray
+    // click; the settings it reads are already loaded by preflight.
+    let system = system::SystemState::new(system::SystemPrefs::watch(&preflight.settings));
 
     // The webview's pre-page script: `__SHIRANAMI_E2E__`, the mediaSession
     // suppression (D10), and §3.5's `localStorage` seed when a v1 dump was
@@ -176,6 +182,7 @@ pub fn run() {
         // Sanctuary Mode's display-sleep assertion: also `Default`, also
         // purely in-memory — the guard object inside is the whole state.
         .manage(commands::window::SleepInhibitor::default())
+        .manage(system)
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             // Required for the typed events to be addressable from the webview.
@@ -265,10 +272,24 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to start the Shiranami desktop shell");
 
-    app.run(|app, event| {
-        if let tauri::RunEvent::ExitRequested { .. } = event {
+    app.run(|app, event| match event {
+        // Every way out reaches one of these two, and both set the quit flag
+        // before anything else so no close issued on the way can be hidden.
+        // `Exit` alone is how Cmd+Q arrives on macOS: `applicationWillTerminate`
+        // becomes tao's `LoopDestroyed` with no `ExitRequested` before it, so
+        // until this arm the media server was never stopped on Cmd+Q.
+        tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+            system::begin_quit(app);
             shutdown(app);
         }
+        // A dock click on macOS. With close to tray on, the window is hidden
+        // rather than gone, and this is the only way back other than the tray.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => focus_main_window(app),
+        _ => {}
     });
 }
 
@@ -287,7 +308,18 @@ pub fn run() {
 /// says so in the log — and the flush below is what makes those lines survive
 /// `tao`'s `std::process::exit`, which runs no destructors and was silently
 /// eating the tail of every session's log.
+///
+/// # Once, whichever event gets here first
+///
+/// A tray Quit produces `ExitRequested` and then `Exit`; Cmd+Q on macOS
+/// produces `Exit` only. The guard makes the second arrival a no-op rather
+/// than a second `block_on` against a server that has already stopped.
 fn shutdown(app: &tauri::AppHandle) {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| shutdown_once(app));
+}
+
+fn shutdown_once(app: &tauri::AppHandle) {
     tracing::info!("exit requested; shutting down");
     stop_media_server(app);
     tracing::info!("graceful shutdown complete");
