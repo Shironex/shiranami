@@ -1,8 +1,13 @@
-import { IPC_CHANNELS, type LibraryApi, type ScanProgress } from '@shiranami/contracts';
+import {
+  IPC_CHANNELS,
+  type FoldersChanged,
+  type LibraryApi,
+  type ScanProgress,
+} from '@shiranami/contracts';
 import { events } from '@shiranami/contracts/bindings';
 import { commands } from '../commands';
 import { subscribeChannel } from '../events';
-import { scanProgress } from '../narrowers';
+import { foldersChanged, scanProgress } from '../narrowers';
 
 const C = IPC_CHANNELS.library;
 
@@ -21,4 +26,11 @@ export const libraryApi: LibraryApi = {
   cancelScan: async () => {
     await commands.libraryScanCancel();
   },
+  onFoldersChanged: callback =>
+    subscribeChannel<FoldersChanged>(
+      C.foldersChanged,
+      events.libraryFoldersChanged,
+      foldersChanged,
+      callback
+    ),
 };

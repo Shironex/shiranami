@@ -10,3 +10,12 @@ export interface WatchedFolder {
   lastScanned: string | null;
   createdAt: string;
 }
+
+/**
+ * The `library:folders-changed` payload (v2-only, F10): the registered folders
+ * whose audio files changed on disk, one payload per coalesced batch.
+ */
+export interface FoldersChanged {
+  /** `WatchedFolder.id` of every folder in the batch. */
+  folderIds: string[];
+}

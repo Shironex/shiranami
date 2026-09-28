@@ -16,7 +16,7 @@
  * `apps/desktop/src/main/preload/electron-api-contract.test.ts` keeps them honest.
  */
 
-import type { WatchedFolder } from '../domain/folder';
+import type { FoldersChanged, WatchedFolder } from '../domain/folder';
 import type { LyricsResult } from '../domain/lyrics';
 import type { LyricsBatchProgress, LyricsBatchSummary, LyricsBatchTrack } from './lyrics';
 import type { PlaylistExtractResult, SearchResult, TrackMetadata } from '../domain/media';
@@ -137,6 +137,12 @@ export interface LibraryApi {
   validateFiles: (filePaths: string[]) => Promise<string[]>;
   onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
   cancelScan: () => Promise<void>;
+  /**
+   * Registered folders changed on disk, one call per coalesced batch. v2-only:
+   * v1 had no folder watcher, so the Electron preload leaves this undefined and
+   * the renderer feature-detects.
+   */
+  onFoldersChanged?: (callback: (data: FoldersChanged) => void) => () => void;
 }
 
 // ── analysis ──────────────────────────────────────────────────────────────
