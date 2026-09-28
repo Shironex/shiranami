@@ -124,5 +124,9 @@
   "loudnessAnalysisFailed": "Loudness analysis failed",
   "analysisFailed": "Library analysis failed",
   "lyricsSaveFailed": "Saving lyrics failed",
-  "doctorScanFailed": "Library health check failed"
+  "doctorScanFailed": "Library health check failed",
+  "ytdlpAutoUpdated": "yt-dlp updated to {{version}}",
+  "ffmpegAutoUpdated": "ffmpeg updated to {{version}}",
+  "ytdlpAutoUpdateFailed": "Couldn't update yt-dlp automatically. You can update it by hand in Settings, under Downloads.",
+  "ffmpegAutoUpdateFailed": "Couldn't update ffmpeg automatically. You can update it by hand in Settings, under Downloads."
 }

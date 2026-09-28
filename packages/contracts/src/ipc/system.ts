@@ -1,13 +1,14 @@
 // Wire types for the `system:notice` IPC surface.
 //
 // A single main→renderer channel used to surface subsystem failures that would
-// otherwise be swallowed in the logs (Discord RPC login, album-art prune, ...).
+// otherwise be swallowed in the logs (Discord RPC login, album-art prune, ...),
+// and the quiet "yt-dlp updated to X" confirmation of an automatic tool update.
 // The renderer (`useSystemNotices`) maps `code` → an i18n string and shows a
 // calm, deduped toast. Keep this shape in sync with the emitters in
 // apps/desktop/src/main and the handler in apps/web/src/hooks/useSystemNotices.ts.
 
 /** Which subsystem a notice came from. */
-export type SystemNoticeSource = 'discord' | 'album-art';
+export type SystemNoticeSource = 'discord' | 'album-art' | 'downloader';
 
 /** Severity of a system notice — drives the toast variant in the renderer. */
 export type SystemNoticeLevel = 'error' | 'warn' | 'info';

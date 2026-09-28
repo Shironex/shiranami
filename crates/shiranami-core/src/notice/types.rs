@@ -18,6 +18,8 @@ pub enum SystemNoticeSource {
     Discord,
     /// The album-art cache.
     AlbumArt,
+    /// The managed yt-dlp and ffmpeg: automatic updates.
+    Downloader,
 }
 
 /// How loudly the renderer should surface a notice.
@@ -89,6 +91,7 @@ impl SystemNotice {
         let source = match self.source {
             SystemNoticeSource::Discord => "discord",
             SystemNoticeSource::AlbumArt => "album-art",
+            SystemNoticeSource::Downloader => "downloader",
         };
         format!("{source}:{}", self.code)
     }
@@ -100,6 +103,14 @@ pub mod codes {
     pub const DISCORD_LOGIN_FAILED: &str = "discordLoginFailed";
     /// Pruning orphaned album art failed.
     pub const ALBUM_ART_PRUNE_FAILED: &str = "albumArtPruneFailed";
+    /// yt-dlp was updated automatically. `meta.version` names the new version.
+    pub const YTDLP_AUTO_UPDATED: &str = "ytdlpAutoUpdated";
+    /// ffmpeg was updated automatically. `meta.version` names the new version.
+    pub const FFMPEG_AUTO_UPDATED: &str = "ffmpegAutoUpdated";
+    /// Automatically updating yt-dlp failed more than once in a row.
+    pub const YTDLP_AUTO_UPDATE_FAILED: &str = "ytdlpAutoUpdateFailed";
+    /// Automatically updating ffmpeg failed more than once in a row.
+    pub const FFMPEG_AUTO_UPDATE_FAILED: &str = "ffmpegAutoUpdateFailed";
 }
 
 #[cfg(test)]
@@ -126,6 +137,10 @@ mod tests {
             serde_json::to_string(&SystemNoticeSource::Discord).expect("serialize"),
             "\"discord\""
         );
+        assert_eq!(
+            serde_json::to_string(&SystemNoticeSource::Downloader).expect("serialize"),
+            "\"downloader\""
+        );
     }
 
     #[test]
@@ -148,7 +163,14 @@ mod tests {
     #[test]
     fn the_codes_still_have_renderer_translations() {
         let hook = repo_file("apps/web/src/hooks/useSystemNotices.ts");
-        for code in [codes::DISCORD_LOGIN_FAILED, codes::ALBUM_ART_PRUNE_FAILED] {
+        for code in [
+            codes::DISCORD_LOGIN_FAILED,
+            codes::ALBUM_ART_PRUNE_FAILED,
+            codes::YTDLP_AUTO_UPDATED,
+            codes::FFMPEG_AUTO_UPDATED,
+            codes::YTDLP_AUTO_UPDATE_FAILED,
+            codes::FFMPEG_AUTO_UPDATE_FAILED,
+        ] {
             assert!(
                 hook.contains(code),
                 "{code} is no longer mapped in useSystemNotices.ts"

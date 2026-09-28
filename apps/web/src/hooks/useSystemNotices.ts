@@ -13,6 +13,10 @@ import i18n from '@/lib/i18n';
 const CODE_TO_TOAST_KEY: Record<string, string> = {
   discordLoginFailed: 'discordLoginFailed',
   albumArtPruneFailed: 'albumArtPruneFailed',
+  ytdlpAutoUpdated: 'ytdlpAutoUpdated',
+  ffmpegAutoUpdated: 'ffmpegAutoUpdated',
+  ytdlpAutoUpdateFailed: 'ytdlpAutoUpdateFailed',
+  ffmpegAutoUpdateFailed: 'ffmpegAutoUpdateFailed',
 };
 
 const FALLBACK_KEY = 'systemNoticeGeneric';
