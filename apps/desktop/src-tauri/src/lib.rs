@@ -250,9 +250,10 @@ pub fn run() {
 
             // §2.8 step 7: no tray, no media keys, no Discord, no updater.
             if !e2e {
-                match tray::Tray::install(&handle) {
+                match tray::Tray::install(&handle, tray::labels(&preflight.settings)) {
                     Ok(tray) => {
                         app.manage(tray);
+                        tray::watch_language(&handle, &preflight.settings);
                     }
                     // v1 wrapped `createTray` in its own try/catch: a desktop
                     // environment with no tray is a degraded app, not a failed

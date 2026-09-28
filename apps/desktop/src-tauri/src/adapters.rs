@@ -20,6 +20,10 @@
 //!   `update_settings` genuinely is.
 //! - [`MediaControlsAdapter`] wraps a `&mut`-only service in the lock its
 //!   thread-affinity demands, which is the choice `seam.rs` says lives here.
+//! - [`MediaFanOut`] is the seam value `media:playback-state` actually talks to.
+//!   v1's handler updated the tray and the Windows taskbar bar from the same
+//!   push as the OS media surface, and `commands/media.rs` promises the seam
+//!   covers all three, so this is where one push becomes three renderings.
 //! - [`PluginUpdater`] is the only one with no crate behind it at all
 //!   (`crate::commands::updater`), so it is the largest, and it lives in its own
 //!   module.
@@ -33,6 +37,7 @@ use shiranami_core::models::{
 use shiranami_core::notice::NoticeSink;
 use shiranami_integrations::discord::{DiscordPresence, PresenceSocket};
 use shiranami_media_controls::{MediaControlsBackend, MediaControlsService, MediaState};
+use tauri::{AppHandle, Manager as _};
 
 use crate::seam::{MediaControls, Presence};
 
@@ -154,9 +159,84 @@ impl<B: MediaControlsBackend + Send + 'static> MediaControls for MediaControlsAd
     }
 }
 
+/// A shell surface drawn from the playback state, such as the tray.
+///
+/// Synchronous and infallible for the same reason as the seam: each is a
+/// cheap, cosmetic native call, and a failure is logged where it happens.
+pub trait StateSurface: Send + Sync {
+    /// Draw this state.
+    fn show(&self, state: &MediaState);
+}
+
+/// `crate::seam::MediaControls` over every surface that shows what is playing.
+///
+/// The OS media surface is optional inside it: souvlaki can refuse to open (a
+/// missing window handle, a locked-down session), and a tray that stopped
+/// showing the current track because SMTC did would be a coupling v1 never
+/// had. So the fan-out exists whenever the shell has surfaces, and the OS one
+/// is one member of it.
+pub struct MediaFanOut {
+    os: Option<Arc<dyn MediaControls>>,
+    surfaces: Vec<Box<dyn StateSurface>>,
+}
+
+impl MediaFanOut {
+    /// Fan one push out to the OS surface, when there is one, and `surfaces`.
+    pub fn new(os: Option<Arc<dyn MediaControls>>, surfaces: Vec<Box<dyn StateSurface>>) -> Self {
+        Self { os, surfaces }
+    }
+}
+
+#[async_trait]
+impl MediaControls for MediaFanOut {
+    async fn publish(&self, state: MediaState) {
+        for surface in &self.surfaces {
+            surface.show(&state);
+        }
+        if let Some(os) = &self.os {
+            os.publish(state).await;
+        }
+    }
+
+    /// v1's `media:clear-state` took the tray back to its idle menu and removed
+    /// the taskbar bar, which is exactly what drawing `Cleared` does.
+    async fn clear(&self) {
+        for surface in &self.surfaces {
+            surface.show(&MediaState::Cleared);
+        }
+        if let Some(os) = &self.os {
+            os.clear().await;
+        }
+    }
+}
+
+/// The tray's now-playing block.
+///
+/// Looks the tray up on every push rather than holding it, because the tray is
+/// installed after boot builds this value and may not exist at all.
+pub struct TraySurface {
+    app: AppHandle,
+}
+
+impl TraySurface {
+    /// Draw into whatever tray `app` manages.
+    pub fn new(app: AppHandle) -> Self {
+        Self { app }
+    }
+}
+
+impl StateSurface for TraySurface {
+    fn show(&self, state: &MediaState) {
+        if let Some(tray) = self.app.try_state::<crate::tray::Tray>() {
+            tray.update(&self.app, state);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::seam::fake::RecordingMediaControls;
     use shiranami_media_controls::NullBackend;
 
     /// The adapter satisfies the seam over the crate's own null backend, and
@@ -181,5 +261,70 @@ mod tests {
         ));
 
         assert_eq!(Arc::strong_count(&adapter), 1);
+    }
+
+    fn track(is_playing: bool, current_time: f64) -> MediaState {
+        MediaState::Loaded(shiranami_media_controls::NowPlaying {
+            is_playing,
+            title: "Sakura Nights".to_owned(),
+            artist: "Yumemi".to_owned(),
+            album: "Lofi".to_owned(),
+            duration: 200.0,
+            current_time,
+            album_art: None,
+        })
+    }
+
+    /// Records every state a surface was asked to draw.
+    #[derive(Default)]
+    struct RecordingSurface {
+        shown: Arc<Mutex<Vec<MediaState>>>,
+    }
+
+    impl StateSurface for RecordingSurface {
+        fn show(&self, state: &MediaState) {
+            self.shown.lock().expect("unpoisoned").push(state.clone());
+        }
+    }
+
+    /// The promise `commands/media.rs` makes: one push reaches the OS surface
+    /// and every shell surface, and so does a clear.
+    #[tokio::test]
+    async fn one_push_reaches_the_os_surface_and_every_shell_surface() {
+        let os = Arc::new(RecordingMediaControls::default());
+        let shown = Arc::new(Mutex::new(Vec::new()));
+        let fan_out = MediaFanOut::new(
+            Some(Arc::clone(&os) as Arc<dyn MediaControls>),
+            vec![Box::new(RecordingSurface {
+                shown: Arc::clone(&shown),
+            })],
+        );
+
+        fan_out.publish(track(true, 10.0)).await;
+        fan_out.clear().await;
+
+        assert_eq!(os.published(), [track(true, 10.0)]);
+        assert_eq!(os.clear_count(), 1);
+        assert_eq!(
+            *shown.lock().expect("unpoisoned"),
+            [track(true, 10.0), MediaState::Cleared],
+            "a clear takes the tray back to idle and removes the bar"
+        );
+    }
+
+    /// Souvlaki refusing to open must not take the tray down with it.
+    #[tokio::test]
+    async fn the_shell_surfaces_draw_without_an_os_surface() {
+        let shown = Arc::new(Mutex::new(Vec::new()));
+        let fan_out = MediaFanOut::new(
+            None,
+            vec![Box::new(RecordingSurface {
+                shown: Arc::clone(&shown),
+            })],
+        );
+
+        fan_out.publish(track(false, 5.0)).await;
+
+        assert_eq!(*shown.lock().expect("unpoisoned"), [track(false, 5.0)]);
     }
 }

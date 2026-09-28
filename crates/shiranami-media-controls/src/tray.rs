@@ -29,18 +29,15 @@
 //!
 //! # About the labels
 //!
-//! They are English literals, and that is the faithful port rather than an
-//! oversight. v1's main process has no i18n at all — `react-i18next` lives in
-//! the renderer and cannot reach across the process boundary, which
-//! `packages/shared/src/types/discord.ts` states outright: *"There is no
-//! main-process i18n in Shiranami … default template fields ship as literal
-//! English strings."* The only localized strings anywhere near this surface are
-//! the `settings:sys.*` keys describing the toggles in the settings UI.
-//!
-//! So [`TrayLabels`] carries v1's six literals as its `Default`, and exists as a
-//! struct rather than as `const`s only so that a later phase can hand localized
-//! strings in without touching the model. Nothing in v2 has to change for the
-//! port to be correct; the seam costs one struct.
+//! v1's were English literals: its main process had no i18n at all, and
+//! `react-i18next` lived in the renderer where the tray could not reach it.
+//! [`TrayLabels`] keeps those six literals as its `Default` and adds
+//! [`TrayLabels::for_language`], a two-row table keyed by the `app.language`
+//! tag the renderer already persists to the settings store. That is the whole
+//! Rust-side translation surface, so a table beats an i18n crate: the tray has
+//! six strings and the app ships two languages. The Polish wording matches the
+//! player bar's (`apps/web/src/locales/pl/player.json`), so the same button
+//! reads the same in both places.
 
 use crate::command::MediaCommand;
 use crate::state::MediaState;
@@ -77,6 +74,28 @@ impl Default for TrayLabels {
             next: "Next".to_owned(),
             show: format!("Show {APP_NAME}"),
             quit: "Quit".to_owned(),
+        }
+    }
+}
+
+impl TrayLabels {
+    /// The labels for an `app.language` tag.
+    ///
+    /// `pl` is Polish; everything else, including an absent tag, is v1's
+    /// English. The renderer falls back to English for an unsupported tag too
+    /// (`isSupportedLanguage` in `apps/web/src/lib/i18n.ts`), so the tray and
+    /// the window cannot disagree about which language a stray value means.
+    pub fn for_language(tag: Option<&str>) -> Self {
+        match tag {
+            Some("pl") => Self {
+                play: "Odtwórz".to_owned(),
+                pause: "Pauza".to_owned(),
+                previous: "Poprzedni".to_owned(),
+                next: "Następny".to_owned(),
+                show: format!("Pokaż {APP_NAME}"),
+                quit: "Zakończ".to_owned(),
+            },
+            _ => Self::default(),
         }
     }
 }
@@ -290,6 +309,18 @@ impl TrayView {
         Self {
             labels,
             current: None,
+        }
+    }
+
+    /// Swap the labels, for a language change.
+    ///
+    /// Forgets the last menu, so the next [`Self::apply`] rebuilds even for a
+    /// playback state that has not moved. Without that, a language switch while
+    /// paused would leave the old words up until the next track.
+    pub fn set_labels(&mut self, labels: TrayLabels) {
+        if self.labels != labels {
+            self.labels = labels;
+            self.current = None;
         }
     }
 
@@ -549,6 +580,57 @@ mod tests {
 
         assert_eq!(rebuilt.actions(), [TrayItemId::Show, TrayItemId::Quit]);
         assert_eq!(rebuilt.tooltip, "Shiranami");
+    }
+
+    /// The two languages the app ships, and English for anything else.
+    #[test]
+    fn the_labels_follow_the_app_language() {
+        let polish = TrayLabels::for_language(Some("pl"));
+        assert_eq!(polish.play, "Odtwórz");
+        assert_eq!(polish.pause, "Pauza");
+        assert_eq!(polish.previous, "Poprzedni");
+        assert_eq!(polish.next, "Następny");
+        assert_eq!(polish.show, "Pokaż Shiranami");
+        assert_eq!(polish.quit, "Zakończ");
+
+        for tag in [Some("en"), None, Some("de"), Some("PL"), Some("")] {
+            assert_eq!(
+                TrayLabels::for_language(tag),
+                TrayLabels::default(),
+                "{tag:?} is English, as the renderer reads it"
+            );
+        }
+    }
+
+    /// A language switch while nothing moves still redraws the menu, since
+    /// the state the view compares against has not changed.
+    #[test]
+    fn new_labels_rebuild_the_menu_for_an_unchanged_state() {
+        let mut view = TrayView::new();
+        let state = loaded(10.0);
+        view.apply(&state);
+
+        view.set_labels(TrayLabels::for_language(Some("pl")));
+        let rebuilt = view
+            .apply(&state)
+            .expect("the words changed, so the menu has to");
+
+        assert!(rebuilt.items.contains(&TrayItem::Action {
+            id: TrayItemId::Quit,
+            label: "Zakończ".to_owned()
+        }));
+    }
+
+    /// Re-setting the same labels is not a change, so it costs no rebuild.
+    #[test]
+    fn the_same_labels_do_not_rebuild_the_menu() {
+        let mut view = TrayView::new();
+        let state = loaded(10.0);
+        view.apply(&state);
+
+        view.set_labels(TrayLabels::default());
+
+        assert!(view.apply(&state).is_none());
     }
 
     #[test]
