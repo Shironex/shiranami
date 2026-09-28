@@ -1,8 +1,8 @@
 //! Claiming the OS media surface, and the two platform facts that decide how.
 //!
-//! The value built here is also what draws the tray's now-playing block
-//! (`crate::adapters::MediaFanOut`), because v1 drove the tray from the same
-//! `media:playback-state` push.
+//! The value built here is also what draws the tray's now-playing block and
+//! the Windows taskbar bar (`crate::adapters::MediaFanOut`), because v1 drove
+//! all three from the one `media:playback-state` push.
 //!
 //! §2.7 makes this day-one work rather than a nice-to-have: the webview's media
 //! session is suppressed (`crate::window`), so if nothing claims the OS surface
@@ -40,7 +40,10 @@ use std::sync::Arc;
 use shiranami_media_controls::{CommandSink, MediaControlsService};
 use tauri::{AppHandle, WebviewWindow};
 
-use crate::adapters::{MediaControlsAdapter, MediaFanOut, StateSurface, TraySurface};
+use crate::adapters::{
+    MediaControlsAdapter, MediaFanOut, StateSurface, TaskbarSurface, TraySurface,
+    WindowTaskbarProgress,
+};
 use crate::seam::MediaControls;
 
 /// Whether this build claims the OS media surface.
@@ -52,8 +55,8 @@ pub const fn is_supported(e2e: bool) -> bool {
     !e2e && cfg!(any(target_os = "windows", target_os = "macos"))
 }
 
-/// Build the media-controls seam: the OS surface and the tray, both fed by one
-/// push.
+/// Build the media-controls seam: the OS surface, the tray, and on Windows the
+/// taskbar bar, all fed by one push.
 ///
 /// Returns `None` only under the harness, which §2.8 step 7 gives no tray and
 /// no media controls; the command layer already answers for an absent seam.
@@ -75,7 +78,14 @@ pub fn build(
         return None;
     }
 
-    let surfaces: Vec<Box<dyn StateSurface>> = vec![Box::new(TraySurface::new(app.clone()))];
+    let mut surfaces: Vec<Box<dyn StateSurface>> = vec![Box::new(TraySurface::new(app.clone()))];
+    // v1 gated its `setProgressBar` on win32. Tauri's call also exists on
+    // macOS, where it would draw a bar on the dock icon v1 never had.
+    if shiranami_media_controls::progress::is_supported() {
+        surfaces.push(Box::new(TaskbarSurface::new(WindowTaskbarProgress::new(
+            window.clone(),
+        ))));
+    }
 
     Some(Arc::new(MediaFanOut::new(
         build_os_surface(app, window, e2e, art_dir),
