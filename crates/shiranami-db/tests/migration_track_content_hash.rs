@@ -112,3 +112,58 @@ async fn the_compatibility_floor_is_untouched() {
         "an additive migration keeps the v1 rollback window open"
     );
 }
+
+/// A rollback to this build from a newer one: the ledger names a version this
+/// build has never heard of. v2.0.0 refused exactly this (`VersionMissing`);
+/// this build opens it, because every post-baseline migration is additive.
+#[tokio::test]
+async fn a_ledger_from_a_newer_build_still_opens() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let path = dir.path().join("shiranami.db");
+    let opened = shiranami_db::open(&path)
+        .await
+        .expect("a fresh database opens");
+    opened.pool.close().await;
+
+    let mut conn = raw(&path).await;
+    sqlx::query(
+        "INSERT INTO _sqlx_migrations (version, description, success, checksum, execution_time)
+         VALUES (99, 'from a newer build', TRUE, X'00', 0)",
+    )
+    .execute(&mut conn)
+    .await
+    .expect("the newer build's ledger row is written");
+    conn.close().await.expect("the connection closes");
+
+    let reopened = shiranami_db::open(&path)
+        .await
+        .expect("an unknown, newer migration must not make the database unopenable");
+    let mut conn = reopened.pool.acquire().await.expect("the one connection");
+    assert!(
+        tracks::get_all(&mut conn)
+            .await
+            .expect("the library reads")
+            .is_empty()
+    );
+}
+
+/// What stays refused with `ignore_missing` on: a known migration whose
+/// recorded checksum differs from this build's file.
+#[tokio::test]
+async fn a_tampered_known_migration_is_still_refused() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let path = dir.path().join("shiranami.db");
+    let opened = shiranami_db::open(&path)
+        .await
+        .expect("a fresh database opens");
+    opened.pool.close().await;
+
+    let mut conn = raw(&path).await;
+    sqlx::query("UPDATE _sqlx_migrations SET checksum = X'00' WHERE version = 9")
+        .execute(&mut conn)
+        .await
+        .expect("the ledger row is altered");
+    conn.close().await.expect("the connection closes");
+
+    assert!(shiranami_db::open(&path).await.is_err());
+}

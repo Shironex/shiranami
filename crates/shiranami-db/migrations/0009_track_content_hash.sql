@@ -9,11 +9,18 @@
 -- (`repo::track_identity::import_many`).
 --
 -- Additive, like every post-baseline migration: one nullable column and one
--- index, nothing altered, so the compatibility floor stays 8 and the v1
--- rollback window stays open. A user who rolls back opens a database with an
--- extra column drizzle's column-addressed queries never touch, and rows v1
--- inserts in the meantime simply carry NULL until the next v2 boot backfills
--- them.
+-- index, nothing altered, so the compatibility floor stays 8. Rolling back is
+-- NOT symmetric, though:
+--
+--   - v1 (drizzle) opens the file: it ignores the extra column, and the rows
+--     it inserts carry NULL until the next v2 boot backfills them.
+--   - v2.0.0 does NOT open it. Its sqlx migrator refuses a ledger naming a
+--     version it does not know (`VersionMissing` for 9), and its backup
+--     import checks only `user_version`, so importing such a file swaps it in
+--     and then fails to open. This build turns `ignore_missing` on
+--     (`migrations.rs`) so that rollbacks to it and to later builds do not
+--     repeat this, but 2.0.0 is already shipped. The release notes must say
+--     so: a database this build has touched cannot be opened by 2.0.0.
 --
 -- Column notes:
 --
