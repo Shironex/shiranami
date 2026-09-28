@@ -100,6 +100,47 @@ async fn a_response_nobody_reads_does_not_hold_up_a_shutdown_past_the_grace() {
     drop(response);
 }
 
+/// A file still being read when the app quits (a track playing while the
+/// user presses Cmd+Q) ends on the shutdown signal: the client's body stops
+/// short of the file. Without the signal the only way out would be the grace
+/// period's abort, which leaves the connection streaming, so a reader this
+/// slow would keep receiving the file long after the shutdown returned.
+#[tokio::test]
+async fn a_file_being_read_ends_on_shutdown() {
+    const SIZE: usize = 64 * 1024 * 1024;
+    let harness = Harness::start().await;
+    let path = harness.write_audio("playing.flac", SIZE);
+
+    let mut response = harness.audio(&path, &[]).await;
+    assert!(response.status().is_success());
+
+    // Read slowly, the way a media element consumes a file while it plays.
+    let reader = tokio::spawn(async move {
+        let mut received = 0_usize;
+        loop {
+            match response.chunk().await {
+                Ok(Some(chunk)) => received += chunk.len(),
+                Ok(None) | Err(_) => return received,
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    });
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    tokio::time::timeout(SAFETY_NET, harness.handle.shutdown())
+        .await
+        .expect("shutdown returns while a file is being read");
+
+    let received = tokio::time::timeout(SAFETY_NET, reader)
+        .await
+        .expect("the body ended for its reader")
+        .expect("the reader task finished");
+    assert!(
+        received < SIZE,
+        "the body is cut short by the signal: {received} of {SIZE} bytes"
+    );
+}
+
 /// A second call finds nothing left to stop and returns at once.
 #[tokio::test]
 async fn a_second_shutdown_returns_immediately() {
