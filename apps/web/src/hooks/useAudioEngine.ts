@@ -634,10 +634,18 @@ export function useAudioEngine() {
     // onCanPlay guard always sees active === true (fixes race where
     // cached audio fires canplay synchronously or the eager readyState
     // check passes before the ref is assigned).
+    // The clock ticks every `TICK_INTERVAL_MS`, so the crossfade can start a
+    // moment after the window opened. It must still finish before the
+    // outgoing track does, or the tail of that track is cut off audibly.
+    const outgoing = getActiveDeck();
+    const timeLeft =
+      outgoing && isFinite(outgoing.duration)
+        ? outgoing.duration - outgoing.currentTime
+        : crossfadeDuration;
     crossfadeRef.current = {
       active: true,
       startTime: performance.now(),
-      duration: crossfadeDuration,
+      duration: Math.max(0.1, Math.min(crossfadeDuration, timeLeft)),
       outgoingDeck: activeDeckRef.current,
       incomingDeck: incomingDeckId,
     };

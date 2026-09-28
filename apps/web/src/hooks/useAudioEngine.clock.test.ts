@@ -378,6 +378,30 @@ describe('a sleep fade overlapping a crossfade', () => {
   });
 });
 
+describe('a crossfade that starts late', () => {
+  /**
+   * The clock ticks every 250 ms, so the crossfade can start after its window
+   * opened. The ramp must still end by the time the outgoing track does.
+   */
+  it('ramps over what is left of the outgoing track, not the full length', () => {
+    play([track('a'), track('b')], { crossfadeEnabled: true, crossfadeDuration: 4 });
+    renderHook(() => useAudioEngine());
+    const [deckA] = FakeAudio.decks;
+
+    // Already inside the window when the clock first looks: 3 s left.
+    act(() => {
+      deckA.currentTime = TRACK_SECONDS - 3;
+    });
+    elapse(250);
+
+    const outgoing = graph.ramps.filter(ramp => ramp.deck === 'A').at(-1);
+    expect(outgoing).toBeDefined();
+    expect(outgoing!.duration).toBeLessThanOrEqual(3);
+    expect(outgoing!.duration).toBeGreaterThan(2.5);
+    expect(outgoing!.values.at(-1)).toBeCloseTo(0, 5);
+  });
+});
+
 describe('sampleRamp', () => {
   it('samples the rest of a curve, scaled, ending on its final value', () => {
     const values = sampleRamp(fadeOut, 0.5, 0.8, 2);
