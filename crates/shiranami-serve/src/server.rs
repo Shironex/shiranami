@@ -105,8 +105,8 @@ impl ServeHandle {
     /// Stop accepting, let in-flight responses finish, and wait for the task,
     /// for at most [`SHUTDOWN_GRACE`].
     ///
-    /// Called from the shell's exit path, through a shared reference — see the
-    /// type's own docs for why that is not negotiable. Idempotent by
+    /// Called from the shell's exit path, through a shared reference (the
+    /// type's own docs say why that is not negotiable). Idempotent by
     /// construction: both halves are *taken*, so a second call finds nothing to
     /// send and no task to await and returns immediately.
     ///
