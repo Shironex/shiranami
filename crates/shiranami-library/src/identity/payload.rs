@@ -21,7 +21,7 @@
 //! | `ID3` (any number)     | skipped, then the rest is classified again      |
 //! | `fLaC`                 | after the last metadata block, to the end       |
 //! | `RIFF….WAVE`           | the body of the `data` chunk                    |
-//! | `….ftyp` (MP4, M4A)    | the body of the first `mdat` box                |
+//! | `….ftyp` (MP4, M4A)    | first `mdat` body to the end of the last `mdat`  |
 //! | `OggS`                 | the whole file (see below)                      |
 //! | anything else (MPEG)   | trailing ID3v1, APEv2, Lyrics3v2 and appended ID3v2 trimmed |
 //!
@@ -41,6 +41,13 @@ use std::ops::Range;
 /// Real files carry a handful. The cap exists so that a corrupt length field
 /// that points back into the file cannot turn a scan into a spin.
 const MAX_STEPS: usize = 1024;
+
+/// Upper bound on top-level MP4 boxes walked.
+///
+/// Higher than [`MAX_STEPS`] because a fragmented file carries two boxes per
+/// fragment, and an hour-long mix cut into two-second fragments is 3,600 of
+/// them. Each step is one 8-byte read.
+const MP4_MAX_BOXES: usize = 16_384;
 
 /// ID3v2 header and footer length.
 const ID3V2_HEADER: u64 = 10;
@@ -169,12 +176,23 @@ fn riff_data(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u
     Ok(None)
 }
 
-/// MP4/M4A: the body of the first `mdat` box. Tags live in `moov/udta`, and a
-/// writer that grows `moov` in front of `mdat` rewrites the chunk offsets in
-/// `moov`, not the samples.
+/// MP4/M4A: from the first `mdat` body to the end of the last `mdat`.
+///
+/// Tags live in `moov/udta` (or a top-level `meta`), and a writer that grows
+/// `moov` in front of `mdat` rewrites the chunk offsets in `moov`, not the
+/// samples. A plain file has one `mdat`, so the span is exactly its body. A
+/// **fragmented** file (DASH, as YouTube serves m4a) carries a `moof`/`mdat`
+/// pair per few seconds of audio after its `moov`; hashing only the first
+/// `mdat` would identify a song by its intro, so the span runs to the end of
+/// the last one. The `moof` boxes inside the span describe fragments and are
+/// not written by tag editors, and a trailing `mfra` index is left outside.
 fn mp4_mdat(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u64>>> {
     let mut at = start;
-    for _ in 0..MAX_STEPS {
+    let mut span: Option<Range<u64>> = None;
+    for _ in 0..MP4_MAX_BOXES {
+        if at >= len {
+            return Ok(span);
+        }
         let mut header = [0u8; 8];
         if read_at(file, at, &mut header)? < header.len() {
             return Ok(None);
@@ -195,17 +213,23 @@ fn mp4_mdat(file: &mut File, start: u64, len: u64) -> io::Result<Option<Range<u6
             }
             size => (8, size),
         };
+        // A hostile or corrupt size must read as malformed, never overflow.
+        let Some(next) = at.checked_add(size) else {
+            return Ok(None);
+        };
         if size < header_len {
             return Ok(None);
         }
         if &header[4..8] == b"mdat" {
-            return Ok(Some(at + header_len..(at + size).min(len)));
+            let end = next.min(len);
+            span = Some(match span {
+                Some(open) => open.start..end,
+                None => at + header_len..end,
+            });
         }
-        at += size;
-        if at >= len {
-            return Ok(None);
-        }
+        at = next;
     }
+    // More boxes than any real file carries: treat as malformed.
     Ok(None)
 }
 

@@ -284,6 +284,66 @@ fn an_m4a_hashes_only_its_mdat_wherever_moov_sits() {
     );
 }
 
+/// A fragmented (DASH) m4a: `moov`, then a `moof`/`mdat` pair per fragment.
+fn fragmented_m4a(fragments: &[&[u8]], moov: usize) -> Vec<u8> {
+    let mut file = mp4_box(b"ftyp", b"dash\0\0\0\0iso6");
+    file.extend(mp4_box(b"moov", &vec![b'm'; moov]));
+    for (index, samples) in fragments.iter().enumerate() {
+        file.extend(mp4_box(b"moof", &[u8::try_from(index).expect("small"); 24]));
+        file.extend(mp4_box(b"mdat", samples));
+    }
+    file.extend(mp4_box(b"mfra", &[0; 16]));
+    file
+}
+
+#[test]
+fn a_fragmented_m4a_is_identified_by_every_fragment_not_its_intro() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let intro = noise(40_000, 20);
+    let (verse_a, verse_b) = (noise(400_000, 21), noise(400_000, 22));
+    let outro = noise(40_000, 23);
+
+    let song_a = hash_of(
+        dir.path(),
+        "a.m4a",
+        &fragmented_m4a(&[&intro, &verse_a, &outro], 100),
+    );
+    let song_b = hash_of(
+        dir.path(),
+        "b.m4a",
+        &fragmented_m4a(&[&intro, &verse_b, &outro], 100),
+    );
+    let song_a_retagged = hash_of(
+        dir.path(),
+        "c.m4a",
+        &fragmented_m4a(&[&intro, &verse_a, &outro], 9_000),
+    );
+
+    assert_ne!(song_a, song_b, "same intro, different song");
+    assert_eq!(
+        song_a, song_a_retagged,
+        "a bigger moov is still the same audio"
+    );
+}
+
+#[test]
+fn a_box_size_that_would_overflow_is_malformed_not_a_panic() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let mut bytes = mp4_box(b"ftyp", b"M4A \0\0\0\0isom");
+    // A 64-bit size of u64::MAX on a box that is not at offset zero.
+    bytes.extend_from_slice(&1u32.to_be_bytes());
+    bytes.extend_from_slice(b"free");
+    bytes.extend_from_slice(&u64::MAX.to_be_bytes());
+    bytes.extend(noise(2_048, 24));
+    let mut other = bytes.clone();
+    other[100] ^= 1;
+
+    let one = hash_of(dir.path(), "a.m4a", &bytes);
+    let two = hash_of(dir.path(), "b.m4a", &other);
+
+    assert_ne!(one, two, "the whole file was hashed");
+}
+
 #[test]
 fn the_same_bytes_in_two_containers_hash_alike() {
     // Not a feature, a boundary: the payload range is what is hashed, so the
