@@ -111,6 +111,9 @@ pub mod codes {
     pub const YTDLP_AUTO_UPDATE_FAILED: &str = "ytdlpAutoUpdateFailed";
     /// Automatically updating ffmpeg failed more than once in a row.
     pub const FFMPEG_AUTO_UPDATE_FAILED: &str = "ffmpegAutoUpdateFailed";
+    /// A tool update was interrupted and its previous version could not be
+    /// put back at launch; installs of that tool wait until it can be.
+    pub const TOOL_SWAP_PENDING: &str = "toolSwapPending";
 }
 
 #[cfg(test)]
@@ -170,6 +173,7 @@ mod tests {
             codes::FFMPEG_AUTO_UPDATED,
             codes::YTDLP_AUTO_UPDATE_FAILED,
             codes::FFMPEG_AUTO_UPDATE_FAILED,
+            codes::TOOL_SWAP_PENDING,
         ] {
             assert!(
                 hook.contains(code),

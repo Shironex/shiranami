@@ -17,6 +17,7 @@ const CODE_TO_TOAST_KEY: Record<string, string> = {
   ffmpegAutoUpdated: 'ffmpegAutoUpdated',
   ytdlpAutoUpdateFailed: 'ytdlpAutoUpdateFailed',
   ffmpegAutoUpdateFailed: 'ffmpegAutoUpdateFailed',
+  toolSwapPending: 'toolSwapPending',
 };
 
 const FALLBACK_KEY = 'systemNoticeGeneric';
