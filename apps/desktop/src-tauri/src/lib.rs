@@ -29,6 +29,7 @@ pub mod paths;
 pub mod seam;
 pub mod shortcuts;
 pub mod state;
+pub mod track_identity;
 pub mod tray;
 pub mod updater;
 pub mod window;

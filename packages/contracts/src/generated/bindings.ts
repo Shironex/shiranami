@@ -404,7 +404,14 @@ export const commands = {
 	dbSmartPlaylistsPreview: (definition: SmartPlaylistDefinition) => __TAURI_INVOKE<Track[]>("db_smart_playlists_preview", { definition }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
-	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
+	/**
+	 *  `db:tracks:add` — import one track, idempotently on `file_path`.
+	 * 
+	 *  Move-aware: when the file is a track whose old path is gone from disk, the
+	 *  existing row comes back re-pointed, with its id (see the shell's
+	 *  `track_identity` module). The file is hashed before the connection is
+	 *  taken.
+	 */
 	dbTracksAdd: (track: TrackCreateInput) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */
 	id: string,
@@ -466,7 +473,16 @@ export const commands = {
 	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
 	loudnessRange: number | null,
 } | null>("db_tracks_add", { track }),
-	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
+	/**
+	 *  `db:tracks:add-many` — import a batch, returning the rows that landed and
+	 *  the rows that were re-pointed.
+	 * 
+	 *  The wire shape is unchanged, a flat `Track[]`: inserted rows first, then
+	 *  re-pointed ones. A re-pointed row carries an id the renderer's library
+	 *  already holds, which is how the renderer tells the two apart and counts
+	 *  "moved" without a second channel. Files are hashed before the connection
+	 *  is taken.
+	 */
 	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
 	/**  `db:tracks:remove` — delete one track. */
 	dbTracksRemove: (id: string) => __TAURI_INVOKE<null>("db_tracks_remove", { id }),
