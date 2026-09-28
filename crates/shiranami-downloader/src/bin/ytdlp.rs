@@ -22,8 +22,9 @@ use serde::Deserialize;
 use shiranami_net::{HttpClient, RequestOptions};
 use tokio_util::sync::CancellationToken;
 
-use crate::bin::fetch::{ProgressSink, download_to_file};
+use crate::bin::fetch::{ProgressSink, download_text, download_to_file};
 use crate::bin::layout::{self, Platform};
+use crate::bin::lock::{InstallGuard, InstallLock};
 use crate::bin::{checksum, install, swap};
 use crate::error::{DownloaderError, Result};
 use crate::spawn::{ProcessRunner, ProcessSpec, args};
@@ -31,8 +32,22 @@ use crate::spawn::{ProcessRunner, ProcessSpec, args};
 /// How long the version probe gets. v1's value.
 const VERSION_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// How long the probe right after an install gets.
+///
+/// Twice [`VERSION_TIMEOUT`], and only here. `yt-dlp_macos` is a PyInstaller
+/// bundle that unpacks itself on first run, and on a machine under load that
+/// first `--version` was measured at 33 s. A false failure here is expensive
+/// (it rolls back a good update), while waiting longer costs nothing but
+/// time on a background task. The settings panel's probe keeps v1's 30 s.
+pub const POST_INSTALL_PROBE_TIMEOUT: Duration = Duration::from_secs(60);
+
 /// What an install reports when the new binary does not answer `--version`.
 pub const PROBE_FAILED: &str = "The new yt-dlp did not run, so the previous version was kept";
+
+/// What an install reports when the new binary did not run **and** the
+/// previous one could not be put back.
+pub const PROBE_FAILED_UNRESTORED: &str = "The new yt-dlp did not run, and the previous version \
+     could not be restored. Install yt-dlp again from Settings, Downloads";
 
 /// The one field this crate reads from GitHub's latest-release document.
 #[derive(Debug, Deserialize)]
@@ -46,6 +61,8 @@ pub struct YtDlpManager {
     platform: Platform,
     client: Arc<HttpClient>,
     runner: Arc<dyn ProcessRunner>,
+    /// One install at a time; see `bin::lock`.
+    install_lock: InstallLock,
     /// The latest-release API document. [`layout::YT_DLP_RELEASE_API`] unless
     /// a test points it elsewhere.
     release_api: String,
@@ -67,6 +84,7 @@ impl YtDlpManager {
             platform,
             client,
             runner,
+            install_lock: InstallLock::default(),
             release_api: layout::YT_DLP_RELEASE_API.to_owned(),
             releases: layout::YT_DLP_RELEASES.to_owned(),
         }
@@ -93,18 +111,39 @@ impl YtDlpManager {
     ///
     /// Existence only, as v1 checked. A present-but-corrupt binary surfaces at
     /// the next spawn, which is where a user can be told something actionable.
+    ///
+    /// First finishes a swap a crash interrupted (see [`swap::recover`]), when
+    /// no install is running, so a tool that was mid-update when the app died
+    /// reads as installed rather than missing. Every status check and the
+    /// boot-time status refresh come through here.
     pub async fn is_installed(&self) -> bool {
+        if let Some(_idle) = self.install_lock.try_lock() {
+            swap::recover(&[self.path()]).await;
+        }
         tokio::fs::try_exists(self.path()).await.unwrap_or(false)
+    }
+
+    /// Wait for any install of yt-dlp in progress, then hold the lock.
+    pub async fn lock_install(&self) -> InstallGuard<'_> {
+        self.install_lock.lock().await
+    }
+
+    /// Whether an install of yt-dlp is in progress, manual or automatic.
+    pub fn is_installing(&self) -> bool {
+        self.install_lock.is_held()
     }
 
     /// The installed version, or `None` when absent or unreadable.
     pub async fn version(&self) -> Option<String> {
+        self.version_within(VERSION_TIMEOUT).await
+    }
+
+    async fn version_within(&self, timeout: Duration) -> Option<String> {
         if !self.is_installed().await {
             return None;
         }
 
-        let spec =
-            ProcessSpec::capturing(self.path(), args::version()).with_timeout(VERSION_TIMEOUT);
+        let spec = ProcessSpec::capturing(self.path(), args::version()).with_timeout(timeout);
 
         match self.runner.run(spec, None, &CancellationToken::new()).await {
             Ok(output) if output.code == 0 => {
@@ -137,10 +176,16 @@ impl YtDlpManager {
             .json::<LatestRelease>(&self.release_api, options)
             .await
         {
-            Ok(release) => release
-                .tag_name
-                .map(|tag| tag.trim().to_owned())
-                .filter(|tag| !tag.is_empty()),
+            Ok(release) => {
+                let tag = release.tag_name.map(|tag| tag.trim().to_owned())?;
+                if layout::is_release_tag(&tag) {
+                    return Some(tag);
+                }
+                // It goes into a URL path next. Anything but a plain tag is
+                // refused here, so it never reaches one.
+                tracing::warn!(tag, "refusing a yt-dlp release tag that is not a plain tag");
+                None
+            }
             // Offline, or GitHub's unauthenticated rate limit: both expected,
             // and the caller already treats `None` as "unknown". A warning, not
             // an error, so a clean shutdown's log stays free of ERROR lines.
@@ -154,18 +199,20 @@ impl YtDlpManager {
     /// Download the platform's release asset, verify it, and install it.
     ///
     /// The manual install behind the settings panel's button. It goes through
-    /// the same stage, verify, promote and probe path as an automatic update,
-    /// so a manual install is checksum-verified too and can never leave a
-    /// binary in place that does not run.
+    /// the same lock, stage, verify, promote and probe path as an automatic
+    /// update, so a manual install is checksum-verified too, can never leave a
+    /// binary in place that does not run, and waits for an automatic update
+    /// already in progress rather than racing it.
     ///
     /// # Errors
     ///
     /// Everything [`Self::stage`] and [`Self::promote_staged`] can fail with. A
     /// failure leaves the previously installed binary, if any, intact and
-    /// runnable.
+    /// runnable, except where [`PROBE_FAILED_UNRESTORED`] says otherwise.
     pub async fn install(&self, progress: Option<&dyn ProgressSink>) -> Result<()> {
-        let staged = self.stage(None, progress).await?;
-        self.promote_staged(staged).await.map(|_version| ())
+        let guard = self.lock_install().await;
+        let staged = self.stage(&guard, None, progress).await?;
+        self.promote_staged(&guard, staged).await.map(|_version| ())
     }
 
     /// Download and verify a release asset beside the installed binary,
@@ -179,31 +226,46 @@ impl YtDlpManager {
     ///
     /// Staging is split from promotion so an automatic update can do the slow
     /// part (the download) while downloads are still running, and hold the
-    /// queue only for the fast part (the renames).
+    /// queue only for the fast part (the renames). Both halves take the
+    /// install guard, so the whole sequence is one install.
     ///
     /// # Errors
     ///
     /// [`crate::DownloaderError::Http`] or `InstallFailed` when a download
-    /// fails, `InstallFailed` carrying [`checksum::CHECKSUM_MISMATCH`] or
-    /// [`checksum::CHECKSUM_MISSING`] when verification refuses the asset,
-    /// `Io` when a filesystem step fails. The staged file is removed on every
-    /// failure.
+    /// fails or the tag is not a plain tag, `InstallFailed` carrying
+    /// [`checksum::CHECKSUM_MISMATCH`] or [`checksum::CHECKSUM_MISSING`] when
+    /// verification refuses the asset, `Io` when a filesystem step fails. The
+    /// staged file is removed on every failure.
     pub async fn stage(
         &self,
+        _guard: &InstallGuard<'_>,
         tag: Option<&str>,
         progress: Option<&dyn ProgressSink>,
     ) -> Result<StagedYtDlp> {
-        let temporary = install::temporary_path(&self.path());
+        if let Some(tag) = tag
+            && !layout::is_release_tag(tag)
+        {
+            return Err(DownloaderError::InstallFailed {
+                message: format!("Refused a yt-dlp release tag that is not a plain tag: {tag}"),
+            });
+        }
 
         install::ensure_dir(&self.bin_dir).await?;
 
-        // A previous run may have died between download and rename.
-        install::remove_quietly(&temporary).await;
+        // Runs that died before promoting left their staging behind. Under the
+        // lock, nothing matching can belong to a run still in progress.
+        let final_name = layout::yt_dlp_path(Path::new(""), self.platform);
+        let prefix = format!("{}.", final_name.to_string_lossy());
+        install::sweep(&self.bin_dir, &prefix, ".tmp").await;
 
-        match self.write_and_verify(tag, &temporary, progress).await {
-            Ok(()) => Ok(StagedYtDlp { path: temporary }),
+        let staging = install::staging_path(&self.path());
+        match self.write_and_verify(tag, &staging, progress).await {
+            Ok(digest) => Ok(StagedYtDlp {
+                path: staging,
+                digest,
+            }),
             Err(error) => {
-                install::remove_quietly(&temporary).await;
+                install::remove_quietly(&staging).await;
                 Err(error)
             }
         }
@@ -212,15 +274,32 @@ impl YtDlpManager {
     /// Swap a staged binary in, keeping the old one until the new one answers
     /// `--version`.
     ///
+    /// The staged file is checked against its digest once more immediately
+    /// before the rename: an automatic update may have waited up to half an
+    /// hour for the download queue between staging and here, and whatever sits
+    /// at that path now is what gets executed next.
+    ///
     /// Returns the version the new binary reports.
     ///
     /// # Errors
     ///
-    /// `Io` when a rename fails, and `InstallFailed` carrying
-    /// [`PROBE_FAILED`] when the new binary does not run. Both leave the
-    /// previous binary in place.
-    pub async fn promote_staged(&self, staged: StagedYtDlp) -> Result<String> {
+    /// `InstallFailed` carrying [`checksum::CHECKSUM_MISMATCH`] when the staged
+    /// file changed since it was verified, `Io` when a rename fails, and
+    /// `InstallFailed` carrying [`PROBE_FAILED`] (or
+    /// [`PROBE_FAILED_UNRESTORED`], when putting the old one back failed too)
+    /// when the new binary does not run.
+    pub async fn promote_staged(
+        &self,
+        _guard: &InstallGuard<'_>,
+        staged: StagedYtDlp,
+    ) -> Result<String> {
         let final_path = self.path();
+
+        if let Err(error) = checksum::verify_file(&staged.path, &staged.digest).await {
+            tracing::error!(path = %staged.path.display(), "the staged yt-dlp changed after it was verified");
+            install::remove_quietly(&staged.path).await;
+            return Err(error);
+        }
 
         let promoted = match swap::promote_all(&[(staged.path.clone(), final_path.clone())]).await {
             Ok(promoted) => promoted,
@@ -230,11 +309,16 @@ impl YtDlpManager {
             }
         };
 
-        let Some(version) = self.version().await else {
+        let Some(version) = self.version_within(POST_INSTALL_PROBE_TIMEOUT).await else {
             tracing::error!(path = %final_path.display(), "the new yt-dlp did not run; rolling back");
-            swap::roll_back(&promoted).await;
+            let restored = swap::roll_back(&promoted).await;
             return Err(DownloaderError::InstallFailed {
-                message: PROBE_FAILED.to_owned(),
+                message: if restored {
+                    PROBE_FAILED
+                } else {
+                    PROBE_FAILED_UNRESTORED
+                }
+                .to_owned(),
             });
         };
 
@@ -249,27 +333,27 @@ impl YtDlpManager {
     }
 
     /// The fallible middle of [`Self::stage`], separated so one cleanup covers
-    /// every step that can fail.
+    /// every step that can fail. Answers the verified digest.
     async fn write_and_verify(
         &self,
         tag: Option<&str>,
-        temporary: &Path,
+        staging: &Path,
         progress: Option<&dyn ProgressSink>,
-    ) -> Result<()> {
+    ) -> Result<checksum::Sha256Digest> {
         let asset = layout::yt_dlp_asset_name(self.platform);
         let url = layout::yt_dlp_release_file_url(&self.releases, tag, asset);
         tracing::info!(%url, "downloading yt-dlp");
-        download_to_file(&self.client, &url, temporary, progress).await?;
+        download_to_file(&self.client, &url, staging, progress).await?;
 
         let expected = self.published_digest(tag, asset).await?;
-        checksum::verify_file(temporary, &expected).await?;
+        checksum::verify_file(staging, &expected).await?;
 
         // Before the rename, so the final path never exists in a
         // non-executable state, and before the probe, which has to be able to
-        // run it.
-        install::make_executable(temporary, self.platform).await?;
-        install::strip_quarantine(self.runner.as_ref(), &[temporary], self.platform).await;
-        Ok(())
+        // run it. Neither changes the file's bytes, so the digest still holds.
+        install::make_executable(staging, self.platform).await?;
+        install::strip_quarantine(self.runner.as_ref(), &[staging], self.platform).await;
+        Ok(expected)
     }
 
     /// The digest the release publishes for `asset`.
@@ -279,9 +363,7 @@ impl YtDlpManager {
         asset: &str,
     ) -> Result<checksum::Sha256Digest> {
         let url = layout::yt_dlp_release_file_url(&self.releases, tag, checksum::YT_DLP_SUMS_FILE);
-        let document = self
-            .client
-            .text(&url, RequestOptions::default())
+        let document = download_text(&self.client, &url)
             .await
             // `InstallFailed` rather than `Http`: this message reaches the
             // settings panel verbatim, and `Http` projects onto `INTERNAL`.
@@ -302,6 +384,8 @@ impl YtDlpManager {
 #[derive(Debug)]
 pub struct StagedYtDlp {
     path: PathBuf,
+    /// What the file hashed to when it was verified.
+    digest: checksum::Sha256Digest,
 }
 
 impl StagedYtDlp {

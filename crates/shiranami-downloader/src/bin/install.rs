@@ -39,6 +39,45 @@ pub fn temporary_path(final_path: &Path) -> PathBuf {
     PathBuf::from(name)
 }
 
+/// A staging path beside `final_path` that no other install run shares.
+///
+/// `<name>.<run id>.tmp`: unique per run, so a stale file from a crashed run
+/// and the file this run verifies can never be the same path. Appended, for
+/// [`temporary_path`]'s reason.
+pub fn staging_path(final_path: &Path) -> PathBuf {
+    let mut name = OsString::from(final_path.as_os_str());
+    name.push(format!(".{}", uuid::Uuid::new_v4().simple()));
+    temporary_path(&PathBuf::from(name))
+}
+
+/// Remove every entry in `directory` whose name starts with `prefix` and ends
+/// with `suffix`: staging left behind by runs that crashed.
+///
+/// Only called under the tool's install lock, so nothing it matches can belong
+/// to a run still in progress.
+pub async fn sweep(directory: &Path, prefix: &str, suffix: &str) {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return;
+    };
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else {
+            continue;
+        };
+        if name.starts_with(prefix) && name.ends_with(suffix) {
+            let path = entry.path();
+            if tokio::fs::metadata(&path)
+                .await
+                .is_ok_and(|meta| meta.is_dir())
+            {
+                remove_dir_quietly(&path).await;
+            } else {
+                remove_quietly(&path).await;
+            }
+        }
+    }
+}
+
 /// Create `directory` and every missing parent.
 ///
 /// # Errors
@@ -237,6 +276,43 @@ mod tests {
         assert_eq!(
             temporary_path(Path::new("/data/bin/yt-dlp")),
             PathBuf::from("/data/bin/yt-dlp.tmp")
+        );
+    }
+
+    #[test]
+    fn every_staging_path_is_its_own() {
+        let final_path = Path::new("/data/bin/yt-dlp.exe");
+        let first = staging_path(final_path);
+        let second = staging_path(final_path);
+
+        assert_ne!(first, second, "two runs must never share a staged file");
+        let name = first.to_string_lossy().into_owned();
+        assert!(name.starts_with("/data/bin/yt-dlp.exe."));
+        assert!(name.ends_with(".tmp"));
+    }
+
+    #[tokio::test]
+    async fn sweeping_removes_only_matching_leftovers() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let dir = temp.path();
+        tokio::fs::write(dir.join("yt-dlp.abc.tmp"), b"stale")
+            .await
+            .expect("write");
+        tokio::fs::create_dir(dir.join("_ffmpeg_stage-abc"))
+            .await
+            .expect("mkdir");
+        tokio::fs::write(dir.join("yt-dlp"), b"keep")
+            .await
+            .expect("write");
+
+        sweep(dir, "yt-dlp.", ".tmp").await;
+        sweep(dir, "_ffmpeg_stage", "").await;
+
+        assert!(!dir.join("yt-dlp.abc.tmp").exists());
+        assert!(!dir.join("_ffmpeg_stage-abc").exists());
+        assert!(
+            dir.join("yt-dlp").exists(),
+            "the installed binary is untouched"
         );
     }
 

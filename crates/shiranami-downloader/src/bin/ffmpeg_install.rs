@@ -18,14 +18,13 @@
 
 use std::path::{Path, PathBuf};
 
-use shiranami_net::RequestOptions;
-
 use crate::bin::archive;
 use crate::bin::checksum;
-use crate::bin::fetch::{ProgressSink, Scaled, download_to_file};
+use crate::bin::fetch::{ProgressSink, Scaled, download_text, download_to_file};
 use crate::bin::ffmpeg::FfmpegManager;
 use crate::bin::install;
 use crate::bin::layout::{self, Platform};
+use crate::bin::lock::InstallGuard;
 use crate::error::{DownloaderError, Result};
 
 use crate::bin::ffmpeg::ARCHIVE_INCOMPLETE;
@@ -52,6 +51,12 @@ pub struct StagedFfmpeg {
     pub(crate) dir: PathBuf,
     pub(crate) ffmpeg: PathBuf,
     pub(crate) ffprobe: PathBuf,
+    /// What each staged binary hashed to at the end of staging, re-checked
+    /// just before promotion. On Windows the archive was verified against
+    /// gyan.dev's digest before extraction; on macOS there is no upstream
+    /// digest, so this only guarantees the files did not change while staged.
+    pub(crate) ffmpeg_digest: checksum::Sha256Digest,
+    pub(crate) ffprobe_digest: checksum::Sha256Digest,
 }
 
 impl FfmpegManager {
@@ -70,33 +75,55 @@ impl FfmpegManager {
     /// `InstallFailed` on an unsupported platform, a malformed archive or a
     /// failed checksum; `Io` or `Http` when a step fails. The staging
     /// directory is removed on every failure.
-    pub async fn stage(&self, progress: Option<&dyn ProgressSink>) -> Result<StagedFfmpeg> {
+    pub async fn stage(
+        &self,
+        _guard: &InstallGuard<'_>,
+        progress: Option<&dyn ProgressSink>,
+    ) -> Result<StagedFfmpeg> {
         if self.platform == Platform::Other {
             return Err(DownloaderError::InstallFailed {
                 message: crate::bin::ffmpeg::UNSUPPORTED_PLATFORM.to_owned(),
             });
         }
 
-        let dir = self.bin_dir.join(STAGE_DIR);
-        // A previous run may have died half-way through.
-        install::remove_dir_quietly(&dir).await;
+        install::ensure_dir(&self.bin_dir).await?;
+        // Runs that died half-way through left their staging behind. Under the
+        // install lock, none of it can belong to a run still in progress.
+        install::sweep(&self.bin_dir, STAGE_DIR, "").await;
+
+        // A directory per run, so no two runs ever share staged files.
+        let dir = self
+            .bin_dir
+            .join(format!("{STAGE_DIR}-{}", uuid::Uuid::new_v4().simple()));
         install::ensure_dir(&dir).await?;
 
-        let staged = StagedFfmpeg {
-            ffmpeg: layout::ffmpeg_path(&dir, self.platform),
-            ffprobe: layout::ffprobe_path(&dir, self.platform),
-            dir,
-        };
+        let ffmpeg = layout::ffmpeg_path(&dir, self.platform);
+        let ffprobe = layout::ffprobe_path(&dir, self.platform);
 
         let result = match self.platform {
-            Platform::Windows => self.stage_windows(&staged, progress).await,
-            Platform::MacOs | Platform::Other => self.stage_macos(&staged, progress).await,
+            Platform::Windows => self.stage_windows(&dir, &ffmpeg, &ffprobe, progress).await,
+            Platform::MacOs | Platform::Other => {
+                self.stage_macos(&dir, &ffmpeg, &ffprobe, progress).await
+            }
+        };
+        let digests = match result {
+            Ok(()) => self.finish_stage(&ffmpeg, &ffprobe).await,
+            Err(error) => Err(error),
         };
 
-        match result {
-            Ok(()) => Ok(staged),
+        match digests {
+            Ok((ffmpeg_digest, ffprobe_digest)) => {
+                mark(progress, 100);
+                Ok(StagedFfmpeg {
+                    dir,
+                    ffmpeg,
+                    ffprobe,
+                    ffmpeg_digest,
+                    ffprobe_digest,
+                })
+            }
             Err(error) => {
-                install::remove_dir_quietly(&staged.dir).await;
+                install::remove_dir_quietly(&dir).await;
                 Err(error)
             }
         }
@@ -105,18 +132,20 @@ impl FfmpegManager {
     /// macOS: two archives from evermeet.cx, each holding one binary.
     async fn stage_macos(
         &self,
-        staged: &StagedFfmpeg,
+        dir: &Path,
+        _ffmpeg: &Path,
+        _ffprobe: &Path,
         progress: Option<&dyn ProgressSink>,
     ) -> Result<()> {
-        let ffmpeg_zip = staged.dir.join("ffmpeg.zip");
-        let ffprobe_zip = staged.dir.join("ffprobe.zip");
+        let ffmpeg_zip = dir.join("ffmpeg.zip");
+        let ffprobe_zip = dir.join("ffprobe.zip");
 
         tracing::info!(url = layout::FFMPEG_MAC_URL, "downloading ffmpeg");
         self.download_stage(layout::FFMPEG_MAC_URL, &ffmpeg_zip, progress, 0, 45.0)
             .await?;
 
         mark(progress, 46);
-        archive::extract_all(&ffmpeg_zip, &staged.dir).await?;
+        archive::extract_all(&ffmpeg_zip, dir).await?;
         install::remove_quietly(&ffmpeg_zip).await;
         mark(progress, 50);
 
@@ -125,12 +154,9 @@ impl FfmpegManager {
             .await?;
 
         mark(progress, 96);
-        archive::extract_all(&ffprobe_zip, &staged.dir).await?;
+        archive::extract_all(&ffprobe_zip, dir).await?;
         install::remove_quietly(&ffprobe_zip).await;
         mark(progress, 98);
-
-        self.finish_stage(staged).await?;
-        mark(progress, 100);
         Ok(())
     }
 
@@ -138,11 +164,13 @@ impl FfmpegManager {
     /// searched.
     async fn stage_windows(
         &self,
-        staged: &StagedFfmpeg,
+        dir: &Path,
+        ffmpeg: &Path,
+        ffprobe: &Path,
         progress: Option<&dyn ProgressSink>,
     ) -> Result<()> {
-        let zip = staged.dir.join("ffmpeg-essentials.zip");
-        let extract_dir = staged.dir.join("extract");
+        let zip = dir.join("ffmpeg-essentials.zip");
+        let extract_dir = dir.join("extract");
 
         tracing::info!(url = layout::FFMPEG_WINDOWS_URL, "downloading ffmpeg");
         self.download_stage(layout::FFMPEG_WINDOWS_URL, &zip, progress, 0, 90.0)
@@ -167,12 +195,9 @@ impl FfmpegManager {
             });
         };
 
-        move_into_stage(&found_ffmpeg, &staged.ffmpeg).await?;
-        move_into_stage(&found_ffprobe, &staged.ffprobe).await?;
+        move_into_stage(&found_ffmpeg, ffmpeg).await?;
+        move_into_stage(&found_ffprobe, ffprobe).await?;
         install::remove_dir_quietly(&extract_dir).await;
-
-        self.finish_stage(staged).await?;
-        mark(progress, 100);
         Ok(())
     }
 
@@ -183,9 +208,7 @@ impl FfmpegManager {
     /// landing in that window fails the check and is refused, which is the
     /// safe direction; the next scheduled check picks it up.
     async fn published_windows_digest(&self) -> Result<checksum::Sha256Digest> {
-        let document = self
-            .client
-            .text(layout::FFMPEG_WINDOWS_SHA256_URL, RequestOptions::default())
+        let document = download_text(&self.client, layout::FFMPEG_WINDOWS_SHA256_URL)
             .await
             .map_err(|error| DownloaderError::InstallFailed {
                 message: format!("Could not download the published checksum: {error}"),
@@ -196,17 +219,20 @@ impl FfmpegManager {
         })
     }
 
-    /// Make the staged pair runnable, so the post-promotion probe can run it.
-    async fn finish_stage(&self, staged: &StagedFfmpeg) -> Result<()> {
-        install::make_executable(&staged.ffmpeg, self.platform).await?;
-        install::make_executable(&staged.ffprobe, self.platform).await?;
-        install::strip_quarantine(
-            self.runner.as_ref(),
-            &[staged.ffmpeg.as_path(), staged.ffprobe.as_path()],
-            self.platform,
-        )
-        .await;
-        Ok(())
+    /// Make the staged pair runnable, so the post-promotion probe can run it,
+    /// and record what each binary hashes to for the check before promotion.
+    async fn finish_stage(
+        &self,
+        ffmpeg: &Path,
+        ffprobe: &Path,
+    ) -> Result<(checksum::Sha256Digest, checksum::Sha256Digest)> {
+        install::make_executable(ffmpeg, self.platform).await?;
+        install::make_executable(ffprobe, self.platform).await?;
+        install::strip_quarantine(self.runner.as_ref(), &[ffmpeg, ffprobe], self.platform).await;
+        Ok((
+            checksum::digest_file(ffmpeg).await?,
+            checksum::digest_file(ffprobe).await?,
+        ))
     }
 
     /// One download whose 0–100 maps onto `offset..=offset + span`.
@@ -349,7 +375,10 @@ mod tests {
 
         // An extraction directory holding only one of the two binaries: the
         // shape a truncated or restructured gyan.dev build would produce.
-        let extract_dir = temp.path().join(STAGE_DIR).join("extract");
+        let extract_dir = temp
+            .path()
+            .join(format!("{STAGE_DIR}-test"))
+            .join("extract");
         let nested = extract_dir.join("ffmpeg-7.1-essentials_build/bin");
         tokio::fs::create_dir_all(&nested)
             .await

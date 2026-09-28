@@ -23,7 +23,9 @@ use tokio_util::sync::CancellationToken;
 use crate::bin::fetch::ProgressSink;
 use crate::bin::ffmpeg_install::StagedFfmpeg;
 use crate::bin::layout::{self, Platform};
-use crate::bin::swap;
+use crate::bin::lock::{InstallGuard, InstallLock};
+use crate::bin::ytdlp::POST_INSTALL_PROBE_TIMEOUT;
+use crate::bin::{checksum, swap};
 use crate::error::{DownloaderError, Result};
 use crate::spawn::{ProcessRunner, ProcessSpec, args};
 
@@ -46,6 +48,11 @@ pub const ARCHIVE_INCOMPLETE: &str =
 /// What an install reports when the new pair does not run.
 pub const PROBE_FAILED: &str = "The new ffmpeg did not run, so the previous version was kept";
 
+/// What an install reports when the new pair did not run **and** the previous
+/// pair could not be put back.
+pub const PROBE_FAILED_UNRESTORED: &str = "The new ffmpeg did not run, and the previous version \
+     could not be restored. Install ffmpeg again from Settings, Downloads";
+
 /// The version out of ffmpeg's banner line.
 static VERSION_LINE: LazyLock<Regex> = LazyLock::new(|| {
     #[expect(
@@ -67,6 +74,8 @@ pub struct FfmpegManager {
     pub(crate) platform: Platform,
     pub(crate) client: Arc<HttpClient>,
     pub(crate) runner: Arc<dyn ProcessRunner>,
+    /// One install at a time; see `bin::lock`.
+    install_lock: InstallLock,
 }
 
 impl FfmpegManager {
@@ -82,7 +91,18 @@ impl FfmpegManager {
             platform,
             client,
             runner,
+            install_lock: InstallLock::default(),
         }
+    }
+
+    /// Wait for any install of ffmpeg in progress, then hold the lock.
+    pub async fn lock_install(&self) -> InstallGuard<'_> {
+        self.install_lock.lock().await
+    }
+
+    /// Whether an install of ffmpeg is in progress, manual or automatic.
+    pub fn is_installing(&self) -> bool {
+        self.install_lock.is_held()
     }
 
     /// The directory yt-dlp is pointed at with `--ffmpeg-location`.
@@ -104,7 +124,13 @@ impl FfmpegManager {
     }
 
     /// Whether **both** binaries are present.
+    ///
+    /// First finishes a pair swap a crash interrupted, restoring ffmpeg and
+    /// ffprobe together (see [`swap::recover`]), when no install is running.
     pub async fn is_installed(&self) -> bool {
+        if let Some(_idle) = self.install_lock.try_lock() {
+            swap::recover(&[self.ffmpeg_path(), self.ffprobe_path()]).await;
+        }
         tokio::fs::try_exists(self.ffmpeg_path())
             .await
             .unwrap_or(false)
@@ -121,12 +147,16 @@ impl FfmpegManager {
     /// shaped some third way, the whole first line is reported rather than
     /// nothing, which is v1's fallback and is still more useful than "unknown".
     pub async fn version(&self) -> Option<String> {
+        self.version_within(VERSION_TIMEOUT).await
+    }
+
+    async fn version_within(&self, timeout: Duration) -> Option<String> {
         if !self.is_installed().await {
             return None;
         }
 
         let spec = ProcessSpec::capturing(self.ffmpeg_path(), args::ffmpeg_version())
-            .with_timeout(VERSION_TIMEOUT);
+            .with_timeout(timeout);
 
         let output = match self.runner.run(spec, None, &CancellationToken::new()).await {
             Ok(output) if output.code == 0 => output,
@@ -201,9 +231,10 @@ impl FfmpegManager {
     /// Every failure path removes what it staged and leaves the installed pair,
     /// if any, intact.
     pub async fn install(&self, progress: Option<&dyn ProgressSink>) -> Result<()> {
+        let guard = self.lock_install().await;
         crate::bin::install::ensure_dir(&self.bin_dir).await?;
-        let staged = self.stage(progress).await?;
-        self.promote_staged(staged).await.map(|_version| ())
+        let staged = self.stage(&guard, progress).await?;
+        self.promote_staged(&guard, staged).await.map(|_version| ())
     }
 
     /// Swap a staged pair in, keeping the old pair until the new ffmpeg reports
@@ -213,9 +244,34 @@ impl FfmpegManager {
     ///
     /// # Errors
     ///
-    /// `Io` when a rename fails, `InstallFailed` carrying [`PROBE_FAILED`] when
-    /// the new pair does not run. Both leave the previous pair in place.
-    pub async fn promote_staged(&self, staged: StagedFfmpeg) -> Result<String> {
+    /// `InstallFailed` carrying [`checksum::CHECKSUM_MISMATCH`] when a staged
+    /// binary changed since staging, `Io` when a rename fails, `InstallFailed`
+    /// carrying [`PROBE_FAILED`] (or [`PROBE_FAILED_UNRESTORED`]) when the new
+    /// pair does not run.
+    pub async fn promote_staged(
+        &self,
+        _guard: &InstallGuard<'_>,
+        staged: StagedFfmpeg,
+    ) -> Result<String> {
+        // Checked again right before the renames, for the reason
+        // `YtDlpManager::promote_staged` gives: an automatic update may have
+        // waited a long time for the download queue since staging.
+        let mut changed = None;
+        for (path, digest) in [
+            (&staged.ffmpeg, &staged.ffmpeg_digest),
+            (&staged.ffprobe, &staged.ffprobe_digest),
+        ] {
+            if let Err(error) = checksum::verify_file(path, digest).await {
+                tracing::error!(path = %path.display(), "a staged ffmpeg binary changed after staging");
+                changed = Some(error);
+                break;
+            }
+        }
+        if let Some(error) = changed {
+            self.discard(staged).await;
+            return Err(error);
+        }
+
         let pairs = [
             (staged.ffmpeg.clone(), self.ffmpeg_path()),
             (staged.ffprobe.clone(), self.ffprobe_path()),
@@ -230,7 +286,7 @@ impl FfmpegManager {
         };
         self.discard(staged).await;
 
-        let Some(version) = self.version().await else {
+        let Some(version) = self.version_within(POST_INSTALL_PROBE_TIMEOUT).await else {
             return self.reject(&promoted).await;
         };
         if !self.ffprobe_runs().await {
@@ -249,16 +305,21 @@ impl FfmpegManager {
 
     async fn reject(&self, promoted: &[swap::Promoted]) -> Result<String> {
         tracing::error!(dir = %self.bin_dir.display(), "the new ffmpeg did not run; rolling back");
-        swap::roll_back(promoted).await;
+        let restored = swap::roll_back(promoted).await;
         Err(DownloaderError::InstallFailed {
-            message: PROBE_FAILED.to_owned(),
+            message: if restored {
+                PROBE_FAILED
+            } else {
+                PROBE_FAILED_UNRESTORED
+            }
+            .to_owned(),
         })
     }
 
     /// Whether the installed ffprobe answers `-version`.
     async fn ffprobe_runs(&self) -> bool {
         let spec = ProcessSpec::capturing(self.ffprobe_path(), args::ffmpeg_version())
-            .with_timeout(VERSION_TIMEOUT);
+            .with_timeout(POST_INSTALL_PROBE_TIMEOUT);
         matches!(
             self.runner.run(spec, None, &CancellationToken::new()).await,
             Ok(output) if output.code == 0
