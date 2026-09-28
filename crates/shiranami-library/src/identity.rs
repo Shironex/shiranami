@@ -38,14 +38,20 @@
 //!
 //! A collision can only do one thing: during a **rescan** (the one flow that
 //! opts in to following moves), re-point a row whose file has moved away at a
-//! new file that hashed the same. "Moved away" is [`moved_away`]: the volume
-//! and the registered music folder the file lived in both definitely exist and
-//! list entries, and the file itself is definitely not found (any stat error
-//! counts as "not moved"). That rules out an unmounted drive, an empty
-//! leftover mount point and a share that answers with errors; what it cannot
-//! rule out is storage that answers "not found" for a file that will come
-//! back, which no check short of the user's intent can. Such a row is one the
-//! rescan's validate step deletes on its next pass over that folder. Nothing
+//! new file that hashed the same. "Moved away" is [`moved_away`]: the file is
+//! definitely not found (any stat error counts as "not moved"), its volume
+//! and registered music folder definitely exist and list a real entry (OS
+//! droppings such as `.DS_Store` do not count), and so does its nearest
+//! existing ancestor directory. That rules out an unmounted drive, a share
+//! answering with errors, and a leftover mount point (empty or holding only
+//! droppings) whether at a volume root or nested inside a watched folder. It
+//! also, by the same token, does not follow files moved out of a folder left
+//! empty. What it cannot rule out, and accepts, is storage that answers "not
+//! found" definitively for a file that still exists elsewhere under the same
+//! path: Windows Offline Files, a different drive taking the same letter, two
+//! FAT sticks with the same label. The module docs in `identity/gone.rs` list
+//! these by name. Such a row is one the rescan's validate step deletes on its
+//! next pass over that folder. Nothing
 //! is deleted by a match and no file is touched, so the worst case of a
 //! collision is history attributed to the sibling edit rather than destroyed.
 //! Every other import (adding a folder, a download, a share) inserts plainly
@@ -63,7 +69,9 @@
 mod gone;
 mod payload;
 
-pub use gone::{Filesystem, MovedAway, Probe, moved_away, moved_away_all, volume_root};
+pub use gone::{
+    Filesystem, MovedAway, Probe, is_os_dropping, moved_away, moved_away_all, volume_root,
+};
 
 use std::fs::File;
 use std::io;

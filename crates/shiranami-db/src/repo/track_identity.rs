@@ -24,11 +24,13 @@
 //!   command layer builds the set by reading [`candidate_paths`], releasing
 //!   the connection, and checking each path with
 //!   `shiranami_library::moved_away`: the file is definitely not found (a stat
-//!   error never counts), and its volume and registered music folder
-//!   definitely exist and list entries. That rules out an unmounted drive, an
-//!   empty leftover mount point and a share answering with errors; storage
-//!   that answers "not found" for a file that will come back cannot be told
-//!   apart. This module therefore performs **no file I/O**, and in
+//!   error never counts), and its volume, its registered music folder and its
+//!   nearest existing ancestor directory definitely exist and list a real
+//!   (non OS-dropping) entry. That rules out an unmounted drive, a share
+//!   answering with errors and a leftover mount point, nested or not; it
+//!   also skips files moved out of a folder left empty. Accepted residuals,
+//!   which can still read as moved: Windows Offline Files, a different drive
+//!   taking the same letter, two FAT sticks with the same label. This module therefore performs **no file I/O**, and in
 //!   particular none while the pool's only connection is held: an offline
 //!   network path can block a `stat` for the OS timeout, and that must never
 //!   freeze every other database command.

@@ -3,37 +3,68 @@
 //! A re-point is only safe when the old file is really gone. [`Path::exists`]
 //! alone cannot tell "gone" from "on storage that is not attached right now":
 //! an unmounted external drive, a NAS that is asleep, a Windows mapped drive or
-//! UNC share that is offline, a share that went stale after sleep. Treating
-//! those as moves would hand the offline rows' history to whatever copies
-//! happen to be imported meanwhile, and the history would then be deleted
-//! with the copies. So a missing file counts as moved away only when all of
-//! these hold, checked in this order:
+//! UNC share that is offline, a share that went stale after sleep, a share
+//! mounted *inside* a watched folder. Treating those as moves would hand the
+//! offline rows' history to whatever copies happen to be imported meanwhile,
+//! and the history would then be deleted with the copies. So a missing file
+//! counts as moved away only when all of these hold:
 //!
 //! 1. its **volume root** ([`volume_root`]: `/Volumes/<name>` on macOS,
 //!    `/media/<user>/<name>`, `/run/media/<user>/<name>` and `/mnt/<name>` on
 //!    Linux, the drive root `X:\` or the share `\\server\share\` on Windows)
-//!    answers "exists" **and lists at least one entry**. A path on the system
-//!    volume has no separate root to check;
+//!    definitely exists and lists a real entry. A path on the system volume
+//!    has no separate root to check;
 //! 2. the **registered music folder** that contains it (the longest registered
 //!    folder the path lies under), when one does, answers the same way;
-//! 3. the file itself answers "does not exist", as a *definite* answer.
+//! 3. the file itself definitely does not exist;
+//! 4. its **nearest existing ancestor directory** (walking up from the file,
+//!    stopping at the registered folder or the volume root) lists a real
+//!    entry. This is what catches a share mounted below a watched folder
+//!    (`~/Music` registered, a NAS at `~/Music/nas`): after an unmount the
+//!    mount point stays behind as an empty directory inside a folder that is
+//!    otherwise healthy.
 //!
-//! "Answers" means [`Path::try_exists`], never [`Path::exists`]: any error
-//! (`EACCES`, `EIO`, `ETIMEDOUT` from a dead share, …) reads as "not moved",
-//! because only `Ok(false)` says the file is gone rather than unreadable. The
-//! non-empty rule catches the mount-point directory an unmount leaves behind
-//! (a custom `mount_smbfs` target, autofs, a stale `/Volumes/<name>`), which
-//! exists but is empty. The cost of these rules is only ever a missed move:
-//! the file is inserted as a new track, which is the behaviour before move
-//! detection existed. In particular a registered folder the user has emptied
-//! completely stops following moves out of it.
+//! "Definitely" means [`Path::try_exists`] and `read_dir` answers, never
+//! [`Path::exists`]: any error (`EACCES`, `EIO`, `ETIMEDOUT` from a dead
+//! share, …) reads as "not moved". A "real entry" is any name that is not an
+//! OS dropping ([`is_os_dropping`]: `.DS_Store`, `._*`, `desktop.ini`,
+//! `Thumbs.db` and the like), because a leftover mount point can still hold
+//! those.
 //!
-//! A path under no registered folder (a download that lived in the downloads
-//! directory, say) is judged by rules 1 and 3 alone.
+//! # What this cannot tell apart (accepted)
+//!
+//! Every miss below costs only a missed move: the file is inserted as a new
+//! track, which is the behaviour before move detection existed.
+//!
+//! - **Files moved out of a folder that is left empty**, or holding only OS
+//!   droppings: after an unmount a mount point is exactly such a folder, so
+//!   the two cannot be distinguished. Moving the folder itself, renaming in
+//!   place, or moving some but not all of a folder's files is followed.
+//! - A registered folder the user has emptied completely.
+//!
+//! And these can produce a false move, because the storage answers
+//! definitively that the file is not there:
+//!
+//! - **Windows Offline Files**, which serve a cached copy of a share that can
+//!   omit a file the share still holds;
+//! - **a different drive taking the same letter** (or mounted at the same
+//!   path) while the original is unplugged;
+//! - **two FAT sticks with the same volume label**, which macOS mounts at the
+//!   same `/Volumes/<label>`.
+//!
+//! Recording each file's volume identity (`st_dev`, the volume serial) at hash
+//! time would close the last two and the emptied-folder case; it is not done.
+//!
+//! # What a batch bounds
 //!
 //! Roots are checked before the file and their verdict is cached per
-//! [`MovedAway`] instance, so a batch whose candidates share a hung mount pays
-//! the OS timeout once for the root, never once per file.
+//! [`MovedAway`] instance. A root that fails, or a file whose own stat errors
+//! (a mount that hangs after its root answered), marks the roots in play as
+//! failed, so the rest of the batch under them is never statted: a hung mount
+//! costs at most one timeout for the root and one for the first file. A file
+//! that answers "not found" is re-checked against fresh (uncached) root
+//! verdicts before it is accepted, so a root that went away mid-batch is not
+//! trusted from a stale cache.
 //!
 //! Paths are compared as the strings the scanner stored, so on Windows the
 //! comparison is as case-sensitive as the scanner's own output, which is what
@@ -48,8 +79,9 @@ use std::path::Path;
 pub trait Probe {
     /// [`Path::try_exists`].
     fn exists(&self, path: &Path) -> io::Result<bool>;
-    /// Whether the directory lists at least one entry.
-    fn has_entries(&self, path: &Path) -> io::Result<bool>;
+    /// Whether the directory lists at least one entry that is not an OS
+    /// dropping ([`is_os_dropping`]).
+    fn has_real_entries(&self, path: &Path) -> io::Result<bool>;
 }
 
 /// The real filesystem.
@@ -61,9 +93,40 @@ impl Probe for Filesystem {
         path.try_exists()
     }
 
-    fn has_entries(&self, path: &Path) -> io::Result<bool> {
-        Ok(std::fs::read_dir(path)?.next().transpose()?.is_some())
+    fn has_real_entries(&self, path: &Path) -> io::Result<bool> {
+        for entry in std::fs::read_dir(path)? {
+            if !is_os_dropping(&entry?.file_name().to_string_lossy()) {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
+}
+
+/// Files and folders an OS leaves in a directory by itself, which say nothing
+/// about whether the directory holds the user's music.
+pub fn is_os_dropping(name: &str) -> bool {
+    const EXACT: &[&str] = &[
+        ".DS_Store",
+        ".localized",
+        ".directory",
+        ".Spotlight-V100",
+        ".Trashes",
+        ".fseventsd",
+        ".TemporaryItems",
+    ];
+    // Windows names are case-insensitive on disk.
+    const ANY_CASE: &[&str] = &[
+        "desktop.ini",
+        "thumbs.db",
+        "$recycle.bin",
+        "system volume information",
+    ];
+    name.starts_with("._")
+        || EXACT.contains(&name)
+        || ANY_CASE
+            .iter()
+            .any(|candidate| name.eq_ignore_ascii_case(candidate))
 }
 
 /// A batch of moved-away checks sharing one set of root verdicts.
@@ -101,26 +164,91 @@ impl<'a, S: AsRef<str>, P: Probe> MovedAway<'a, S, P> {
             .filter(|root| lies_under(old_path, root))
             .max_by_key(|root| root.len())
             .map(str::to_owned);
+        let volume = volume_root(old_path);
+        // The walk up from the file stops at the innermost root in play.
+        let stop = containing.clone().or_else(|| volume.clone());
+        let roots: Vec<String> = volume.into_iter().chain(containing).collect();
 
-        for root in volume_root(old_path).into_iter().chain(containing) {
-            if !self.root_present(&root) {
+        if !roots.iter().all(|root| self.root_present_cached(root)) {
+            return false;
+        }
+
+        match self.probe.exists(Path::new(old_path)) {
+            Ok(false) => {}
+            Ok(true) => return false,
+            Err(_) => {
+                self.fail(&roots);
                 return false;
             }
         }
 
-        matches!(self.probe.exists(Path::new(old_path)), Ok(false))
+        // "Not found" is the answer that re-points a row, so it is only
+        // accepted against fresh root verdicts, never a cached one.
+        for root in &roots {
+            let present = self.root_present_fresh(root);
+            self.roots_present.insert(root.clone(), present);
+            if !present {
+                return false;
+            }
+        }
+
+        match self.nearest_existing_ancestor_has_real_entries(old_path, stop.as_deref()) {
+            Ok(verdict) => verdict,
+            Err(_) => {
+                self.fail(&roots);
+                false
+            }
+        }
     }
 
-    /// Whether `root` definitely exists and lists an entry, asked once.
-    fn root_present(&mut self, root: &str) -> bool {
+    /// Rule 4: walk up to the nearest directory that exists and ask whether
+    /// it lists a real entry. Reaching the stop root without finding one is a
+    /// "no"; any error is an error.
+    fn nearest_existing_ancestor_has_real_entries(
+        &self,
+        old_path: &str,
+        stop: Option<&str>,
+    ) -> io::Result<bool> {
+        let stop = stop.map(|root| Path::new(root.trim_end_matches(['/', '\\'])));
+        let mut dir = Path::new(old_path).parent();
+        while let Some(candidate) = dir {
+            if candidate.as_os_str().is_empty() {
+                return Ok(false);
+            }
+            if self.probe.exists(candidate)? {
+                return self.probe.has_real_entries(candidate);
+            }
+            if stop == Some(candidate) {
+                return Ok(false);
+            }
+            dir = candidate.parent();
+        }
+        Ok(false)
+    }
+
+    /// Mark every root in play as not present for the rest of the batch.
+    fn fail(&mut self, roots: &[String]) {
+        for root in roots {
+            self.roots_present.insert(root.clone(), false);
+        }
+    }
+
+    /// Whether `root` definitely exists and lists a real entry, asked once
+    /// per batch.
+    fn root_present_cached(&mut self, root: &str) -> bool {
         if let Some(&known) = self.roots_present.get(root) {
             return known;
         }
-        let path = Path::new(root);
-        let present = matches!(self.probe.exists(path), Ok(true))
-            && matches!(self.probe.has_entries(path), Ok(true));
+        let present = self.root_present_fresh(root);
         self.roots_present.insert(root.to_owned(), present);
         present
+    }
+
+    /// The same question, asked of the filesystem now.
+    fn root_present_fresh(&self, root: &str) -> bool {
+        let path = Path::new(root);
+        matches!(self.probe.exists(path), Ok(true))
+            && matches!(self.probe.has_real_entries(path), Ok(true))
     }
 }
 

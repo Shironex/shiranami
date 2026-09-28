@@ -50,8 +50,9 @@
 //!   library. **Moved files are followed** since migration `0009`: a new path
 //!   is hashed ([`identity`], the audio payload with tag blocks skipped), and
 //!   during a rescan `db:tracks:add-many` re-points a row whose file has moved
-//!   away ([`moved_away`]: definitely not found, on a volume and in a music
-//!   folder that definitely exist and are not empty) instead of inserting a stranger, so id, plays, favourite,
+//!   away ([`moved_away`]: definitely not found, with its volume, music folder
+//!   and nearest existing parent folder definitely present and holding real
+//!   entries) instead of inserting a stranger, so id, plays, favourite,
 //!   playlists and history survive a move or rename. v1 had no `UPDATE tracks SET file_path` at all.
 //!   The hash lives here because it is filesystem work; the matching lives in
 //!   `shiranami-db` and the composition root, so this crate still holds no

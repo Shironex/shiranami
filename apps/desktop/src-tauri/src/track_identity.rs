@@ -38,8 +38,9 @@
 //! on storage that is merely offline. When the caller does opt in,
 //! [`verified_gone`] reads the matching rows' paths, **releases the
 //! connection**, and checks each with `shiranami_library::moved_away` (file
-//! definitely not found, with its volume and registered music folder
-//! definitely present and not empty). The import then runs
+//! definitely not found; its volume, registered music folder and nearest
+//! existing ancestor definitely present and holding real entries; see that
+//! module for the accepted residuals). The import then runs
 //! against that precomputed set, so no `stat`, which can block for the OS
 //! timeout on an offline network path, ever runs while the pool's only
 //! connection is held.
@@ -105,9 +106,11 @@ pub async fn verified_gone(
         (candidates, roots)
     };
 
-    // One checker for the batch, so a hung mount's root is statted once and
-    // none of the files under it are (the timeout is paid per root, not per
-    // candidate). The database connection is free throughout.
+    // One checker for the batch. A root that fails, or a file whose own stat
+    // errors, marks the roots in play as failed, so a hung mount costs at most
+    // one timeout for its root and one for the first file under it, never one
+    // per candidate. A file under a healthy root that hangs by itself still
+    // costs its own timeout. The database connection is free throughout.
     let gone = tauri::async_runtime::spawn_blocking(move || {
         shiranami_library::moved_away_all(candidates, &roots)
     })

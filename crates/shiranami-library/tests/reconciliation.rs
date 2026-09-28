@@ -36,164 +36,13 @@
 #[path = "support/tree.rs"]
 mod tree;
 
-use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+#[path = "support/reconcile.rs"]
+mod reconcile;
 
 use shiranami_core::models::TrackCreateInput;
-use shiranami_db::repo::tracks::{self, IdentifiedTrack};
-use shiranami_library::scan::{ScannedFile, ignore_progress, scan_folder};
-use shiranami_library::{content_hashes, moved_away, validate_files};
-use sqlx::SqliteConnection;
-use sqlx::pool::PoolConnection;
-use tempfile::TempDir;
-use tokio_util::sync::CancellationToken;
+use shiranami_db::repo::tracks;
 
-/// A fixture database plus the single connection every call borrows.
-///
-/// The pool holds exactly one connection, so acquiring twice would hang rather
-/// than fail — the fixture acquires once and hands out `&mut` borrows, which is
-/// the arrangement `shiranami-db`'s own tests use.
-struct Library {
-    _dir: TempDir,
-    connection: PoolConnection<sqlx::Sqlite>,
-}
-
-impl Library {
-    async fn fresh() -> Self {
-        let dir = tempfile::tempdir().expect("a temp dir");
-        let opened = shiranami_db::open(&dir.path().join("shiranami.db"))
-            .await
-            .expect("the fixture database opens");
-        let connection = opened.pool.acquire().await.expect("the one connection");
-
-        Self {
-            _dir: dir,
-            connection,
-        }
-    }
-
-    fn conn(&mut self) -> &mut SqliteConnection {
-        &mut self.connection
-    }
-}
-
-fn text(path: &Path) -> String {
-    path.to_string_lossy().into_owned()
-}
-
-/// What one reconciliation pass did, as the renderer counts it.
-#[derive(Debug, Default, PartialEq)]
-struct Pass {
-    /// Rows inserted: the renderer's `addedCount`.
-    added: usize,
-    /// Rows re-pointed at a moved file: the renderer's `movedIds`.
-    moved: usize,
-}
-
-/// `scanAndPersistFolder`'s persistence half: filter by path, then import
-/// through the move-aware path `db:tracks:add-many` takes.
-async fn reconcile(conn: &mut SqliteConnection, scanned: &[ScannedFile]) -> Pass {
-    if scanned.is_empty() {
-        return Pass::default();
-    }
-
-    let paths: Vec<String> = scanned.iter().map(|file| text(&file.file_path)).collect();
-    let existing: HashSet<String> = tracks::exists_many(conn, &paths)
-        .await
-        .expect("the existence check runs")
-        .into_iter()
-        .collect();
-
-    let genuinely_new: Vec<TrackCreateInput> = scanned
-        .iter()
-        .filter(|file| !existing.contains(&text(&file.file_path)))
-        .map(|file| TrackCreateInput {
-            file_path: text(&file.file_path),
-            title: file.metadata.title.clone(),
-            artist: Some(file.metadata.artist.clone()),
-            album_artist: file.metadata.album_artist.clone(),
-            album: Some(file.metadata.album.clone()),
-            duration: Some(file.metadata.duration),
-            genre: Some(file.metadata.genre.clone()),
-            year: file.metadata.year,
-            track_number: file.metadata.track_number,
-            disc_number: file.metadata.disc_number,
-            album_art: file.metadata.album_art.clone(),
-        })
-        .collect();
-
-    if genuinely_new.is_empty() {
-        return Pass::default();
-    }
-
-    let hashes = content_hashes(
-        &genuinely_new
-            .iter()
-            .map(|input| input.file_path.clone())
-            .collect::<Vec<_>>(),
-    );
-    let identified: Vec<IdentifiedTrack> = genuinely_new
-        .into_iter()
-        .zip(hashes)
-        .map(|(input, content_hash)| IdentifiedTrack {
-            input,
-            content_hash,
-        })
-        .collect();
-
-    // The rescan follows moves: read the matching rows' paths, then decide
-    // which have moved away with the real guard. The fixture registers no
-    // music folders, so the guard's folder rule has nothing to check here
-    // (`identity/gone.rs` tests it); the file and volume rules apply.
-    let hashes: Vec<String> = identified
-        .iter()
-        .filter_map(|item| item.content_hash.clone())
-        .collect();
-    let gone: HashSet<String> = tracks::candidate_paths(conn, &hashes)
-        .await
-        .expect("the candidates read")
-        .into_iter()
-        .filter(|path| moved_away(path, &[] as &[String]))
-        .collect();
-
-    let imported = tracks::import_many(conn, &identified, &gone)
-        .await
-        .expect("the import runs");
-    Pass {
-        added: imported.added.len(),
-        moved: imported.moved.len(),
-    }
-}
-
-/// The validation half of `useLibraryRescan.rescan`: flag, map to ids, delete.
-async fn sweep_missing(conn: &mut SqliteConnection) -> usize {
-    let library = tracks::get_all(conn).await.expect("the library reads");
-    let paths: Vec<PathBuf> = library
-        .iter()
-        .map(|track| PathBuf::from(&track.file_path))
-        .collect();
-
-    let missing: HashSet<String> = validate_files(&paths).iter().map(|p| text(p)).collect();
-    let stale: Vec<String> = library
-        .iter()
-        .filter(|track| missing.contains(&track.file_path))
-        .map(|track| track.id.clone())
-        .collect();
-
-    if stale.is_empty() {
-        return 0;
-    }
-
-    tracks::remove_many(conn, &stale)
-        .await
-        .expect("the removal runs");
-    stale.len()
-}
-
-fn scan(root: &Path) -> Vec<ScannedFile> {
-    let cancel = CancellationToken::new();
-    scan_folder(root, None, &cancel, &ignore_progress).expect("the scan succeeds")
-}
+use reconcile::{Library, Pass, reconcile, scan, sweep_missing, text};
 
 #[tokio::test]
 async fn a_new_file_is_inserted() {
@@ -330,10 +179,17 @@ async fn a_moved_file_keeps_its_identity_and_its_play_count() {
     assert_eq!(played[0].play_count, Some(7));
     assert_eq!(played[0].is_favorite, Some(true));
 
-    // Now the file moves to a different folder — same bytes, same tags.
+    // Now its folder is moved (renamed) elsewhere: same bytes, same tags. The
+    // folder moves rather than the file alone, because a file dragged out of
+    // a folder that is left behind empty is deliberately not followed (see
+    // `files_moved_out_of_a_folder_left_empty_are_new_tracks` in
+    // `reconciliation_moves.rs`).
     let moved = music.path().join("New Folder").join("song.wav");
-    std::fs::create_dir_all(moved.parent().expect("a parent")).expect("the fixture writes");
-    std::fs::rename(&original, &moved).expect("the fixture moves");
+    std::fs::rename(
+        original.parent().expect("a parent"),
+        moved.parent().expect("a parent"),
+    )
+    .expect("the fixture moves");
 
     let pass = reconcile(library.conn(), &scan(music.path())).await;
     let swept = sweep_missing(library.conn()).await;
@@ -397,74 +253,6 @@ async fn a_file_renamed_in_place_is_also_a_move() {
     assert_eq!(after[0].file_path, text(&renamed));
     assert_eq!(after[0].id, before);
 }
-
-#[tokio::test]
-async fn a_copy_is_a_new_track_and_the_original_keeps_its_row() {
-    let mut library = Library::fresh().await;
-    let music = tempfile::tempdir().expect("a temp dir");
-
-    let original = tree::wav(music.path(), "Album/song.wav");
-    tree::tag(&original, "A Song", "An Artist", "An Album");
-    reconcile(library.conn(), &scan(music.path())).await;
-    let original_id = tracks::get_all(library.conn())
-        .await
-        .expect("the library reads")[0]
-        .id
-        .clone();
-
-    let copy = music.path().join("Backup").join("song.wav");
-    std::fs::create_dir_all(copy.parent().expect("a parent")).expect("the fixture writes");
-    std::fs::copy(&original, &copy).expect("the fixture copies");
-
-    let pass = reconcile(library.conn(), &scan(music.path())).await;
-    assert_eq!(pass, Pass { added: 1, moved: 0 });
-    assert_eq!(sweep_missing(library.conn()).await, 0);
-
-    let after = tracks::get_all(library.conn())
-        .await
-        .expect("the library reads");
-    let kept = after
-        .iter()
-        .find(|track| track.id == original_id)
-        .expect("the original row is untouched");
-    assert_eq!(kept.file_path, text(&original));
-    assert_eq!(after.len(), 2);
-}
-
-#[tokio::test]
-async fn a_retagged_then_moved_file_is_still_followed() {
-    // The in-app tag editor rewrites files, so the identity must not be a
-    // hash of the whole file. Tags change here between the two scans, and
-    // the file moves too.
-    let mut library = Library::fresh().await;
-    let music = tempfile::tempdir().expect("a temp dir");
-
-    let original = tree::wav(music.path(), "a/song.wav");
-    tree::tag(&original, "Before", "An Artist", "An Album");
-    reconcile(library.conn(), &scan(music.path())).await;
-    let original_id = tracks::get_all(library.conn())
-        .await
-        .expect("the library reads")[0]
-        .id
-        .clone();
-
-    tree::tag(&original, "After a much longer retag", "Someone", "Else");
-    let moved = music.path().join("b").join("song.wav");
-    std::fs::create_dir_all(moved.parent().expect("a parent")).expect("the fixture writes");
-    std::fs::rename(&original, &moved).expect("the fixture moves");
-
-    let pass = reconcile(library.conn(), &scan(music.path())).await;
-    sweep_missing(library.conn()).await;
-
-    assert_eq!(pass.moved, 1);
-    let after = tracks::get_all(library.conn())
-        .await
-        .expect("the library reads");
-    assert_eq!(after.len(), 1);
-    assert_eq!(after[0].id, original_id);
-    assert_eq!(after[0].file_path, text(&moved));
-}
-
 #[tokio::test]
 async fn importing_the_same_folder_twice_concurrently_cannot_duplicate_a_row() {
     // `file_path` is UNIQUE and `add_many` is ON CONFLICT DO NOTHING, which is
