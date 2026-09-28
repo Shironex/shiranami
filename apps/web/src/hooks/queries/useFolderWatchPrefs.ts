@@ -83,6 +83,8 @@ export function useSetFolderWatched(): (folderId: string, watched: boolean) => v
 
   return useCallback(
     (folderId, watched) => {
+      // A refetch already in flight would overwrite the value written below.
+      void queryClient.cancelQueries({ queryKey: settingsKeys.all });
       const current = queryClient.getQueryData<ElectronSettings | null>(settingsKeys.all) ?? {};
       const patch = folderWatchedPatch(readFolderWatchPrefs(current).excluded, folderId, watched);
       queryClient.setQueryData<ElectronSettings | null>(settingsKeys.all, { ...current, ...patch });
