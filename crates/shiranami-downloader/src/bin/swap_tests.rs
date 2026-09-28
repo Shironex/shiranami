@@ -184,6 +184,36 @@ async fn a_promotion_sweeps_the_pairs_stale_backups_first() {
     assert_eq!(read(&ffprobe).await, "old ffprobe", "not the ancient one");
 }
 
+/// Make the next restore onto `final_path` fail the way it really would,
+/// without touching product code. On Unix a directory cannot replace a
+/// file, so the backup is one. On Windows `rename` refuses to replace a
+/// destination that is open with no sharing at all (no `FILE_SHARE_DELETE`),
+/// so the destination is held open for as long as the returned guard lives;
+/// drop it before the path needs to be read or removed again.
+#[cfg(unix)]
+async fn make_restore_fail(backup: &Path, _final_path: &Path) -> Option<std::fs::File> {
+    tokio::fs::create_dir(backup).await.expect("mkdir");
+    None
+}
+
+#[cfg(windows)]
+async fn make_restore_fail(backup: &Path, final_path: &Path) -> Option<std::fs::File> {
+    use std::os::windows::fs::OpenOptionsExt as _;
+
+    write(backup, "old").await;
+    let final_path = final_path.to_path_buf();
+    let file = tokio::task::spawn_blocking(move || {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&final_path)
+            .expect("hold the destination open with no sharing")
+    })
+    .await
+    .expect("the blocking open task runs");
+    Some(file)
+}
+
 /// Gate finding N6: a restore that fails leaves the binary that is there,
 /// keeps the marker for another try, and says it failed.
 #[tokio::test]
@@ -192,12 +222,10 @@ async fn a_restore_that_fails_is_reported_and_deletes_nothing() {
     let final_path = temp.path().join("yt-dlp");
     write(&marker_path(&final_path), "1").await;
     write(&final_path, "new").await;
-    // A directory cannot be renamed over a file, so this restore fails.
-    tokio::fs::create_dir(backup_path(&final_path))
-        .await
-        .expect("mkdir");
+    let block = make_restore_fail(&backup_path(&final_path), &final_path).await;
 
     assert!(!recover(std::slice::from_ref(&final_path)).await);
+    drop(block);
     assert_eq!(
         read(&final_path).await,
         "new",

@@ -158,6 +158,45 @@ async fn staged_pair<'g>(dir: &std::path::Path) -> crate::bin::StagedFfmpeg<'g> 
     }
 }
 
+/// Make the next restore onto `final_path` fail the way it really would,
+/// without touching product code (see `swap`'s test module for the same
+/// helper and why). On Unix a directory cannot replace a file, so the
+/// backup is one. On Windows `rename` refuses to replace a destination that
+/// is open with no sharing at all (no `FILE_SHARE_DELETE`), so the
+/// destination is held open for as long as the returned guard lives; drop
+/// it before the path needs to be read or removed again.
+#[cfg(unix)]
+async fn make_restore_fail(
+    backup: &std::path::Path,
+    _final_path: &std::path::Path,
+) -> Option<std::fs::File> {
+    tokio::fs::create_dir(backup).await.expect("mkdir");
+    None
+}
+
+#[cfg(windows)]
+async fn make_restore_fail(
+    backup: &std::path::Path,
+    final_path: &std::path::Path,
+) -> Option<std::fs::File> {
+    use std::os::windows::fs::OpenOptionsExt as _;
+
+    tokio::fs::write(backup, b"old")
+        .await
+        .expect("write the backup");
+    let final_path = final_path.to_path_buf();
+    let file = tokio::task::spawn_blocking(move || {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&final_path)
+            .expect("hold the destination open with no sharing")
+    })
+    .await
+    .expect("the blocking open task runs");
+    Some(file)
+}
+
 /// A pending pair swap whose rollback cannot finish blocks promotion: its
 /// `.old` may be the last working ffmpeg.
 #[tokio::test]
@@ -173,10 +212,8 @@ async fn a_pending_pair_swap_that_cannot_be_rolled_back_blocks_promotion() {
         .await
         .expect("marker");
     tokio::fs::write(&ffmpeg, b"half").await.expect("write");
-    // A directory cannot be renamed over the file there: the restore fails.
-    tokio::fs::create_dir(swap::backup_path(&ffmpeg))
-        .await
-        .expect("mkdir");
+    // The restore fails (see `make_restore_fail`).
+    let block = make_restore_fail(&swap::backup_path(&ffmpeg), &ffmpeg).await;
 
     let guard = manager.lock_install().await;
     let staged = staged_pair(temp.path()).await;
@@ -184,6 +221,7 @@ async fn a_pending_pair_swap_that_cannot_be_rolled_back_blocks_promotion() {
         .promote_staged(&guard, staged)
         .await
         .expect_err("refused");
+    drop(block);
 
     assert_eq!(error.to_string(), swap::SWAP_PENDING);
     assert!(swap::backup_path(&ffmpeg).exists());

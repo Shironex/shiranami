@@ -133,6 +133,39 @@ async fn a_guard_from_another_lock_is_refused() {
     );
 }
 
+/// Make the next restore onto `final_path` fail the way it really would,
+/// without touching product code (see `swap`'s test module for the same
+/// helper and why). On Unix a directory cannot replace a file, so the
+/// backup is one. On Windows `rename` refuses to replace a destination that
+/// is open with no sharing at all (no `FILE_SHARE_DELETE`), so the
+/// destination is held open for as long as the returned guard lives; drop
+/// it before the path needs to be read or removed again.
+#[cfg(unix)]
+async fn make_restore_fail(backup: &Path, _final_path: &Path) -> Option<std::fs::File> {
+    tokio::fs::create_dir(backup).await.expect("mkdir");
+    None
+}
+
+#[cfg(windows)]
+async fn make_restore_fail(backup: &Path, final_path: &Path) -> Option<std::fs::File> {
+    use std::os::windows::fs::OpenOptionsExt as _;
+
+    tokio::fs::write(backup, b"old")
+        .await
+        .expect("write the backup");
+    let final_path = final_path.to_path_buf();
+    let file = tokio::task::spawn_blocking(move || {
+        std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&final_path)
+            .expect("hold the destination open with no sharing")
+    })
+    .await
+    .expect("the blocking open task runs");
+    Some(file)
+}
+
 /// A swap left pending by a rollback that could not finish is not
 /// promoted over: its `.old` may be the last known-good build.
 #[tokio::test]
@@ -140,15 +173,12 @@ async fn a_pending_swap_that_cannot_be_rolled_back_blocks_promotion() {
     let temp = tempfile::tempdir().expect("a temporary directory");
     let manager = manager(temp.path().to_path_buf(), Ok(output("2026.09.20", 0)));
     let final_path = manager.path();
-    // Pending, and its restore fails: a directory cannot be renamed over
-    // the file that is there.
+    // Pending, and its restore fails (see `make_restore_fail`).
     tokio::fs::write(swap::marker_path(&final_path), "1")
         .await
         .expect("marker");
     tokio::fs::write(&final_path, b"half").await.expect("final");
-    tokio::fs::create_dir(swap::backup_path(&final_path))
-        .await
-        .expect("backup");
+    let block = make_restore_fail(&swap::backup_path(&final_path), &final_path).await;
 
     let staged_path = temp.path().join("yt-dlp.staged.tmp");
     tokio::fs::write(&staged_path, b"new")
@@ -166,6 +196,7 @@ async fn a_pending_swap_that_cannot_be_rolled_back_blocks_promotion() {
         .promote_staged(&guard, staged)
         .await
         .expect_err("refused");
+    drop(block);
 
     assert_eq!(error.to_string(), swap::SWAP_PENDING);
     assert!(
