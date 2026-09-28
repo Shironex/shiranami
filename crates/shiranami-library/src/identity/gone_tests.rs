@@ -246,11 +246,15 @@ fn a_file_stat_error_marks_its_root_failed_for_the_rest_of_the_batch() {
 
 /// A root that was present when the batch cached it and is gone by the time
 /// a file answers "not found": the fresh re-check refuses the move.
+///
+/// The file sits one folder below the root, so the ancestor walk stops at
+/// `Album` (which exists) and never asks the root itself: only the fresh
+/// re-check can see the root's second answer.
 #[test]
 fn a_not_found_answer_is_checked_against_fresh_root_verdicts() {
     let roots = ["/share/music"];
     let probe = Scripted {
-        missing: HashSet::from(["/share/music/a.mp3".to_owned()]),
+        missing: HashSet::from(["/share/music/Album/a.mp3".to_owned()]),
         sequence: std::cell::RefCell::new(HashMap::from([(
             "/share/music".to_owned(),
             vec![true, false],
@@ -258,7 +262,7 @@ fn a_not_found_answer_is_checked_against_fresh_root_verdicts() {
         ..Scripted::default()
     };
 
-    assert!(!MovedAway::with_probe(&roots, &probe).check("/share/music/a.mp3"));
+    assert!(!MovedAway::with_probe(&roots, &probe).check("/share/music/Album/a.mp3"));
 }
 
 #[test]
