@@ -157,6 +157,21 @@ function reaches(from: FakeNode, to: FakeNode): boolean {
   return false;
 }
 
+/** Reachability with one node removed from the graph. */
+function reachesAvoiding(from: FakeNode, to: FakeNode, avoid: FakeNode): boolean {
+  const seen = new Set<FakeNode>([avoid]);
+  const stack: FakeNode[] = [from];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) break;
+    if (node === to) return true;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    for (const next of node.outputs) stack.push(next);
+  }
+  return false;
+}
+
 /** Every node on some path from `from` to `to`. */
 function nodesBetween(from: FakeNode, to: FakeNode): FakeNode[] {
   return [...allNodes()].filter(n => n !== from && reaches(from, n) && reaches(n, to));
@@ -354,6 +369,47 @@ describe('audioAnalyser EQ bypass', () => {
 
       expect(created.biquads).toEqual(built);
       expect(created.biquads.map(n => n.gain.value)).toEqual(gains);
+    });
+  });
+
+  describe('the limiter as the only way out', () => {
+    it('is the only path from the decks to the speakers, EQ off or on', () => {
+      initGraph();
+      const { gainA, gainB, limiter } = graph();
+      const destination = contexts[0].destination;
+
+      for (const eqOn of [false, true]) {
+        setEqEnabled(eqOn);
+        vi.runAllTimers();
+        for (const deck of [gainA, gainB]) {
+          expect(reaches(deck, destination)).toBe(true);
+          expect(reachesAvoiding(deck, destination, limiter)).toBe(false);
+        }
+      }
+    });
+
+    it('leaves the analyser tap with no outputs, so it can never bypass the limiter', () => {
+      initGraph();
+      const { analyser } = graph();
+
+      expect(analyser.outputs.size).toBe(0);
+    });
+  });
+
+  describe('a throwing graph listener', () => {
+    it('cannot abort the graph build or starve the other listeners', () => {
+      const after = vi.fn();
+      const unsubscribeThrowing = subscribeAudioGraph(() => {
+        throw new Error('listener bug');
+      });
+      const unsubscribeAfter = subscribeAudioGraph(after);
+
+      expect(() => initGraph()).not.toThrow();
+      expect(isAnalyserReady()).toBe(true);
+      expect(after).toHaveBeenCalledTimes(1);
+
+      unsubscribeThrowing();
+      unsubscribeAfter();
     });
   });
 

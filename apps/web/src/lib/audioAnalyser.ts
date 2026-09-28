@@ -23,9 +23,11 @@
  * noise bed at -24 dBFS spread across 128 bins would lift every bar of every
  * visualizer to a constant floor. A tap whose output goes nowhere is still
  * rendered (Web Audio processes every node with live inputs; checked in both
- * Chromium and WebKit), and it now reads the music just before the limiter,
- * which differs from the old post-limiter reading only when the limiter is
- * actually clamping above -1 dBFS.
+ * Chromium and WebKit), and it reads the music just before the limiter. That
+ * differs slightly from a post-limiter reading everywhere, not only while the
+ * limiter clamps above -1 dBFS: a DynamicsCompressorNode applies a fixed
+ * makeup gain (about +0.6 dB at these settings) to all of its output. Well
+ * under what a visualizer bar can show.
  *
  * The 10 biquads are built lazily on the first EQ enable and are only wired
  * into the graph while the EQ is on. With the EQ off (the default) the dry
@@ -44,6 +46,7 @@
  */
 
 import { dbToLinear } from '@/lib/loudness';
+import { logger } from '@/lib/logger';
 
 /** 10 ISO-style bands used by the EQ chain. */
 export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const;
@@ -91,8 +94,20 @@ let eqUnwireTimer: ReturnType<typeof setTimeout> | null = null;
 /** Notified when the graph is built or torn down (see `subscribeAudioGraph`). */
 const graphListeners = new Set<() => void>();
 
+/**
+ * Each listener is isolated: `initAnalyser` runs inside the audio engine's
+ * first-play setup (volume, loudness, EQ replay all follow it), so a
+ * listener that throws must be logged, not allowed to abort that setup or
+ * starve the listeners after it.
+ */
 function notifyGraphListeners(): void {
-  for (const listener of graphListeners) listener();
+  for (const listener of graphListeners) {
+    try {
+      listener();
+    } catch (error) {
+      logger.warn('[audio] audio-graph listener failed', error);
+    }
+  }
 }
 
 /**
