@@ -19,7 +19,6 @@ export interface UseUpdaterEventsResult {
   version: string | null;
   progress: number;
   error: string | null;
-  isMac: boolean;
   setStatus: (status: UpdateStatus) => void;
   setProgress: (progress: number) => void;
   setError: (error: string | null) => void;
@@ -35,8 +34,6 @@ export function useUpdaterEvents(): UseUpdaterEventsResult {
   const [version, setVersion] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-
-  const isMac = IS_ELECTRON && window.electronAPI.platform === 'darwin';
 
   const unsubsRef = useRef<Array<() => void>>([]);
 
@@ -88,7 +85,6 @@ export function useUpdaterEvents(): UseUpdaterEventsResult {
     version,
     progress,
     error,
-    isMac,
     setStatus,
     setProgress,
     setError,
