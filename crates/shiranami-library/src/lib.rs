@@ -89,12 +89,14 @@
 #![warn(missing_docs)]
 
 pub mod error;
+pub mod identity;
 pub mod iso8601;
 pub mod scan;
 pub mod storage;
 pub mod validate;
 
 pub use error::{LibraryError, Result};
+pub use identity::{content_hash, content_hashes};
 pub use scan::{
     AUDIO_EXTENSIONS, GroupedScanResult, PARSE_CONCURRENCY, SCAN_MAX_DEPTH, ScanProgress,
     ScannedFile, SubfolderScan, empty_on_cancel, scan_folder, scan_folder_grouped,
