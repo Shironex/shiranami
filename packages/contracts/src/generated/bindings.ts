@@ -487,16 +487,20 @@ export const commands = {
 	/**  `db:tracks:remove` — delete one track. */
 	dbTracksRemove: (id: string) => __TAURI_INVOKE<null>("db_tracks_remove", { id }),
 	/**
-	 *  `db:tracks:remove-many` — delete a batch.
+	 *  `db:tracks:remove-many` — delete a batch, returning the ids deleted.
 	 * 
 	 *  The orphaned-art sweep v1 fired afterwards is deferred; see the module docs.
 	 * 
 	 *  `expected_paths`, when given, pairs each id with the path the caller checked
 	 *  on disk, and a row is deleted only if it still holds that path. The
 	 *  rescan's sweep passes it, so a row re-pointed after its check (by an import
-	 *  following a move, from any caller) survives instead of being deleted by id.
+	 *  following a move, from any caller) survives instead of being deleted by id,
+	 *  and the returned ids are exactly the rows that were deleted: the renderer
+	 *  drops those and nothing else. Without it the delete is by id, as v1's was,
+	 *  and the ids given are returned (v1 returned nothing, and every caller of
+	 *  that form ignores the value).
 	 */
-	dbTracksRemoveMany: (ids: string[], expectedPaths: string[] | null) => __TAURI_INVOKE<null>("db_tracks_remove_many", { ids, expectedPaths }),
+	dbTracksRemoveMany: (ids: string[], expectedPaths: string[] | null) => __TAURI_INVOKE<string[]>("db_tracks_remove_many", { ids, expectedPaths }),
 	/**  `db:tracks:update` — patch one track. */
 	dbTracksUpdate: (id: string, data: TrackUpdateInput_Deserialize) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */

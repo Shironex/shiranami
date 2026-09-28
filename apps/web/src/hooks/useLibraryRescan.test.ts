@@ -96,9 +96,10 @@ describe('useLibraryRescan', () => {
     vi.mocked(window.electronAPI.db.tracks.existsMany)
       .mockReset()
       .mockResolvedValue([] as never);
+    // By default the backend deletes every row it is asked to.
     vi.mocked(window.electronAPI.db.tracks.removeMany)
       .mockReset()
-      .mockResolvedValue(undefined as never);
+      .mockImplementation((async (ids: string[]) => ids) as never);
     vi.mocked(toast.success).mockClear();
     vi.mocked(toast.info).mockClear();
   });
@@ -199,15 +200,17 @@ describe('useLibraryRescan', () => {
       useLibraryStore.getState().addToLibrary([libraryTrack('t1', '/music/new/song.mp3', 7)]);
       return paths.filter(path => path === '/music/old/song.mp3');
     }) as never);
+    // The backend refuses the row: it now holds a different path than the one checked.
+    vi.mocked(window.electronAPI.db.tracks.removeMany).mockResolvedValue([] as never);
 
     await rescan();
 
-    // The delete names the path it checked, so the backend keeps the row...
+    // The delete names the path it checked, so the backend keeps the row,
     expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
       ['t1'],
       ['/music/old/song.mp3']
     );
-    // ...and the store keeps the re-pointed entry.
+    // and the store drops only what the backend reports deleted.
     expect(useLibraryStore.getState().library).toEqual([
       expect.objectContaining({ id: 't1', filePath: '/music/new/song.mp3' }),
     ]);

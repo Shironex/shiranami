@@ -22,9 +22,7 @@ const tracksApi: DbTracksApi = {
   remove: async id => {
     await commands.dbTracksRemove(id);
   },
-  removeMany: async (ids, expectedPaths) => {
-    await commands.dbTracksRemoveMany(ids, expectedPaths ?? null);
-  },
+  removeMany: (ids, expectedPaths) => commands.dbTracksRemoveMany(ids, expectedPaths ?? null),
   update: (id, data) => orUndefined(asContract<Track | null>(commands.dbTracksUpdate(id, data))),
   updateMany: async updates => {
     await commands.dbTracksUpdateMany(updates);

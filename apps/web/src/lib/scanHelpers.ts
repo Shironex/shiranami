@@ -31,8 +31,10 @@ export interface ScanAndPersistOptions {
   /**
    * Re-point tracks whose files have moved away instead of inserting the moved
    * files as new tracks. Only the rescan sets this: it is the one flow that
-   * also sweeps missing tracks, and the backend only counts a file as moved
-   * when its volume and music folder are present (an offline drive never is).
+   * also sweeps missing tracks. The backend counts a file as moved only when
+   * it is definitely not found while its volume and music folder definitely
+   * exist and are not empty, so an unmounted drive, a leftover empty mount
+   * point or a share answering with errors does not qualify.
    */
   followMoves?: boolean;
 }
@@ -142,9 +144,9 @@ export async function scanAndPersistFolder(
  * moved ids) is the second guard.
  *
  * The third guard closes the race with any writer that does not take the scan
- * lock (the download importer, say): the delete names the path each track was
- * checked at, so the backend skips a track that was re-pointed while
- * `validateFiles` ran, and the store only drops entries still at that path.
+ * lock: the delete names the path each track was checked at, so the backend
+ * skips a track that was re-pointed while `validateFiles` ran, and the store
+ * drops exactly the ids the backend reports deleted.
  */
 export async function removeMissingTracks(
   tracks: Track[],
@@ -162,18 +164,13 @@ export async function removeMissingTracks(
   const stale = candidates.filter(t => missingSet.has(t.filePath));
   if (stale.length === 0) return [];
 
-  await window.electronAPI.db.tracks.removeMany(
+  // The backend deletes a track only if it still holds the path checked
+  // here, and answers with exactly the ids it deleted: a track re-pointed
+  // while validateFiles ran survives, in the DB and in the store.
+  const removedIds = await window.electronAPI.db.tracks.removeMany(
     stale.map(t => t.id),
     stale.map(t => t.filePath)
   );
-
-  // Read the store again after the awaits: an entry re-pointed meanwhile now
-  // names a different path, and the backend kept its row.
-  const checkedAt = new Map(stale.map(t => [t.id, t.filePath]));
-  const removedIds = useLibraryStore
-    .getState()
-    .library.filter(t => checkedAt.get(t.id) === t.filePath)
-    .map(t => t.id);
   useLibraryStore.getState().removeFromLibrary(removedIds);
   return removedIds;
 }

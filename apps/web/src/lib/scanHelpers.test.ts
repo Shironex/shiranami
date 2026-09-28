@@ -44,9 +44,10 @@ describe('scanHelpers', () => {
     vi.mocked(window.electronAPI.db.tracks.addMany)
       .mockReset()
       .mockResolvedValue([] as never);
+    // By default the backend deletes every row it is asked to.
     vi.mocked(window.electronAPI.db.tracks.removeMany)
       .mockReset()
-      .mockResolvedValue(undefined as never);
+      .mockImplementation((async (ids: string[]) => ids) as never);
   });
 
   describe('scanAndPersistFolder', () => {

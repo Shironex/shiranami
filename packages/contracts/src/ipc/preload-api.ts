@@ -287,9 +287,10 @@ export interface DbTracksApi {
   /**
    * With `expectedPaths` (one per id), a track is removed only if it still
    * holds that path, so a sweep never deletes a track re-pointed since its
-   * files were checked.
+   * files were checked, and the resolved ids are exactly the tracks deleted.
+   * Without it the delete is by id and resolves the ids it was given.
    */
-  removeMany: (ids: string[], expectedPaths?: string[]) => Promise<void>;
+  removeMany: (ids: string[], expectedPaths?: string[]) => Promise<string[]>;
   update: (id: string, data: TrackUpdateInput) => Promise<Track | undefined>;
   updateMany: (updates: Array<{ id: string; data: TrackUpdateInput }>) => Promise<void>;
   toggleFavorite: (id: string) => Promise<Track | undefined>;
