@@ -19,6 +19,21 @@
 //! app and dropped the link. [`initial_argument`] closes that, because
 //! `find_deep_link_argument` already exists and the fix is one call.
 //!
+//! # Where the scheme is declared
+//!
+//! `tauri.conf.json` declares `shiranami` under `plugins.deep-link.desktop`.
+//! That entry is what the bundler turns into `CFBundleURLTypes` in the macOS
+//! `Info.plist` and into the NSIS installer's registry keys on Windows, and it
+//! is the only way to claim a scheme on macOS: the plugin's `register` returns
+//! `UnsupportedPlatform` there. Until it existed, a macOS build never owned
+//! `shiranami://` at all. [`register`] still claims it at runtime on Windows
+//! (and Linux), as v1 did, so an install moved after setup keeps working.
+//!
+//! On macOS the running app receives the link as `RunEvent::Opened`, which the
+//! plugin re-emits as its `deep-link://new-url` event; [`register`] listens
+//! for that there. Windows keeps its two argv paths above, and the listener is
+//! not installed there, so no link is dispatched twice.
+//!
 //! # A link that arrives before the window is dropped, and that is v1's rule
 //!
 //! v1's `handleDeepLink` reads the module-scoped `mainWindow` and returns
@@ -34,27 +49,58 @@ use shiranami_integrations::share::deep_link::{
 use tauri::{AppHandle, Manager as _};
 use tauri_specta::Event as _;
 
-/// Register `shiranami://` with the OS, when this build should own it.
+/// Claim `shiranami://` where it can be claimed at runtime, and listen for it
+/// where the OS delivers it as an event.
 ///
-/// v1's condition was `!process.defaultApp`, whose comment reads: *"Only
-/// register in packaged builds — dev mode can't resolve the Electron binary
-/// correctly on Windows."* The equivalent fact here is whether the running
-/// binary is the installed one, and `debug_assertions` is the honest stand-in:
-/// a dev build registering the scheme would point the OS at a target directory
-/// that moves.
+/// v1's runtime condition was `!process.defaultApp`, whose comment reads:
+/// *"Only register in packaged builds — dev mode can't resolve the Electron
+/// binary correctly on Windows."* The equivalent fact here is whether the
+/// running binary is the installed one, and `debug_assertions` is the honest
+/// stand-in: a dev build registering the scheme would point the OS at a target
+/// directory that moves.
 pub fn register(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    listen_for_open_url(app);
+
+    #[cfg(not(target_os = "macos"))]
+    register_scheme(app);
+}
+
+/// macOS: `open-url`, through the plugin's `deep-link://new-url` event.
+///
+/// Installed in every build, including a development one: the listener costs
+/// nothing, and only a bundle whose `Info.plist` carries the scheme is ever
+/// sent a link, so a dev binary simply never hears from it.
+#[cfg(target_os = "macos")]
+fn listen_for_open_url(app: &AppHandle) {
+    use tauri_plugin_deep_link::DeepLinkExt as _;
+
+    let handle = app.clone();
+    app.deep_link().on_open_url(move |event| {
+        for url in event.urls() {
+            dispatch(&handle, url.as_str());
+        }
+    });
+}
+
+/// Windows and Linux: write the scheme's registration for this executable.
+#[cfg(not(target_os = "macos"))]
+fn register_scheme(app: &AppHandle) {
     if crate::infra::platform::is_dev() {
         tracing::debug!("not claiming shiranami:// from a development build");
         return;
     }
 
     use tauri_plugin_deep_link::DeepLinkExt as _;
-    if let Err(error) = app.deep_link().register("shiranami") {
+    if let Err(error) = app.deep_link().register(SCHEME) {
         // Not fatal: the app works, share links do not. v1 did not check the
         // result at all.
         tracing::warn!(%error, "could not claim the shiranami:// scheme");
     }
 }
+
+/// The scheme, as `tauri.conf.json` declares it. A test keeps the two equal.
+pub const SCHEME: &str = "shiranami";
 
 /// The deep link this process was launched with, if any.
 ///
@@ -151,6 +197,18 @@ mod tests {
         let arguments = ["/Applications/Shiranami.app/Contents/MacOS/shiranami"];
 
         assert_eq!(find_deep_link_argument(arguments), None);
+    }
+
+    /// macOS can only receive a scheme the bundle declares, so the config
+    /// entry is load-bearing. Read from the file the bundler reads, so a
+    /// rename of either side fails here instead of in a user's browser.
+    #[test]
+    fn the_scheme_is_declared_where_the_bundler_reads_it() {
+        let config: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json"))
+            .expect("tauri.conf.json is JSON");
+
+        let schemes = &config["plugins"]["deep-link"]["desktop"]["schemes"];
+        assert_eq!(*schemes, serde_json::json!([SCHEME]), "{schemes}");
     }
 
     /// The gap v1 left: a cold launch carrying a link. This asserts the helper
