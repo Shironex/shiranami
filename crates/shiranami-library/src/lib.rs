@@ -55,10 +55,12 @@
 //!   Identity-preserving move detection is a real feature needing a real design
 //!   — a stable key the database does not currently store — and it is not a
 //!   port. It is recorded here as the most valuable thing this subsystem lacks.
-//! - **There is no folder watching.** No `chokidar`, no `fs.watch`, no polling
+//! - **There was no folder watching.** No `chokidar`, no `fs.watch`, no polling
 //!   timer, no rescan on startup or focus; `folders.last_scanned` is written and
-//!   never read. Every scan is user-triggered from one of three buttons.
-//!   `notify` is therefore not a dependency — see the workspace manifest.
+//!   never read. Every v1 scan was user-triggered from one of three buttons.
+//!   The v2 feature wave adds one in [`watch`], and deliberately keeps it out of
+//!   reconciliation: it reports *which folders* changed, and the renderer
+//!   rescans them through the same path its buttons use.
 //!
 //! # The pipeline shape
 //!
@@ -93,6 +95,7 @@ pub mod iso8601;
 pub mod scan;
 pub mod storage;
 pub mod validate;
+pub mod watch;
 
 pub use error::{LibraryError, Result};
 pub use scan::{
