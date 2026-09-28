@@ -124,6 +124,15 @@ pub fn run() {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     }
 
+    // Launch at startup: registered behind the same predicate that decides
+    // whether anything writes through it (`system::watch_autostart` below), so
+    // a development build neither loads the plugin nor leaves a login item
+    // pointing at its target directory. The default macOS launcher is a Launch
+    // Agent; Windows uses the `HKCU` Run key.
+    if system::autostart_enabled(e2e) {
+        builder = builder.plugin(tauri_plugin_autostart::Builder::new().build());
+    }
+
     // The embedded W3C WebDriver server the Phase 18 E2E suite drives (§8 ring
     // 3). It is behind a Cargo feature rather than `debug_assertions` so that
     // the crate is not even compiled into an ordinary `pnpm tauri:dev` build,
@@ -250,6 +259,9 @@ pub fn run() {
                     // launch.
                     Err(error) => tracing::warn!(%error, "could not create the tray"),
                 }
+            }
+            if system::autostart_enabled(e2e) {
+                system::watch_autostart(&handle, &preflight.settings);
             }
             shortcuts::register(&handle, e2e);
             deep_link::register(&handle);

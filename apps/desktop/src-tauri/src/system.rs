@@ -1,4 +1,5 @@
-//! Close to tray, minimize to tray, and the quit flag that beats both.
+//! Close to tray, minimize to tray, the quit flag that beats both, and launch
+//! at startup.
 //!
 //! `shiranami_media_controls::system` owns the decisions and says what it left
 //! to the shell: reading the two settings and performing the answer on a real
@@ -26,12 +27,23 @@
 //! `RunEvent::Exit` only, and never produces a `CloseRequested` at all. A source
 //! scan in the tests below pins that nothing else in the crate calls
 //! `AppHandle::exit` or `AppHandle::restart` directly.
+//!
+//! # Launch at startup
+//!
+//! `shiranami_media_controls::autostart` owns v1's rule (a fresh install never
+//! writes the login item) and this module supplies the OS write through
+//! `tauri-plugin-autostart`, called from Rust only: `capabilities/default.json`
+//! grants the webview none of the plugin's commands, because the settings
+//! store is already the one way the renderer asks for this. The value is
+//! reconciled at boot and followed on the bus, like the two tray settings.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use shiranami_core::store::{RendererStoreKey, SettingsStore};
+use shiranami_media_controls::autostart::{Autostart, AutostartBackend, AutostartOutcome};
 use shiranami_media_controls::system::{CloseAction, MinimizeAction, SystemBehavior};
+use shiranami_media_controls::{MediaControlsError, Result as MediaResult};
 use tauri::{AppHandle, Manager as _};
 
 /// The live values of `system.closeToTray` and `system.minimizeToTray`.
@@ -175,6 +187,72 @@ fn quit_with(state: Option<&SystemState>, exit: impl FnOnce()) {
         state.begin_quit();
     }
     exit();
+}
+
+/// Whether this build registers a login item at all.
+///
+/// Not in a development build, where the login item would point at a target
+/// directory that moves (v1 documented the same for its unpackaged builds),
+/// and not under the harness, which must never leave OS state behind. Linux
+/// is excluded by the crate's own `autostart::is_supported`.
+pub fn autostart_enabled(e2e: bool) -> bool {
+    !e2e && !crate::infra::platform::is_dev()
+}
+
+/// `tauri-plugin-autostart`'s manager as the crate's backend.
+pub struct PluginAutostart {
+    app: AppHandle,
+}
+
+impl AutostartBackend for PluginAutostart {
+    fn set_enabled(&self, enabled: bool) -> MediaResult<()> {
+        // `try_state` rather than the plugin's `autolaunch()`, which panics
+        // when the plugin is not registered.
+        let Some(manager) = self
+            .app
+            .try_state::<tauri_plugin_autostart::AutoLaunchManager>()
+        else {
+            return Err(MediaControlsError::Backend(
+                "the autostart plugin is not registered".to_owned(),
+            ));
+        };
+
+        let result = if enabled {
+            manager.enable()
+        } else {
+            manager.disable()
+        };
+        result.map_err(|error| MediaControlsError::Backend(error.to_string()))
+    }
+}
+
+/// Apply `system.launchAtStartup` now, and on every change.
+///
+/// The boot write repeats v1's: re-registering an already registered item is
+/// harmless and keeps it pointing at wherever the app lives today. It runs on
+/// a blocking worker because it is a file write on macOS and a registry write
+/// on Windows, and neither belongs on the thread that paints the first frame.
+pub fn watch_autostart(app: &AppHandle, settings: &Arc<SettingsStore>) {
+    let autostart = Arc::new(Autostart::new(PluginAutostart { app: app.clone() }));
+
+    let boot = Arc::clone(&autostart);
+    let stored = settings.get(RendererStoreKey::SystemLaunchAtStartup);
+    tauri::async_runtime::spawn_blocking(move || {
+        report(boot.apply_persisted(stored.as_ref()));
+    });
+
+    settings.bus().subscribe(
+        RendererStoreKey::SystemLaunchAtStartup.path(),
+        move |event| report(autostart.apply_change(event)),
+    );
+}
+
+/// v1 logged a refused login-item write and carried on.
+fn report(outcome: MediaResult<AutostartOutcome>) {
+    match outcome {
+        Ok(outcome) => tracing::debug!(?outcome, "launch at startup reconciled"),
+        Err(error) => tracing::warn!(%error, "could not write the login item"),
+    }
 }
 
 #[cfg(test)]
