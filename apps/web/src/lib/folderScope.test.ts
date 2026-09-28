@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isUnderFolder, selectFolders, tracksInFolders } from './folderScope';
+import { guardDeletions, isUnderFolder, selectFolders, tracksInFolders } from './folderScope';
 
 const folders = [
   { id: 'a', path: '/music/lofi' },
@@ -49,5 +49,47 @@ describe('tracksInFolders', () => {
 
   it('keeps only tracks under the scoped folders', () => {
     expect(tracksInFolders(tracks, [folders[0]]).map(t => t.id)).toEqual(['1']);
+  });
+});
+
+describe('guardDeletions', () => {
+  const scoped = [{ id: 'a', path: '/music/a' }];
+  const tracks = [{ filePath: '/music/a/1.mp3' }, { filePath: '/music/a/2.mp3' }];
+  const none = new Set<string>();
+
+  it('passes a genuine deletion through', () => {
+    const result = guardDeletions({
+      folders: scoped,
+      tracks,
+      missing: ['/music/a/1.mp3'],
+      unscannedIds: none,
+      missingRoots: none,
+    });
+    expect(result).toEqual({ missing: ['/music/a/1.mp3'], held: [] });
+  });
+
+  it.each([
+    ['root-missing', { unscannedIds: none, missingRoots: new Set(['/music/a']) }],
+    ['scan-empty', { unscannedIds: new Set(['a']), missingRoots: none }],
+  ] as const)('holds a folder for %s', (reason, sets) => {
+    const result = guardDeletions({
+      folders: scoped,
+      tracks,
+      missing: ['/music/a/1.mp3'],
+      ...sets,
+    });
+    expect(result).toEqual({ missing: [], held: [{ folderId: 'a', reason }] });
+  });
+
+  it('holds a folder whose every track reads as missing', () => {
+    const result = guardDeletions({
+      folders: scoped,
+      tracks,
+      missing: ['/music/a/1.mp3', '/music/a/2.mp3'],
+      unscannedIds: none,
+      missingRoots: none,
+    });
+    expect(result.held).toEqual([{ folderId: 'a', reason: 'all-missing' }]);
+    expect(result.missing).toEqual([]);
   });
 });

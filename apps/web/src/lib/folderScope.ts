@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 /**
  * Narrowing a rescan to some of the library's folders.
  *
@@ -53,4 +55,92 @@ export function tracksInFolders<T extends { filePath: string }>(
 ): T[] {
   if (!folders) return [...tracks];
   return tracks.filter(track => folders.some(folder => isUnderFolder(track.filePath, folder.path)));
+}
+
+/** Why a watcher-triggered rescan kept a folder's missing tracks. */
+export type HeldReason = 'root-missing' | 'scan-empty' | 'all-missing';
+
+export interface IDeletionGuardInput {
+  /** The folders the rescan covered. */
+  folders: readonly IScopedFolder[];
+  /** The tracks it validated. */
+  tracks: readonly { filePath: string }[];
+  /** The paths validation reported missing. */
+  missing: readonly string[];
+  /** Folders whose scan found no files or failed outright. */
+  unscannedIds: ReadonlySet<string>;
+  /** Folder roots that were not found just before deleting. */
+  missingRoots: ReadonlySet<string>;
+}
+
+export interface IDeletionGuardResult {
+  /** The missing paths that may be deleted. */
+  missing: string[];
+  /** The folders whose deletions were held back, and why. */
+  held: { folderId: string; reason: HeldReason }[];
+}
+
+/**
+ * The watcher's deletion policy: remove files the user really deleted, and
+ * never empty a folder that merely became unreachable.
+ *
+ * A folder's missing tracks are all kept when
+ *
+ * - its root is gone (a drive ejected between the watcher's batch and now),
+ * - its scan found nothing or failed while it still has tracks (a volume
+ *   unmounted mid-scan, a stale share), or
+ * - every one of its tracks reads as missing (the same, seen from validation).
+ *
+ * Those look exactly like a vanished volume, and a watcher must not decide that
+ * on its own; the user's manual Rescan still can. Validation itself already
+ * keeps any file it could not check (only "not found" is missing), so what is
+ * left here is the case where the whole folder answers "not found".
+ */
+export function guardDeletions({
+  folders,
+  tracks,
+  missing,
+  unscannedIds,
+  missingRoots,
+}: IDeletionGuardInput): IDeletionGuardResult {
+  const missingSet = new Set(missing);
+  const held: IDeletionGuardResult['held'] = [];
+
+  for (const folder of folders) {
+    const own = tracks.filter(track => isUnderFolder(track.filePath, folder.path));
+    if (own.length === 0) continue;
+
+    if (missingRoots.has(folder.path)) {
+      held.push({ folderId: folder.id, reason: 'root-missing' });
+    } else if (unscannedIds.has(folder.id)) {
+      held.push({ folderId: folder.id, reason: 'scan-empty' });
+    } else if (own.every(track => missingSet.has(track.filePath))) {
+      held.push({ folderId: folder.id, reason: 'all-missing' });
+    }
+  }
+
+  const heldFolders = folders.filter(folder => held.some(h => h.folderId === folder.id));
+  return {
+    missing: missing.filter(path => !heldFolders.some(f => isUnderFolder(path, f.path))),
+    held,
+  };
+}
+
+/**
+ * {@link guardDeletions} for a watcher-triggered rescan, with the roots
+ * re-checked immediately before anything is deleted. Logs every held folder.
+ */
+export async function watcherDeletions(
+  input: Omit<IDeletionGuardInput, 'missingRoots'>
+): Promise<string[]> {
+  const missingRoots = new Set(
+    await window.electronAPI.library.validateFiles(input.folders.map(folder => folder.path))
+  );
+  const { missing, held } = guardDeletions({ ...input, missingRoots });
+  for (const { folderId, reason } of held) {
+    logger.warn(
+      `[folder-watch] kept the missing tracks of folder ${folderId} (${reason}); a manual Rescan removes them`
+    );
+  }
+  return missing;
 }

@@ -8,7 +8,7 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
-import { selectFolders, tracksInFolders } from '@/lib/folderScope';
+import { selectFolders, tracksInFolders, watcherDeletions } from '@/lib/folderScope';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { diskUsageKeys } from '@/hooks/queries/useDiskUsage';
@@ -84,11 +84,13 @@ export function useLibraryRescan(): UseLibraryRescanResult {
     setScanState('scanning');
     let totalAdded = 0;
     const allDetectedSubfolders: SubfolderGroup[] = [];
+    const unscannedIds = new Set<string>();
 
     try {
       for (const folder of folders) {
         try {
           const result = await scanAndPersistFolder(folder.path);
+          if (result.empty) unscannedIds.add(folder.id);
 
           if (result.subfolders.length > 0) {
             allDetectedSubfolders.push(...result.subfolders);
@@ -100,6 +102,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
           await window.electronAPI.db.folders.updateScanned(folder.id);
         } catch {
           // Skip folders that fail to scan (e.g., deleted directories)
+          unscannedIds.add(folder.id);
         }
       }
 
@@ -111,7 +114,16 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       );
       if (currentLibrary.length > 0) {
         const allPaths = currentLibrary.map(t => t.filePath);
-        const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
+        const validated = await window.electronAPI.library.validateFiles(allPaths);
+        // Watcher runs never delete what looks like a vanished volume.
+        const missingPaths = quiet
+          ? await watcherDeletions({
+              folders,
+              tracks: currentLibrary,
+              missing: validated,
+              unscannedIds,
+            })
+          : validated;
         if (missingPaths.length > 0) {
           const missingSet = new Set(missingPaths);
           const staleIds = currentLibrary.filter(t => missingSet.has(t.filePath)).map(t => t.id);
