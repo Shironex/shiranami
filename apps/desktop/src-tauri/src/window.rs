@@ -301,9 +301,10 @@ pub fn configure(window: &WebviewWindow) {
 /// the music keeps playing. `crate::system` holds the flag and the settings.
 ///
 /// **Minimize to tray.** Tauri has no minimize event, so the titlebar's button
-/// asks `crate::system` itself (`window:minimize`), and a minimize the OS
-/// performed (the taskbar button, Win+Down) is caught here as a resize that
-/// leaves the window minimized.
+/// asks `crate::system` itself (`window:minimize`). On Windows a minimize the
+/// OS performed (the taskbar button, Win+Down) is caught here as a resize that
+/// leaves the window minimized. macOS emits no resize for a minimize, so Cmd+M
+/// is not caught there and minimizes to the Dock as usual.
 fn install_close_handler(window: &WebviewWindow) {
     let app = window.app_handle().clone();
     let base = window.as_ref().window();

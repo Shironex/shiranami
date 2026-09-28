@@ -79,8 +79,10 @@ pub(crate) use commands;
 /// `window:minimize`, or a hide when `system.minimizeToTray` is on.
 ///
 /// v1 did the same from its `minimize` listener. Tauri has no such event, so
-/// the titlebar's button is where the setting is honoured; a minimize the OS
-/// performs is caught by the resize hook in `crate::window`.
+/// the titlebar's button is where the setting is honoured. On Windows a
+/// minimize the OS performs (the taskbar button, Win+Down) is caught by the
+/// resize hook in `crate::window`; macOS sends no resize for a minimize, so
+/// Cmd+M there still minimizes to the Dock whatever the setting.
 #[tauri::command]
 #[specta::specta]
 pub async fn window_minimize(window: tauri::Window) {
