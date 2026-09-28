@@ -75,7 +75,7 @@ pub struct FfmpegManager {
     pub(crate) client: Arc<HttpClient>,
     pub(crate) runner: Arc<dyn ProcessRunner>,
     /// One install at a time; see `bin::lock`.
-    install_lock: InstallLock,
+    pub(crate) install_lock: InstallLock,
 }
 
 impl FfmpegManager {
@@ -125,11 +125,18 @@ impl FfmpegManager {
 
     /// Whether **both** binaries are present.
     ///
-    /// First finishes a pair swap a crash interrupted, restoring ffmpeg and
-    /// ffprobe together (see [`swap::recover`]), when no install is running.
+    /// First rolls back a pair swap a crash left unfinished, putting ffmpeg and
+    /// ffprobe back to the same previous build whichever point the crash hit
+    /// (see [`swap::recover`]; only when its marker is on disk and no install
+    /// is running).
     pub async fn is_installed(&self) -> bool {
-        if let Some(_idle) = self.install_lock.try_lock() {
-            swap::recover(&[self.ffmpeg_path(), self.ffprobe_path()]).await;
+        let finals = [self.ffmpeg_path(), self.ffprobe_path()];
+        // The marker check first, so an ordinary status read never touches
+        // the lock (and never shows as an install in progress).
+        if swap::is_pending(&finals).await
+            && let Some(_idle) = self.install_lock.try_lock()
+        {
+            swap::recover(&finals).await;
         }
         tokio::fs::try_exists(self.ffmpeg_path())
             .await
@@ -250,9 +257,14 @@ impl FfmpegManager {
     /// pair does not run.
     pub async fn promote_staged(
         &self,
-        _guard: &InstallGuard<'_>,
-        staged: StagedFfmpeg,
+        guard: &InstallGuard<'_>,
+        staged: StagedFfmpeg<'_>,
     ) -> Result<String> {
+        if let Err(error) = guard.check(&self.install_lock) {
+            self.discard(staged).await;
+            return Err(error);
+        }
+
         // Checked again right before the renames, for the reason
         // `YtDlpManager::promote_staged` gives: an automatic update may have
         // waited a long time for the download queue since staging.
@@ -299,7 +311,7 @@ impl FfmpegManager {
     }
 
     /// Throw a staged pair away, for an update that will not be promoted.
-    pub async fn discard(&self, staged: StagedFfmpeg) {
+    pub async fn discard(&self, staged: StagedFfmpeg<'_>) {
         crate::bin::install::remove_dir_quietly(&staged.dir).await;
     }
 

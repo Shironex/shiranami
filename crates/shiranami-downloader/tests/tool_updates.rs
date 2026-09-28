@@ -13,7 +13,8 @@ use std::sync::Arc;
 
 use shiranami_core::models::Tool;
 use shiranami_downloader::bin::checksum::{self, CHECKSUM_MISMATCH};
-use shiranami_downloader::bin::swap::backup_path;
+use shiranami_downloader::bin::lock::{FOREIGN_GUARD, InstallLock};
+use shiranami_downloader::bin::swap::{backup_path, marker_path};
 use shiranami_downloader::bin::ytdlp::PROBE_FAILED;
 use shiranami_downloader::bin::{FfmpegManager, Platform, Tools, YtDlpManager};
 use shiranami_downloader::spawn::{
@@ -236,12 +237,7 @@ async fn the_swap_waits_for_the_gate() {
     };
 
     // Staging finishes while "downloads" are still running…
-    for _ in 0..2_000 {
-        if server.paths().len() == 3 {
-            break;
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-    }
+    requests(&server, 3).await;
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     assert!(
         !update.is_finished(),
@@ -438,9 +434,6 @@ async fn a_release_tag_that_is_not_a_plain_tag_is_refused() {
         vec!["/api".to_owned()],
         "nothing else is fetched"
     );
-
-    let guard = tools.ytdlp.lock_install().await;
-    assert!(tools.ytdlp.stage(&guard, Some("../x"), None).await.is_err());
 }
 
 /// A crash between the two renames leaves only `.old`; the next status check
@@ -450,34 +443,47 @@ async fn an_interrupted_swap_is_recovered_on_the_next_status_check() {
     let temp = tempfile::tempdir().expect("a temporary directory");
     let server = TestServer::start(Vec::new()).await;
     let path = temp.path().join("yt-dlp.exe");
+    // What a crash between the two renames leaves: the marker and `.old`.
+    tokio::fs::write(marker_path(&path), "1")
+        .await
+        .expect("the marker");
     tokio::fs::write(backup_path(&path), OLD)
         .await
-        .expect("the leftover");
+        .expect("the backup");
     let tools = tools(temp.path(), &server);
 
     assert!(tools.ytdlp.is_installed().await);
     assert_eq!(tools.ytdlp.version().await.as_deref(), Some(OLD));
     assert!(!backup_path(&path).exists());
+    assert!(!marker_path(&path).exists());
 }
 
+/// The same check guards promotion: a staged file cannot be promoted under a
+/// guard that is not the tool's own.
 #[tokio::test]
-async fn ffmpeg_is_never_updated_unattended_on_macos() {
+async fn promoting_under_another_lock_is_refused() {
     let temp = tempfile::tempdir().expect("a temporary directory");
-    let server = TestServer::start(Vec::new()).await;
-    let client = Arc::new(shiranami_net::HttpClient::new().expect("the client builds"));
-    let runner: Arc<dyn ProcessRunner> = Arc::new(FileVersionRunner);
-    let mac = |bin: &Path| {
-        FfmpegManager::new(
-            bin.to_path_buf(),
-            Platform::MacOs,
-            Arc::clone(&client),
-            Arc::clone(&runner),
-        )
-    };
-    let tools = Tools::new(tools(temp.path(), &server).ytdlp, mac(temp.path()));
+    let mut replies = release(NEW, NEW).await;
+    replies.remove(0);
+    let server = TestServer::start(replies).await;
+    let path = installed(temp.path()).await;
+    let tools = tools(temp.path(), &server);
 
-    let outcome = update_tool(Tool::Ffmpeg, &tools, &Open).await;
+    let guard = tools.ytdlp.lock_install().await;
+    let staged = tools
+        .ytdlp
+        .stage(&guard, Some(NEW), None)
+        .await
+        .expect("stages");
+    let stranger = InstallLock::default();
+    let foreign = stranger.lock().await;
 
-    assert_eq!(outcome, UpdateOutcome::NotSupported);
-    assert!(server.paths().is_empty());
+    let error = tools
+        .ytdlp
+        .promote_staged(&foreign, staged)
+        .await
+        .expect_err("refused");
+
+    assert_eq!(error.to_string(), FOREIGN_GUARD);
+    assert_eq!(read(&path).await, OLD);
 }

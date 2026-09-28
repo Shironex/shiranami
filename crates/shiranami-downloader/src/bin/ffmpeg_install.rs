@@ -16,6 +16,7 @@
 //! offset to 50, and the four flat values mark the extraction steps. Windows
 //! scales its single download by 0.9 and marks 92, 96, 100.
 
+use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 
 use crate::bin::archive;
@@ -46,8 +47,11 @@ fn mark(progress: Option<&dyn ProgressSink>, percent: u32) {
 }
 
 /// A verified ffmpeg and ffprobe pair waiting to be promoted.
+///
+/// `'g` is the borrow of the [`InstallGuard`] it was staged under, so it cannot
+/// outlive that guard.
 #[derive(Debug)]
-pub struct StagedFfmpeg {
+pub struct StagedFfmpeg<'g> {
     pub(crate) dir: PathBuf,
     pub(crate) ffmpeg: PathBuf,
     pub(crate) ffprobe: PathBuf,
@@ -57,6 +61,7 @@ pub struct StagedFfmpeg {
     /// digest, so this only guarantees the files did not change while staged.
     pub(crate) ffmpeg_digest: checksum::Sha256Digest,
     pub(crate) ffprobe_digest: checksum::Sha256Digest,
+    pub(crate) _under: PhantomData<&'g ()>,
 }
 
 impl FfmpegManager {
@@ -73,13 +78,16 @@ impl FfmpegManager {
     /// # Errors
     ///
     /// `InstallFailed` on an unsupported platform, a malformed archive or a
-    /// failed checksum; `Io` or `Http` when a step fails. The staging
-    /// directory is removed on every failure.
-    pub async fn stage(
+    /// failed checksum or a guard that is not from this manager's lock
+    /// ([`crate::bin::lock::FOREIGN_GUARD`]); `Io` or `Http` when a step fails.
+    /// The staging directory is removed on every failure.
+    pub async fn stage<'g>(
         &self,
-        _guard: &InstallGuard<'_>,
+        guard: &'g InstallGuard<'_>,
         progress: Option<&dyn ProgressSink>,
-    ) -> Result<StagedFfmpeg> {
+    ) -> Result<StagedFfmpeg<'g>> {
+        guard.check(&self.install_lock)?;
+
         if self.platform == Platform::Other {
             return Err(DownloaderError::InstallFailed {
                 message: crate::bin::ffmpeg::UNSUPPORTED_PLATFORM.to_owned(),
@@ -120,6 +128,7 @@ impl FfmpegManager {
                     ffprobe,
                     ffmpeg_digest,
                     ffprobe_digest,
+                    _under: PhantomData,
                 })
             }
             Err(error) => {

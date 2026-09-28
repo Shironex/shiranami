@@ -13,6 +13,7 @@
 //! [`YtDlpManager::install`] is the opposite: it is a user-initiated action
 //! with a visible outcome, so every failure propagates.
 
+use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -112,13 +113,19 @@ impl YtDlpManager {
     /// Existence only, as v1 checked. A present-but-corrupt binary surfaces at
     /// the next spawn, which is where a user can be told something actionable.
     ///
-    /// First finishes a swap a crash interrupted (see [`swap::recover`]), when
-    /// no install is running, so a tool that was mid-update when the app died
-    /// reads as installed rather than missing. Every status check and the
-    /// boot-time status refresh come through here.
+    /// First rolls back a swap a crash left unfinished (see [`swap::recover`];
+    /// only when its marker is on disk and no install is running), so a tool
+    /// that was mid-update when the app died reads as its previous version
+    /// rather than as missing. Every status check and the boot-time status
+    /// refresh come through here.
     pub async fn is_installed(&self) -> bool {
-        if let Some(_idle) = self.install_lock.try_lock() {
-            swap::recover(&[self.path()]).await;
+        let finals = [self.path()];
+        // The marker check first, so an ordinary status read never touches
+        // the lock (and never shows as an install in progress).
+        if swap::is_pending(&finals).await
+            && let Some(_idle) = self.install_lock.try_lock()
+        {
+            swap::recover(&finals).await;
         }
         tokio::fs::try_exists(self.path()).await.unwrap_or(false)
     }
@@ -227,21 +234,26 @@ impl YtDlpManager {
     /// Staging is split from promotion so an automatic update can do the slow
     /// part (the download) while downloads are still running, and hold the
     /// queue only for the fast part (the renames). Both halves take the
-    /// install guard, so the whole sequence is one install.
+    /// install guard and refuse one from any other lock, and the staged handle
+    /// borrows the guard, so it cannot be promoted after the guard is dropped.
     ///
     /// # Errors
     ///
     /// [`crate::DownloaderError::Http`] or `InstallFailed` when a download
     /// fails or the tag is not a plain tag, `InstallFailed` carrying
     /// [`checksum::CHECKSUM_MISMATCH`] or [`checksum::CHECKSUM_MISSING`] when
-    /// verification refuses the asset, `Io` when a filesystem step fails. The
-    /// staged file is removed on every failure.
-    pub async fn stage(
+    /// verification refuses the asset, `Io` when a filesystem step fails,
+    /// `InstallFailed` carrying [`crate::bin::lock::FOREIGN_GUARD`] for a guard
+    /// that is not from this manager's lock. The staged file is removed on
+    /// every failure.
+    pub async fn stage<'g>(
         &self,
-        _guard: &InstallGuard<'_>,
+        guard: &'g InstallGuard<'_>,
         tag: Option<&str>,
         progress: Option<&dyn ProgressSink>,
-    ) -> Result<StagedYtDlp> {
+    ) -> Result<StagedYtDlp<'g>> {
+        guard.check(&self.install_lock)?;
+
         if let Some(tag) = tag
             && !layout::is_release_tag(tag)
         {
@@ -263,6 +275,7 @@ impl YtDlpManager {
             Ok(digest) => Ok(StagedYtDlp {
                 path: staging,
                 digest,
+                _under: PhantomData,
             }),
             Err(error) => {
                 install::remove_quietly(&staging).await;
@@ -290,9 +303,13 @@ impl YtDlpManager {
     /// when the new binary does not run.
     pub async fn promote_staged(
         &self,
-        _guard: &InstallGuard<'_>,
-        staged: StagedYtDlp,
+        guard: &InstallGuard<'_>,
+        staged: StagedYtDlp<'_>,
     ) -> Result<String> {
+        if let Err(error) = guard.check(&self.install_lock) {
+            install::remove_quietly(&staged.path).await;
+            return Err(error);
+        }
         let final_path = self.path();
 
         if let Err(error) = checksum::verify_file(&staged.path, &staged.digest).await {
@@ -328,7 +345,7 @@ impl YtDlpManager {
     }
 
     /// Throw a staged binary away, for an update that will not be promoted.
-    pub async fn discard(&self, staged: StagedYtDlp) {
+    pub async fn discard(&self, staged: StagedYtDlp<'_>) {
         install::remove_quietly(&staged.path).await;
     }
 
@@ -380,15 +397,17 @@ impl YtDlpManager {
 /// A verified yt-dlp waiting beside the installed one to be promoted.
 ///
 /// Deliberately not `Clone`: it names one file, and promoting or discarding it
-/// consumes it.
+/// consumes it. `'g` is the borrow of the [`InstallGuard`] it was staged under,
+/// so the compiler refuses to let it outlive that guard.
 #[derive(Debug)]
-pub struct StagedYtDlp {
+pub struct StagedYtDlp<'g> {
     path: PathBuf,
     /// What the file hashed to when it was verified.
     digest: checksum::Sha256Digest,
+    _under: PhantomData<&'g ()>,
 }
 
-impl StagedYtDlp {
+impl StagedYtDlp<'_> {
     /// Where the staged binary is.
     pub fn path(&self) -> &Path {
         &self.path
@@ -491,6 +510,43 @@ mod tests {
             .expect("place a binary");
 
         assert_eq!(manager.version().await, None);
+    }
+
+    /// A guard only proves "yt-dlp's lock is held" because the manager checks
+    /// where it came from: a fresh lock's guard and ffmpeg's are both refused,
+    /// before anything is downloaded.
+    #[tokio::test]
+    async fn a_guard_from_another_lock_is_refused() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let manager = manager(temp.path().to_path_buf(), Ok(output("", 0)));
+
+        let stranger = InstallLock::default();
+        let foreign = stranger.lock().await;
+        let error = manager
+            .stage(&foreign, Some("2026.09.20"), None)
+            .await
+            .expect_err("a fresh lock's guard");
+        assert_eq!(error.to_string(), crate::bin::lock::FOREIGN_GUARD);
+
+        let ffmpeg = crate::bin::FfmpegManager::new(
+            temp.path().to_path_buf(),
+            Platform::MacOs,
+            Arc::new(HttpClient::new().expect("the client builds")),
+            Arc::new(Fixed(Ok(output("", 0)))),
+        );
+        let ffmpegs = ffmpeg.lock_install().await;
+        let error = manager
+            .stage(&ffmpegs, Some("2026.09.20"), None)
+            .await
+            .expect_err("another tool's guard");
+        assert_eq!(error.to_string(), crate::bin::lock::FOREIGN_GUARD);
+
+        let own = manager.lock_install().await;
+        assert!(own.check(&manager.install_lock).is_ok());
+        assert!(
+            manager.stage(&own, Some("../x"), None).await.is_err(),
+            "the tag goes into a URL path, so only a plain tag is staged"
+        );
     }
 
     #[test]

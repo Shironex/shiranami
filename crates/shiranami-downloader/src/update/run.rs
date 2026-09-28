@@ -3,10 +3,16 @@
 //!
 //! # The order is what keeps downloads safe
 //!
-//! 1. Take the tool's **install lock** (`bin::lock`) and keep it to the end. A
-//!    manual install clicked meanwhile waits behind this one instead of
-//!    staging into, promoting over or rolling back the same files.
-//! 2. Ask the upstream. Unreachable is a quiet skip.
+//! 1. Ask the upstream, without any lock. Unreachable is a quiet skip, and an
+//!    up-to-date tool never touches the lock, so the settings panel's
+//!    "installing" flag is not raised by a routine check.
+//! 2. Take the tool's **install lock** (`bin::lock`) and keep it to the end,
+//!    re-reading the installed version under it (a manual install may have
+//!    finished in the meantime). A manual install clicked from here on waits
+//!    behind this one instead of staging into, promoting over or rolling back
+//!    the same files. The manager refuses a guard from any other lock, and the
+//!    staged handle cannot outlive the guard; see `bin::lock` for which half
+//!    of that the compiler checks and which half is a run-time check.
 //! 3. **Stage** the new binary beside the old one: download, verify the
 //!    checksum, make it executable. This is the slow part (seconds for yt-dlp,
 //!    up to a minute or two for ffmpeg), and it runs while downloads carry on,
@@ -125,8 +131,6 @@ pub async fn update_tool(tool: Tool, tools: &Tools, gate: &dyn SwapGate) -> Upda
 }
 
 async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutcome {
-    let guard = manager.lock_install().await;
-
     if !manager.is_installed().await {
         return UpdateOutcome::NotInstalled;
     }
@@ -135,6 +139,12 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
     let Some(latest) = latest else {
         return UpdateOutcome::Unreachable;
     };
+    if !has_update(current.as_deref(), Some(&latest)) {
+        return UpdateOutcome::UpToDate;
+    }
+
+    let guard = manager.lock_install().await;
+    let current = manager.version().await;
     if !has_update(current.as_deref(), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
@@ -161,8 +171,6 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
 }
 
 async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOutcome {
-    let guard = manager.lock_install().await;
-
     if !manager.is_installed().await {
         return UpdateOutcome::NotInstalled;
     }
@@ -171,6 +179,12 @@ async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOu
     let Some(latest) = latest else {
         return UpdateOutcome::Unreachable;
     };
+    if !has_update(current.as_deref(), Some(&latest)) {
+        return UpdateOutcome::UpToDate;
+    }
+
+    let guard = manager.lock_install().await;
+    let current = manager.version().await;
     if !has_update(current.as_deref(), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
@@ -209,6 +223,7 @@ mod tests {
     use tokio_util::sync::CancellationToken;
 
     use super::*;
+    use crate::bin::Platform;
     use crate::download::{DownloadFailure, DownloadProgressSink, DownloadRequest, DownloadRunner};
     use crate::queue::{DownloadDirectory, FailureObserver, NoPersistence, NoSink};
 
@@ -376,6 +391,31 @@ mod tests {
 
         queue.enqueue(input("https://youtu.be/after")).await;
         runner.wait_for(1).await;
+    }
+
+    /// evermeet.cx publishes no checksum, so ffmpeg on macOS is never checked
+    /// or touched unattended: no lock, no request, no process.
+    #[tokio::test]
+    async fn ffmpeg_is_never_updated_unattended_on_macos() {
+        let client = Arc::new(shiranami_net::HttpClient::new().expect("the client builds"));
+        let runner: Arc<dyn crate::spawn::ProcessRunner> =
+            Arc::new(crate::spawn::TokioRunner::new());
+        let bin = PathBuf::from("/nonexistent/bin");
+        let tools = Tools::new(
+            YtDlpManager::new(
+                bin.clone(),
+                Platform::MacOs,
+                Arc::clone(&client),
+                Arc::clone(&runner),
+            ),
+            FfmpegManager::new(bin, Platform::MacOs, client, runner),
+        );
+        let gate = QueueGate::new(queue(&Arc::new(Parked::default())));
+
+        let outcome = update_tool(Tool::Ffmpeg, &tools, &gate).await;
+
+        assert_eq!(outcome, UpdateOutcome::NotSupported);
+        assert!(!tools.ffmpeg.is_installing());
     }
 
     /// A failure is reported after the item settles as `error`, so a retry the
