@@ -15,11 +15,22 @@
 //! recorded, so the next scheduler tick tries again instead of waiting out a
 //! full window with no answer.
 //!
+//! # No unattended ffmpeg on macOS
+//!
+//! evermeet.cx, the macOS ffmpeg upstream, publishes no checksum, only an
+//! OpenPGP signature this crate does not verify (see `bin::checksum`). A manual
+//! install there is the user's own act; an unattended replacement of an
+//! executable checked by nothing but TLS is not something to do on their
+//! behalf. So [`auto_updatable`] answers `false` for ffmpeg on macOS and the
+//! scheduler never checks it there. Manual ffmpeg installs are unchanged.
+//!
 //! A timestamp in the future means the wall clock moved backwards since it was
 //! written. That reads as due rather than as "checked very recently", because
 //! the alternative is a machine whose clock was once wrong never checking again.
 
 use shiranami_core::models::{Tool, ToolAutoUpdateState, ToolUpdateRecord};
+
+use crate::bin::Platform;
 
 /// One hour, in the epoch milliseconds every timestamp here uses.
 pub const HOUR_MS: i64 = 60 * 60 * 1000;
@@ -49,6 +60,9 @@ pub enum UpdateOutcome {
     NotInstalled,
     /// The upstream could not be reached. Not a check; see the module docs.
     Unreachable,
+    /// This tool is not updated automatically on this platform (ffmpeg on
+    /// macOS; see the module docs).
+    NotSupported,
     /// The installed version is the newest.
     UpToDate,
     /// Downloads were still running when the swap's wait ran out. The staged
@@ -107,13 +121,22 @@ fn record_mut(state: &mut ToolAutoUpdateState, tool: Tool) -> &mut ToolUpdateRec
     }
 }
 
-/// The tools whose scheduled window has passed, yt-dlp first.
+/// Whether `tool` is updated automatically on `platform`.
+///
+/// Everywhere but ffmpeg on macOS, whose upstream publishes no checksum. See
+/// the module docs.
+pub fn auto_updatable(tool: Tool, platform: Platform) -> bool {
+    !(tool == Tool::Ffmpeg && platform == Platform::MacOs)
+}
+
+/// The tools whose scheduled window has passed on `platform`, yt-dlp first.
 ///
 /// yt-dlp goes first because it is the one whose staleness breaks downloads,
 /// and a slow ffmpeg archive should not delay it.
-pub fn due_tools(state: &ToolAutoUpdateState, now: i64) -> Vec<Tool> {
+pub fn due_tools(state: &ToolAutoUpdateState, now: i64, platform: Platform) -> Vec<Tool> {
     [Tool::Ytdlp, Tool::Ffmpeg]
         .into_iter()
+        .filter(|tool| auto_updatable(*tool, platform))
         .filter(|tool| {
             is_due(
                 record(state, *tool).last_checked_at,
@@ -145,7 +168,9 @@ pub fn apply_outcome(
 
     match outcome {
         // Neither is a check: nothing was learned about the upstream.
-        UpdateOutcome::NotInstalled | UpdateOutcome::Unreachable => Consequence::default(),
+        UpdateOutcome::NotInstalled | UpdateOutcome::Unreachable | UpdateOutcome::NotSupported => {
+            Consequence::default()
+        }
         // A busy queue is not the tool's fault. The check still happened, so
         // the window restarts, but the failure streak is left alone.
         UpdateOutcome::Busy => {
@@ -195,30 +220,49 @@ mod tests {
     #[test]
     fn a_tool_never_checked_is_due() {
         assert_eq!(
-            due_tools(&ToolAutoUpdateState::default(), NOW),
+            due_tools(&ToolAutoUpdateState::default(), NOW, Platform::Windows),
             vec![Tool::Ytdlp, Tool::Ffmpeg]
         );
     }
 
     #[test]
+    fn ffmpeg_is_never_updated_unattended_on_macos() {
+        assert_eq!(
+            due_tools(&ToolAutoUpdateState::default(), NOW, Platform::MacOs),
+            vec![Tool::Ytdlp],
+            "evermeet.cx publishes no checksum, so macOS ffmpeg is manual only"
+        );
+        assert!(!auto_updatable(Tool::Ffmpeg, Platform::MacOs));
+        assert!(auto_updatable(Tool::Ffmpeg, Platform::Windows));
+        assert!(auto_updatable(Tool::Ytdlp, Platform::MacOs));
+
+        let mut state = ToolAutoUpdateState::default();
+        assert_eq!(
+            apply_outcome(&mut state, Tool::Ffmpeg, &UpdateOutcome::NotSupported, NOW),
+            Consequence::default()
+        );
+        assert_eq!(state.ffmpeg.last_checked_at, None);
+    }
+
+    #[test]
     fn yt_dlp_is_checked_at_most_once_a_day() {
         let state = checked(Tool::Ytdlp, NOW - YT_DLP_INTERVAL_MS + 1);
-        assert!(!due_tools(&state, NOW).contains(&Tool::Ytdlp));
+        assert!(!due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ytdlp));
 
         let state = checked(Tool::Ytdlp, NOW - YT_DLP_INTERVAL_MS);
-        assert!(due_tools(&state, NOW).contains(&Tool::Ytdlp));
+        assert!(due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ytdlp));
     }
 
     #[test]
     fn ffmpeg_is_checked_at_most_once_a_week() {
         let state = checked(Tool::Ffmpeg, NOW - 6 * 24 * HOUR_MS);
         assert!(
-            !due_tools(&state, NOW).contains(&Tool::Ffmpeg),
+            !due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ffmpeg),
             "six days is inside ffmpeg's window even though it is well past yt-dlp's"
         );
 
         let state = checked(Tool::Ffmpeg, NOW - FFMPEG_INTERVAL_MS);
-        assert!(due_tools(&state, NOW).contains(&Tool::Ffmpeg));
+        assert!(due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ffmpeg));
     }
 
     #[test]
@@ -231,7 +275,7 @@ mod tests {
         let restored: ToolAutoUpdateState = serde_json::from_value(persisted).expect("decode");
 
         assert!(
-            !due_tools(&restored, NOW + HOUR_MS).contains(&Tool::Ytdlp),
+            !due_tools(&restored, NOW + HOUR_MS, Platform::Windows).contains(&Tool::Ytdlp),
             "relaunching an hour later must not re-check"
         );
     }
@@ -253,7 +297,7 @@ mod tests {
     fn a_check_from_the_future_reads_as_due() {
         let state = checked(Tool::Ytdlp, NOW + HOUR_MS);
         assert!(
-            due_tools(&state, NOW).contains(&Tool::Ytdlp),
+            due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ytdlp),
             "a clock that once ran fast must not stop checks for good"
         );
     }
@@ -282,7 +326,7 @@ mod tests {
     fn the_failure_cap_is_independent_of_the_daily_window() {
         // The whole point of the failure trigger is to ignore the 24 h window.
         let mut state = checked(Tool::Ytdlp, NOW - 1);
-        assert!(!due_tools(&state, NOW).contains(&Tool::Ytdlp));
+        assert!(!due_tools(&state, NOW, Platform::Windows).contains(&Tool::Ytdlp));
         assert!(may_check_after_failure(&state, NOW));
 
         note_failure_check(&mut state, NOW);
