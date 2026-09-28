@@ -145,6 +145,34 @@ describe('useLibraryRescan watcher deletion guards', () => {
     expect(window.electronAPI.db.tracks.removeMany).not.toHaveBeenCalled();
   });
 
+  /** Validation that sees `blip` missing on its first call only. */
+  function blipOnFirstPass(blip: string) {
+    let calls = 0;
+    vi.mocked(window.electronAPI.library.validateFiles).mockImplementation(async paths => {
+      calls += 1;
+      return calls === 1 ? paths.filter(path => path === blip) : [];
+    });
+  }
+
+  it('keeps a file that was missing on the first pass but back on the second', async () => {
+    blipOnFirstPass('/music/b/two.mp3');
+
+    await watcherRescan();
+
+    expect(window.electronAPI.db.tracks.removeMany).not.toHaveBeenCalled();
+  });
+
+  it('a manual rescan also re-checks before deleting', async () => {
+    blipOnFirstPass('/music/b/two.mp3');
+    const { result } = renderHook(() => useLibraryRescan(), { wrapper });
+
+    await act(async () => {
+      await result.current.rescan();
+    });
+
+    expect(window.electronAPI.db.tracks.removeMany).not.toHaveBeenCalled();
+  });
+
   it('a manual rescan keeps its old behaviour', async () => {
     vi.mocked(scanAndPersistFolder).mockResolvedValue({
       addedCount: 0,

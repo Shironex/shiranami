@@ -127,8 +127,26 @@ export function guardDeletions({
 }
 
 /**
+ * The paths still missing on a second look.
+ *
+ * Validation of a large library takes a while, and a volume can drop out for
+ * part of it and come back (a reseated cable, an SMB blip, a nested mount
+ * remounting). The files checked during that gap read as missing, and nothing
+ * else about the folder looks wrong. A second check of just the missing paths,
+ * right before deleting, keeps only what is missing both times. It costs one
+ * `stat` per missing file, which is nothing on a normal rescan, and it can only
+ * ever remove a deletion, never add one, so every rescan uses it.
+ */
+export async function confirmMissing(missing: readonly string[]): Promise<string[]> {
+  if (missing.length === 0) return [];
+  const again = new Set(await window.electronAPI.library.validateFiles([...missing]));
+  return missing.filter(path => again.has(path));
+}
+
+/**
  * {@link guardDeletions} for a watcher-triggered rescan, with the roots
- * re-checked immediately before anything is deleted. Logs every held folder.
+ * re-checked immediately before anything is deleted and the survivors
+ * re-validated ({@link confirmMissing}). Logs every held folder.
  */
 export async function watcherDeletions(
   input: Omit<IDeletionGuardInput, 'missingRoots'>
@@ -142,5 +160,5 @@ export async function watcherDeletions(
       `[folder-watch] kept the missing tracks of folder ${folderId} (${reason}); a manual Rescan removes them`
     );
   }
-  return missing;
+  return confirmMissing(missing);
 }

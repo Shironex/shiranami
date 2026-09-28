@@ -8,7 +8,12 @@ import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
 import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
-import { selectFolders, tracksInFolders, watcherDeletions } from '@/lib/folderScope';
+import {
+  confirmMissing,
+  selectFolders,
+  tracksInFolders,
+  watcherDeletions,
+} from '@/lib/folderScope';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { diskUsageKeys } from '@/hooks/queries/useDiskUsage';
@@ -115,7 +120,8 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       if (currentLibrary.length > 0) {
         const allPaths = currentLibrary.map(t => t.filePath);
         const validated = await window.electronAPI.library.validateFiles(allPaths);
-        // Watcher runs never delete what looks like a vanished volume.
+        // Only paths missing on a second look are deleted, and watcher runs
+        // never delete what looks like a vanished volume.
         const missingPaths = quiet
           ? await watcherDeletions({
               folders,
@@ -123,7 +129,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
               missing: validated,
               unscannedIds,
             })
-          : validated;
+          : await confirmMissing(validated);
         if (missingPaths.length > 0) {
           const missingSet = new Set(missingPaths);
           const staleIds = currentLibrary.filter(t => missingSet.has(t.filePath)).map(t => t.id);
