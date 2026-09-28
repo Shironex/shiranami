@@ -40,7 +40,7 @@
 //! process is exiting; a thread parked in the kernel is not worth a hung quit.
 
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Mutex, PoisonError};
 use std::thread::JoinHandle;
@@ -49,7 +49,7 @@ use std::time::Duration;
 use super::backend::{EventSender, NotifyBackend, WatchBackend};
 use super::coalesce::Timing;
 use super::roots::WatchRoot;
-use super::worker::{Control, Inbox, Worker};
+use super::worker::{Control, Inbox, Stopped, Worker};
 
 /// Where ready batches go: the ids of the folders that changed, in id order.
 pub type BatchSink = Box<dyn FnMut(Vec<String>) + Send>;
@@ -82,6 +82,7 @@ struct Running {
 pub struct FolderWatcher {
     control: mpsc::Sender<Control>,
     events: EventSender,
+    stopped: Stopped,
     running: Mutex<Option<Running>>,
 }
 
@@ -112,6 +113,7 @@ impl FolderWatcher {
         let (control, control_rx) = mpsc::channel();
         let (done_tx, done) = mpsc::sync_channel(1);
         let overflow = Arc::new(AtomicBool::new(false));
+        let stopped: Stopped = Arc::new(AtomicBool::new(false));
         let handle = EventSender {
             sender,
             overflow: Arc::clone(&overflow),
@@ -126,12 +128,16 @@ impl FolderWatcher {
         };
         let thread = std::thread::Builder::new()
             .name("shiranami-folder-watch".to_owned())
-            .spawn(move || Worker::new(backend, timing, sink).run(&inbox))
+            .spawn({
+                let stopped = Arc::clone(&stopped);
+                move || Worker::new(backend, timing, sink, stopped).run(&inbox)
+            })
             .map_err(|error| WatchError::Thread(error.to_string()))?;
 
         Ok(Self {
             control,
             events: handle,
+            stopped,
             running: Mutex::new(Some(Running { thread, done })),
         })
     }
@@ -154,6 +160,7 @@ impl FolderWatcher {
         let Some(Running { thread, done }) = running else {
             return;
         };
+        self.stopped.store(true, Ordering::Relaxed);
         let _ = self.control.send(Control::Stop);
         self.events.wake();
 

@@ -149,11 +149,13 @@ fn forward(events: &EventSender, result: notify::Result<notify::Event>) {
             paths: event.paths,
         }),
         Err(error) => {
-            // An error may name the path it is about (a watched root that
-            // vanished); when it does not (a Windows buffer overflow), every
+            // An error may name the path it is about; when it does not, every
             // watched folder is rescanned. That is safe: the rescan only finds
             // what is really on disk, and the renderer refuses deletions from a
-            // folder that has gone missing.
+            // folder that has gone missing. Not every loss arrives here: notify
+            // 8.2's Windows backend drops a buffer overflow, and a watch it
+            // gives up on, without reporting anything, which is what
+            // `worker`'s periodic re-arm is for.
             tracing::warn!(%error, "the folder watcher reported an error");
             events.rescan(error.paths);
         }

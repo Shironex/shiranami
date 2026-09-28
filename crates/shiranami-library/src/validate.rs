@@ -51,7 +51,10 @@ pub const VALIDATE_BATCH: usize = 128;
 ///   a bare `catch`, so `EACCES`, `EIO` and a disconnected network mount all
 ///   read as `ENOENT` and all led to deletion. [`Path::try_exists`] tells them
 ///   apart, and anything other than a clean "does not exist" keeps the path
-///   out of the result. See the module docs for why this was changed.
+///   out of the result. See the module docs for why this was changed. It is
+///   not a volume check: an unmounted drive or share usually leaves its mount
+///   point behind, so its files read as a clean "not found" and are reported.
+///   The watcher's per-folder guards in the renderer exist for that case.
 /// - **Symlinks are followed**, unlike discovery, which skips them outright. A
 ///   symlinked track already in the database therefore validates fine even
 ///   though a scan could never have discovered it.

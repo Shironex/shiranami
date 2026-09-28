@@ -59,6 +59,11 @@ pub(crate) struct Inbox {
     pub(crate) done: mpsc::SyncSender<()>,
 }
 
+/// Set by the handle when it stops. Checked right before a batch is handed on,
+/// so a thread that was detached after a stop timeout (stuck in a probe on a
+/// dead drive) cannot emit into an app that is shutting down once it unsticks.
+pub(crate) type Stopped = Arc<AtomicBool>;
+
 /// The thread's state.
 pub(crate) struct Worker<B> {
     backend: B,
@@ -69,10 +74,11 @@ pub(crate) struct Worker<B> {
     watched: HashSet<PathBuf>,
     last_flush: Instant,
     last_rearm: Instant,
+    stopped: Stopped,
 }
 
 impl<B: WatchBackend> Worker<B> {
-    pub(crate) fn new(backend: B, timing: Timing, sink: BatchSink) -> Self {
+    pub(crate) fn new(backend: B, timing: Timing, sink: BatchSink, stopped: Stopped) -> Self {
         let now = Instant::now();
         Self {
             backend,
@@ -83,6 +89,7 @@ impl<B: WatchBackend> Worker<B> {
             watched: HashSet::new(),
             last_flush: now,
             last_rearm: now,
+            stopped,
         }
     }
 
@@ -259,6 +266,9 @@ impl<B: WatchBackend> Worker<B> {
             })
             .collect();
 
+        if self.stopped.load(Ordering::Relaxed) {
+            return;
+        }
         if !present.is_empty() {
             tracing::debug!(folders = ?present, "watched folders changed");
             (self.sink)(present);
