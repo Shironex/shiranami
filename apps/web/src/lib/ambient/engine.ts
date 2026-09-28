@@ -108,6 +108,13 @@ interface IVoice {
   nextGrainAt: number;
   /** Set once the layer is ramping out; the voice is dropped when the timer fires. */
   stopTimer: ReturnType<typeof setTimeout> | null;
+  /**
+   * The gain this voice was last ramped to, or null before its buffer is in.
+   * An unchanged target must schedule nothing: the driver re-evaluates on
+   * every playback-store write, and re-ramping would cancel a running ease-in
+   * and pile automation events up all night.
+   */
+  level: number | null;
 }
 
 const IDLE_TARGET: AmbientTarget = {
@@ -209,6 +216,7 @@ class AmbientEngine implements IAmbientEngine {
     const now = bus.context.currentTime;
 
     for (const id of AMBIENT_LAYER_IDS) this.applyLayer(id, target.gains[id], now);
+    this.syncScheduler();
 
     if (target.mode === 'sleep' && this.masterMode !== 'sleep') {
       this.startSleepFade(this.master.gain, now, target.sleepFadeSeconds);
@@ -216,7 +224,6 @@ class AmbientEngine implements IAmbientEngine {
       rampTo(this.master.gain, 1, now, FADE_IN_SECONDS);
     }
     this.masterMode = target.mode;
-    this.ensureScheduler();
   }
 
   graphChanged(): void {
@@ -257,11 +264,15 @@ class AmbientEngine implements IAmbientEngine {
         clearTimeout(live.stopTimer);
         live.stopTimer = null;
       }
-      if (live.assets) rampTo(live.gain.gain, gain, now, LEVEL_RAMP_SECONDS);
+      if (live.assets && live.level !== gain) {
+        rampTo(live.gain.gain, gain, now, LEVEL_RAMP_SECONDS);
+        live.level = gain;
+      }
       return;
     }
     if (!voice || voice.stopTimer !== null) return;
     rampTo(voice.gain.gain, 0, now, LEVEL_RAMP_SECONDS);
+    voice.level = 0;
     voice.stopTimer = setTimeout(
       () => this.dropVoice(id),
       LEVEL_RAMP_SECONDS * 1000 + TEARDOWN_GRACE_MS
@@ -285,16 +296,18 @@ class AmbientEngine implements IAmbientEngine {
       assets: null,
       nextGrainAt: 0,
       stopTimer: null,
+      level: null,
     };
     this.voices.set(id, voice);
 
-    this.assetsFor(context, id)
+    const pending = this.assetsFor(context, id);
+    pending
       .then(assets => {
         if (this.voices.get(id) !== voice || this.bus?.context !== context) return;
         this.startVoice(voice, context, assets);
       })
       .catch((error: unknown) => {
-        this.assets.delete(id);
+        if (this.assets.get(id) === pending) this.assets.delete(id);
         logger.warn(`[ambience] layer "${id}" failed to load`, error);
       });
     return voice;
@@ -342,7 +355,10 @@ class AmbientEngine implements IAmbientEngine {
     }
 
     const gain = this.target.gains[voice.id];
-    if (gain > 0) rampTo(voice.gain.gain, gain, now, LATE_START_SECONDS);
+    if (gain > 0) {
+      rampTo(voice.gain.gain, gain, now, LATE_START_SECONDS);
+      voice.level = gain;
+    }
   }
 
   private dropVoice(id: AmbientLayerId): void {
@@ -414,12 +430,18 @@ class AmbientEngine implements IAmbientEngine {
     this.masterMode = 'idle';
   }
 
-  private ensureScheduler(): void {
-    if (this.schedulerTimer !== null) return;
-    const hasGrains = [...this.voices.keys()].some(id => GRAIN_LAYERS.has(id));
-    if (!hasGrains) return;
-    this.schedulerTimer = setInterval(() => this.scheduleGrains(), SCHEDULER_INTERVAL_MS);
-    this.scheduleGrains();
+  /** Run the grain timer only while some grain layer is (or is about to be) audible. */
+  private syncScheduler(): void {
+    const wanted = [...this.voices.values()].some(
+      v => GRAIN_LAYERS.has(v.id) && v.stopTimer === null
+    );
+    if (wanted && this.schedulerTimer === null) {
+      this.schedulerTimer = setInterval(() => this.scheduleGrains(), SCHEDULER_INTERVAL_MS);
+      this.scheduleGrains();
+    } else if (!wanted && this.schedulerTimer !== null) {
+      clearInterval(this.schedulerTimer);
+      this.schedulerTimer = null;
+    }
   }
 
   /** Place every grain due before the lookahead horizon, Poisson-spaced. */

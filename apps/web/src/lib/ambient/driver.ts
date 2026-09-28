@@ -15,7 +15,7 @@
 
 import { subscribeAudioGraph } from '@/lib/audioAnalyser';
 import { logger } from '@/lib/logger';
-import { useAmbientStore } from '@/stores/useAmbientStore';
+import { AMBIENT_LAYER_IDS, useAmbientStore } from '@/stores/useAmbientStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
 import type { IAmbientEngine } from './engine';
@@ -164,10 +164,13 @@ export class AmbientDriver {
       sleptOut: this.sleptOut,
       sleepFadeSeconds: playback.sleepFadeDuration,
     });
+    const unchanged = this.lastTarget !== null && sameTarget(this.lastTarget, target);
     this.lastTarget = target;
 
     if (this.engine) {
-      this.engine.apply(target);
+      // Most store writes are playback ticks (currentTime, ~4 Hz) that change
+      // nothing here; the engine only hears about real changes.
+      if (!unchanged) this.engine.apply(target);
       return;
     }
     if (target.mode === 'idle' || this.engineLoading) return;
@@ -186,6 +189,15 @@ export class AmbientDriver {
         logger.warn('[ambience] engine failed to load', error);
       });
   }
+}
+
+function sameTarget(a: AmbientTarget, b: AmbientTarget): boolean {
+  return (
+    a.mode === b.mode &&
+    a.sleepFadeSeconds === b.sleepFadeSeconds &&
+    a.keepBuffers === b.keepBuffers &&
+    AMBIENT_LAYER_IDS.every(id => a.gains[id] === b.gains[id])
+  );
 }
 
 let shared: AmbientDriver | null = null;

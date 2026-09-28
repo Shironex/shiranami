@@ -23,15 +23,20 @@ vi.mock('@/lib/platform', () => ({
 
 class FakeParam {
   readonly curves: Array<{ curve: Float32Array; start: number; duration: number }> = [];
+  /** Every `linearRampToValueAtTime` call, as { value, endTime }. */
+  readonly ramps: Array<{ value: number; endTime: number }> = [];
+  cancels = 0;
   constructor(public value: number) {}
   cancelScheduledValues(): FakeParam {
+    this.cancels += 1;
     return this;
   }
   setValueAtTime(value: number): FakeParam {
     this.value = value;
     return this;
   }
-  linearRampToValueAtTime(value: number): FakeParam {
+  linearRampToValueAtTime(value: number, endTime: number): FakeParam {
+    this.ramps.push({ value, endTime });
     this.value = value;
     return this;
   }
@@ -281,6 +286,62 @@ describe('ambience engine', () => {
     vi.advanceTimersByTime(500);
 
     expect(bedSources().filter(s => s.stopped)).toHaveLength(2);
+  });
+
+  describe('repeated identical targets', () => {
+    /** Automation calls across every param the engine owns (master, voices, panners). */
+    function automationCalls(): number {
+      const params = [...context.gains.map(g => g.gain), ...context.panners.map(p => p.pan)];
+      return params.reduce((n, p) => n + p.ramps.length + p.cancels + p.curves.length, 0);
+    }
+
+    it('schedule no automation at all', async () => {
+      engine.apply(target({ gains: { ...DEFAULT_AMBIENT_LEVELS, rain: 0.25, fire: 0.1 } }));
+      await settle();
+      const before = automationCalls();
+
+      // The driver re-evaluates on every playback-store write (currentTime ticks
+      // at ~4 Hz), so an unchanged target must be free.
+      for (let i = 0; i < 240; i++) {
+        engine.apply(target({ gains: { ...DEFAULT_AMBIENT_LEVELS, rain: 0.25, fire: 0.1 } }));
+      }
+
+      expect(automationCalls()).toBe(before);
+    });
+
+    it('keep the ease-in of a layer whose buffer arrives mid-play', async () => {
+      let finishLoad: (assets: ILayerAssets) => void = () => {};
+      loader.mockImplementationOnce(
+        () => new Promise<ILayerAssets>(resolve => (finishLoad = resolve))
+      );
+      engine.apply(target());
+      await settle();
+      const voiceGain = context.gains.find(g => g.outputs.has(master()));
+      if (!voiceGain) throw new Error('no voice gain');
+
+      finishLoad(fakeAssets(context, 'rain'));
+      await settle();
+      const easeIn = voiceGain.gain.ramps.at(-1);
+      expect(easeIn?.endTime).toBeCloseTo(context.currentTime + 0.4);
+
+      engine.apply(target());
+
+      expect(voiceGain.gain.ramps.at(-1)).toBe(easeIn);
+      expect(voiceGain.gain.cancels).toBe(1);
+    });
+  });
+
+  it('stops the grain timer once no grain layer is audible', async () => {
+    engine.apply(target({ gains: { ...DEFAULT_AMBIENT_LEVELS, rain: 0.25, noise: 0.25 } }));
+    await settle();
+    expect(vi.getTimerCount()).toBe(1);
+
+    engine.apply(target({ gains: { ...DEFAULT_AMBIENT_LEVELS, rain: 0, noise: 0.25 } }));
+    vi.advanceTimersByTime(500);
+
+    // Warm noise has no grains: nothing is left ticking while it plays alone.
+    expect(vi.getTimerCount()).toBe(0);
+    expect(bedSources().filter(s => !s.stopped)).toHaveLength(2);
   });
 
   describe('going idle', () => {

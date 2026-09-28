@@ -123,6 +123,19 @@ describe('AmbientDriver', () => {
     expect(engine.targets.at(-1)?.gains.fire).toBeCloseTo(0.09);
   });
 
+  it('does not hand the engine an unchanged target on playback ticks', async () => {
+    await startDriver();
+    const before = engine.targets.length;
+
+    // currentTime is written about four times a second while music plays.
+    for (let i = 1; i <= 240; i++) {
+      usePlaybackStore.setState({ currentTime: i * 0.25 });
+      await settle();
+    }
+
+    expect(engine.targets.length).toBe(before);
+  });
+
   describe('sleep timer coupling', () => {
     it('fades with the music, then stays off even when kept over pauses', async () => {
       useAmbientStore.setState({ keepWhenPaused: true });
