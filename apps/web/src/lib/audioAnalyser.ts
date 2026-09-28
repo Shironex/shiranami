@@ -284,12 +284,38 @@ export function setPreampDb(db: number): void {
 }
 
 /**
+ * Play a gain curve on one deck, starting now and lasting `durationSeconds`,
+ * on the audio clock. Values are clamped to 0-1 like `setDeckGain`.
+ *
+ * This is how crossfades and the sleep fade move a deck's gain: the audio
+ * thread interpolates the curve sample by sample, so the ramp finishes on time
+ * even when the page is hidden and neither animation frames nor timers run at
+ * their usual rate. Returns false until the graph exists, and the caller falls
+ * back to stepping `setDeckGain` itself.
+ */
+export function rampDeckGain(
+  deck: 'A' | 'B',
+  values: readonly number[],
+  durationSeconds: number
+): boolean {
+  const gain = deck === 'A' ? gainA : gainB;
+  if (!audioContext || !gain || values.length < 2 || !(durationSeconds > 0)) return false;
+  const curve = Float32Array.from(values, value => Math.max(0, Math.min(1, value)));
+  gain.gain.cancelScheduledValues(0);
+  gain.gain.setValueCurveAtTime(curve, audioContext.currentTime, durationSeconds);
+  return true;
+}
+
+/**
  * Set the gain (volume) for a specific deck.
  * Value should be 0-1 (will be clamped).
  */
 export function setDeckGain(deck: 'A' | 'B', value: number) {
   const gain = deck === 'A' ? gainA : gainB;
   if (gain) {
+    // A scheduled `rampDeckGain` curve would otherwise override (or, where it
+    // overlaps, reject) a plain value, so a direct set always wins.
+    gain.gain.cancelScheduledValues(0);
     gain.gain.value = Math.max(0, Math.min(1, value));
   }
 }
