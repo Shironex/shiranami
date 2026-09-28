@@ -23,9 +23,12 @@
 //!   insert, which is what every import except the rescan asks for. The
 //!   command layer builds the set by reading [`candidate_paths`], releasing
 //!   the connection, and checking each path with
-//!   `shiranami_library::moved_away` (the file is gone, and its volume and
-//!   registered music folder are present, so an offline drive or share never
-//!   counts). This module therefore performs **no file I/O**, and in
+//!   `shiranami_library::moved_away`: the file is definitely not found (a stat
+//!   error never counts), and its volume and registered music folder
+//!   definitely exist and list entries. That rules out an unmounted drive, an
+//!   empty leftover mount point and a share answering with errors; storage
+//!   that answers "not found" for a file that will come back cannot be told
+//!   apart. This module therefore performs **no file I/O**, and in
 //!   particular none while the pool's only connection is held: an offline
 //!   network path can block a `stat` for the OS timeout, and that must never
 //!   freeze every other database command.

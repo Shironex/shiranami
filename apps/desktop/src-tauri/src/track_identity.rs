@@ -38,7 +38,8 @@
 //! on storage that is merely offline. When the caller does opt in,
 //! [`verified_gone`] reads the matching rows' paths, **releases the
 //! connection**, and checks each with `shiranami_library::moved_away` (file
-//! gone, volume and registered music folder present). The import then runs
+//! definitely not found, with its volume and registered music folder
+//! definitely present and not empty). The import then runs
 //! against that precomputed set, so no `stat`, which can block for the OS
 //! timeout on an offline network path, ever runs while the pool's only
 //! connection is held.
@@ -104,11 +105,11 @@ pub async fn verified_gone(
         (candidates, roots)
     };
 
+    // One checker for the batch, so a hung mount's root is statted once and
+    // none of the files under it are (the timeout is paid per root, not per
+    // candidate). The database connection is free throughout.
     let gone = tauri::async_runtime::spawn_blocking(move || {
-        candidates
-            .into_iter()
-            .filter(|path| shiranami_library::moved_away(path, &roots))
-            .collect::<HashSet<_>>()
+        shiranami_library::moved_away_all(candidates, &roots)
     })
     .await
     .unwrap_or_else(|error| {
@@ -225,6 +226,9 @@ mod tests {
         let state = state_over(dir.path()).await;
         let music = dir.path().join("music");
         std::fs::create_dir_all(&music).expect("the fixture writes");
+        // A folder in use lists entries; an empty one reads as a leftover
+        // mount point and is never trusted.
+        std::fs::write(music.join("other.mp3"), b"x").expect("the fixture writes");
         let share = dir.path().join("share");
         let moved = music.join("a.mp3").to_string_lossy().into_owned();
         let offline = share.join("b.mp3").to_string_lossy().into_owned();

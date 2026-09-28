@@ -38,9 +38,13 @@
 //!
 //! A collision can only do one thing: during a **rescan** (the one flow that
 //! opts in to following moves), re-point a row whose file has moved away at a
-//! new file that hashed the same. "Moved away" is [`moved_away`]: the file is
-//! gone *and* the volume and the registered music folder it lived in are
-//! present, so an offline drive or share never qualifies. Such a row is one the
+//! new file that hashed the same. "Moved away" is [`moved_away`]: the volume
+//! and the registered music folder the file lived in both definitely exist and
+//! list entries, and the file itself is definitely not found (any stat error
+//! counts as "not moved"). That rules out an unmounted drive, an empty
+//! leftover mount point and a share that answers with errors; what it cannot
+//! rule out is storage that answers "not found" for a file that will come
+//! back, which no check short of the user's intent can. Such a row is one the
 //! rescan's validate step deletes on its next pass over that folder. Nothing
 //! is deleted by a match and no file is touched, so the worst case of a
 //! collision is history attributed to the sibling edit rather than destroyed.
@@ -59,7 +63,7 @@
 mod gone;
 mod payload;
 
-pub use gone::{moved_away, volume_root};
+pub use gone::{Filesystem, MovedAway, Probe, moved_away, moved_away_all, volume_root};
 
 use std::fs::File;
 use std::io;

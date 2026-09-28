@@ -3,52 +3,139 @@
 //! A re-point is only safe when the old file is really gone. [`Path::exists`]
 //! alone cannot tell "gone" from "on storage that is not attached right now":
 //! an unmounted external drive, a NAS that is asleep, a Windows mapped drive or
-//! UNC share that is offline. Treating those as moves would hand the offline
-//! rows' history to whatever copies happen to be imported meanwhile, and the
-//! history would then be deleted with the copies. So a missing file counts as
-//! moved away only when the storage it lived on is demonstrably present:
+//! UNC share that is offline, a share that went stale after sleep. Treating
+//! those as moves would hand the offline rows' history to whatever copies
+//! happen to be imported meanwhile, and the history would then be deleted
+//! with the copies. So a missing file counts as moved away only when all of
+//! these hold, checked in this order:
 //!
-//! 1. the file itself does not exist;
-//! 2. its **volume root** exists ([`volume_root`]: `/Volumes/<name>` on macOS,
+//! 1. its **volume root** ([`volume_root`]: `/Volumes/<name>` on macOS,
 //!    `/media/<user>/<name>`, `/run/media/<user>/<name>` and `/mnt/<name>` on
-//!    Linux, the drive root `X:\` or the share `\\server\share\` on Windows).
-//!    A path on the system volume has no separate root to check;
-//! 3. the **registered music folder** that contains it exists, when one does
-//!    (the longest registered folder the path lies under). That catches a
-//!    network mount that sits on the system volume, and a watched folder that
-//!    was itself renamed or removed.
+//!    Linux, the drive root `X:\` or the share `\\server\share\` on Windows)
+//!    answers "exists" **and lists at least one entry**. A path on the system
+//!    volume has no separate root to check;
+//! 2. the **registered music folder** that contains it (the longest registered
+//!    folder the path lies under), when one does, answers the same way;
+//! 3. the file itself answers "does not exist", as a *definite* answer.
+//!
+//! "Answers" means [`Path::try_exists`], never [`Path::exists`]: any error
+//! (`EACCES`, `EIO`, `ETIMEDOUT` from a dead share, …) reads as "not moved",
+//! because only `Ok(false)` says the file is gone rather than unreadable. The
+//! non-empty rule catches the mount-point directory an unmount leaves behind
+//! (a custom `mount_smbfs` target, autofs, a stale `/Volumes/<name>`), which
+//! exists but is empty. The cost of these rules is only ever a missed move:
+//! the file is inserted as a new track, which is the behaviour before move
+//! detection existed. In particular a registered folder the user has emptied
+//! completely stops following moves out of it.
 //!
 //! A path under no registered folder (a download that lived in the downloads
-//! directory, say) is judged by rules 1 and 2 alone.
+//! directory, say) is judged by rules 1 and 3 alone.
+//!
+//! Roots are checked before the file and their verdict is cached per
+//! [`MovedAway`] instance, so a batch whose candidates share a hung mount pays
+//! the OS timeout once for the root, never once per file.
 //!
 //! Paths are compared as the strings the scanner stored, so on Windows the
 //! comparison is as case-sensitive as the scanner's own output, which is what
 //! the library holds.
 
+use std::collections::{HashMap, HashSet};
+use std::io;
 use std::path::Path;
 
-/// Whether `old_path` is gone from storage that is present (see module docs).
-///
-/// Performs up to three existence checks, so it is file I/O and must never be
-/// called while the database's only connection is held.
+/// How the checks ask the filesystem, so tests can inject the errors a dead
+/// share produces.
+pub trait Probe {
+    /// [`Path::try_exists`].
+    fn exists(&self, path: &Path) -> io::Result<bool>;
+    /// Whether the directory lists at least one entry.
+    fn has_entries(&self, path: &Path) -> io::Result<bool>;
+}
+
+/// The real filesystem.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Filesystem;
+
+impl Probe for Filesystem {
+    fn exists(&self, path: &Path) -> io::Result<bool> {
+        path.try_exists()
+    }
+
+    fn has_entries(&self, path: &Path) -> io::Result<bool> {
+        Ok(std::fs::read_dir(path)?.next().transpose()?.is_some())
+    }
+}
+
+/// A batch of moved-away checks sharing one set of root verdicts.
+pub struct MovedAway<'a, S, P = Filesystem> {
+    music_roots: &'a [S],
+    probe: P,
+    roots_present: HashMap<String, bool>,
+}
+
+impl<'a, S: AsRef<str>> MovedAway<'a, S, Filesystem> {
+    /// Checks against the real filesystem.
+    pub fn new(music_roots: &'a [S]) -> Self {
+        Self::with_probe(music_roots, Filesystem)
+    }
+}
+
+impl<'a, S: AsRef<str>, P: Probe> MovedAway<'a, S, P> {
+    /// Checks through `probe`.
+    pub fn with_probe(music_roots: &'a [S], probe: P) -> Self {
+        Self {
+            music_roots,
+            probe,
+            roots_present: HashMap::new(),
+        }
+    }
+
+    /// Whether `old_path` has moved away (see module docs).
+    ///
+    /// File I/O: never call it while the database's only connection is held.
+    pub fn check(&mut self, old_path: &str) -> bool {
+        let containing = self
+            .music_roots
+            .iter()
+            .map(AsRef::as_ref)
+            .filter(|root| lies_under(old_path, root))
+            .max_by_key(|root| root.len())
+            .map(str::to_owned);
+
+        for root in volume_root(old_path).into_iter().chain(containing) {
+            if !self.root_present(&root) {
+                return false;
+            }
+        }
+
+        matches!(self.probe.exists(Path::new(old_path)), Ok(false))
+    }
+
+    /// Whether `root` definitely exists and lists an entry, asked once.
+    fn root_present(&mut self, root: &str) -> bool {
+        if let Some(&known) = self.roots_present.get(root) {
+            return known;
+        }
+        let path = Path::new(root);
+        let present = matches!(self.probe.exists(path), Ok(true))
+            && matches!(self.probe.has_entries(path), Ok(true));
+        self.roots_present.insert(root.to_owned(), present);
+        present
+    }
+}
+
+/// Whether `old_path` has moved away, checked on its own.
 pub fn moved_away<S: AsRef<str>>(old_path: &str, music_roots: &[S]) -> bool {
-    if Path::new(old_path).exists() {
-        return false;
-    }
+    MovedAway::new(music_roots).check(old_path)
+}
 
-    if let Some(root) = volume_root(old_path)
-        && !Path::new(&root).exists()
-    {
-        return false;
-    }
-
-    let containing = music_roots
-        .iter()
-        .map(AsRef::as_ref)
-        .filter(|root| lies_under(old_path, root))
-        .max_by_key(|root| root.len());
-
-    containing.is_none_or(|root| Path::new(root).exists())
+/// The subset of `paths` that has moved away, sharing root verdicts.
+pub fn moved_away_all<S: AsRef<str>>(paths: Vec<String>, music_roots: &[S]) -> HashSet<String> {
+    let mut checker = MovedAway::new(music_roots);
+    paths
+        .into_iter()
+        .filter(|path| checker.check(path))
+        .collect()
 }
 
 /// The root of the removable or network volume `path` lives on, or `None` for
@@ -109,100 +196,5 @@ fn lies_under(path: &str, root: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn volume_roots_are_found_for_every_removable_and_network_shape() {
-        assert_eq!(
-            volume_root("/Volumes/NAS/Music/a.mp3").as_deref(),
-            Some("/Volumes/NAS")
-        );
-        assert_eq!(
-            volume_root("/media/kacper/USB/a.mp3").as_deref(),
-            Some("/media/kacper/USB")
-        );
-        assert_eq!(
-            volume_root("/run/media/kacper/USB/a.mp3").as_deref(),
-            Some("/run/media/kacper/USB")
-        );
-        assert_eq!(volume_root("/mnt/nas/a.mp3").as_deref(), Some("/mnt/nas"));
-        assert_eq!(volume_root(r"D:\Music\a.mp3").as_deref(), Some(r"D:\"));
-        assert_eq!(volume_root("e:/Music/a.mp3").as_deref(), Some(r"E:\"));
-        assert_eq!(
-            volume_root(r"\\nas\music\Album\a.mp3").as_deref(),
-            Some(r"\\nas\music\")
-        );
-        assert_eq!(
-            volume_root(r"\\?\UNC\nas\music\a.mp3").as_deref(),
-            Some(r"\\nas\music\")
-        );
-        assert_eq!(volume_root(r"\\?\C:\Music\a.mp3").as_deref(), Some(r"C:\"));
-    }
-
-    #[test]
-    fn the_system_volume_has_no_separate_root() {
-        assert_eq!(volume_root("/Users/me/Music/a.mp3"), None);
-        assert_eq!(volume_root("/home/me/a.mp3"), None);
-        assert_eq!(volume_root("/Volumes"), None);
-    }
-
-    #[test]
-    fn a_path_lies_under_a_root_only_on_a_separator_boundary() {
-        assert!(lies_under("/music/a.mp3", "/music"));
-        assert!(lies_under("/music/a.mp3", "/music/"));
-        assert!(lies_under(r"D:\Music\a.mp3", r"D:\Music"));
-        assert!(!lies_under("/music-old/a.mp3", "/music"));
-        assert!(!lies_under("/a.mp3", "/"));
-    }
-
-    #[test]
-    fn a_file_on_present_storage_that_is_gone_has_moved_away() {
-        let dir = tempfile::tempdir().expect("a temp dir");
-        let root = dir.path().to_string_lossy().into_owned();
-        let gone = dir.path().join("Album").join("song.mp3");
-
-        assert!(moved_away(
-            &gone.to_string_lossy(),
-            std::slice::from_ref(&root)
-        ));
-        assert!(moved_away(&gone.to_string_lossy(), &[] as &[String]));
-    }
-
-    #[test]
-    fn a_file_that_exists_has_not_moved() {
-        let dir = tempfile::tempdir().expect("a temp dir");
-        let here = dir.path().join("song.mp3");
-        std::fs::write(&here, b"x").expect("the fixture writes");
-
-        assert!(!moved_away(&here.to_string_lossy(), &[] as &[String]));
-    }
-
-    /// The offline-NAS case: the watched folder that held the file is itself
-    /// missing, so its files are unreachable, not moved.
-    #[test]
-    fn a_file_whose_music_folder_is_missing_is_offline_not_moved() {
-        let dir = tempfile::tempdir().expect("a temp dir");
-        let nas = dir.path().join("nas-share");
-        let old = nas.join("Album").join("song.mp3");
-        let roots = [
-            dir.path().to_string_lossy().into_owned(),
-            nas.to_string_lossy().into_owned(),
-        ];
-
-        assert!(
-            !moved_away(&old.to_string_lossy(), &roots),
-            "the longest containing root is the missing one"
-        );
-    }
-
-    #[test]
-    fn a_file_on_an_unmounted_volume_is_offline_not_moved() {
-        let old = "/Volumes/ShiranamiNoSuchVolume-7f3a/Music/song.mp3";
-        assert!(!moved_away(old, &[] as &[String]));
-        assert!(!moved_away(
-            old,
-            &["/Volumes/ShiranamiNoSuchVolume-7f3a/Music"]
-        ));
-    }
-}
+#[path = "gone_tests.rs"]
+mod tests;
