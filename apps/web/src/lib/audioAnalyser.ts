@@ -1,15 +1,31 @@
 /**
- * Audio analyser module supporting dual-deck playback with a graphic EQ.
+ * Audio analyser module supporting dual-deck playback with a graphic EQ and an
+ * ambience bus.
  *
  * Manages an AudioContext with two MediaElementSource nodes (one per deck),
  * each routed through a GainNode. Both feed into a shared mix point, then a
- * preamp, a dry/wet split, a safety limiter, and finally the shared
- * AnalyserNode so the visualizer sees the processed output during crossfade
- * transitions.
+ * preamp and a dry/wet split that meet again at the music bus. The music bus
+ * feeds the safety limiter (and on to the speakers) and, as a side tap, the
+ * shared AnalyserNode, so the visualizer sees the processed music during
+ * crossfade transitions.
  *
- *   sourceA -> gainA ↘                    ┌-> dryGain -------------┐
- *                      mixGain -> preamp -┤                        ├-> limiter -> analyser -> destination
- *   sourceB -> gainB ↗                    └-> eq[0..9] -> eqGain --┘
+ *   sourceA -> gainA ↘                    ┌-> dryGain -------------┐           ┌-> analyser (tap)
+ *                      mixGain -> preamp -┤                        ├-> musicBus┤
+ *   sourceB -> gainB ↗                    └-> eq[0..9] -> eqGain --┘           └-> limiter -> destination
+ *                                                                                     ↑
+ *   ambience layers (lib/ambient) -----------------------------------> ambientBus ----┘
+ *
+ * The ambience bus joins at the limiter, after everything that shapes the
+ * music: it is outside the deck gains (so crossfades, loudness leveling and
+ * the sleep fade's per-deck ramp never touch it), outside the EQ, and outside
+ * the analyser tap, yet the limiter still guards the sum. The analyser is a
+ * tap rather than an in-line node precisely so ambience stays out of it: a
+ * noise bed at -24 dBFS spread across 128 bins would lift every bar of every
+ * visualizer to a constant floor. A tap whose output goes nowhere is still
+ * rendered (Web Audio processes every node with live inputs; checked in both
+ * Chromium and WebKit), and it now reads the music just before the limiter,
+ * which differs from the old post-limiter reading only when the limiter is
+ * actually clamping above -1 dBFS.
  *
  * The 10 biquads are built lazily on the first EQ enable and are only wired
  * into the graph while the EQ is on. With the EQ off (the default) the dry
@@ -35,7 +51,7 @@ export const EQ_BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] a
 /** Q for the 8 peaking filters (positions 1..8). */
 const PEAKING_Q = 1.414;
 
-/** Limiter safety parameters (after the dry/wet merge, before the analyser). */
+/** Limiter safety parameters (after the music bus and the ambience bus merge). */
 const LIMITER_THRESHOLD_DB = -1;
 const LIMITER_KNEE_DB = 0;
 const LIMITER_RATIO = 20;
@@ -61,12 +77,23 @@ let mixGain: GainNode | null = null;
 let preamp: GainNode | null = null;
 let dryGain: GainNode | null = null;
 let eqGain: GainNode | null = null;
+/** Where the dry and EQ branches meet; feeds the limiter and the analyser tap. */
+let musicBus: GainNode | null = null;
+/** Created on demand by `acquireAmbientBus`; joins the limiter, never the analyser. */
+let ambientBus: GainNode | null = null;
 let eqNodes: BiquadFilterNode[] = [];
 let limiter: DynamicsCompressorNode | null = null;
 let connected = false;
-/** True while the biquad branch is wired between the preamp and the limiter. */
+/** True while the biquad branch is wired between the preamp and the music bus. */
 let eqWired = false;
 let eqUnwireTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Notified when the graph is built or torn down (see `subscribeAudioGraph`). */
+const graphListeners = new Set<() => void>();
+
+function notifyGraphListeners(): void {
+  for (const listener of graphListeners) listener();
+}
 
 /**
  * Initialise the Web Audio graph with two audio elements (deck A and deck B).
@@ -111,6 +138,9 @@ export function initAnalyser(audioA: HTMLAudioElement, audioB: HTMLAudioElement)
   dryGain = ctx.createGain();
   dryGain.gain.value = 1;
 
+  musicBus = ctx.createGain();
+  musicBus.gain.value = 1;
+
   limiter = ctx.createDynamicsCompressor();
   limiter.threshold.value = LIMITER_THRESHOLD_DB;
   limiter.knee.value = LIMITER_KNEE_DB;
@@ -124,11 +154,13 @@ export function initAnalyser(audioA: HTMLAudioElement, audioB: HTMLAudioElement)
   gainB.connect(mixGain);
   mixGain.connect(preamp);
   preamp.connect(dryGain);
-  dryGain.connect(limiter);
-  limiter.connect(analyserNode);
-  analyserNode.connect(ctx.destination);
+  dryGain.connect(musicBus);
+  musicBus.connect(limiter);
+  musicBus.connect(analyserNode);
+  limiter.connect(ctx.destination);
 
   connected = true;
+  notifyGraphListeners();
   return analyserNode;
 }
 
@@ -197,7 +229,7 @@ function unwireEq(): void {
     /* ok */
   }
   try {
-    if (limiter) eqGain?.disconnect(limiter);
+    if (musicBus) eqGain?.disconnect(musicBus);
   } catch {
     /* ok */
   }
@@ -248,7 +280,7 @@ export function applyEqPreset(gains: readonly number[]): void {
  * up the persisted configuration.
  */
 export function setEqEnabled(enabled: boolean): void {
-  if (!audioContext || !preamp || !limiter || !dryGain) return;
+  if (!audioContext || !preamp || !musicBus || !dryGain) return;
 
   if (eqUnwireTimer !== null) {
     clearTimeout(eqUnwireTimer);
@@ -259,7 +291,7 @@ export function setEqEnabled(enabled: boolean): void {
     if (!ensureEqNodes() || !eqGain) return;
     if (!eqWired) {
       preamp.connect(eqNodes[0]);
-      eqGain.connect(limiter);
+      eqGain.connect(musicBus);
       eqWired = true;
     }
     rampParam(eqGain.gain, 1);
@@ -292,6 +324,55 @@ export function setDeckGain(deck: 'A' | 'B', value: number) {
   if (gain) {
     gain.gain.value = Math.max(0, Math.min(1, value));
   }
+}
+
+/** The ambience engine's way into the graph. */
+export interface AmbientBusHandle {
+  readonly context: AudioContext;
+  /** Connect ambience here; it reaches the limiter and nothing else. */
+  readonly input: GainNode;
+}
+
+/**
+ * Hand the ambience engine its bus, creating and joining it to the limiter on
+ * first use. Returns null until the music graph exists (it is built on the
+ * first play, from a user gesture), in which case the caller waits for
+ * `subscribeAudioGraph` to fire.
+ */
+export function acquireAmbientBus(): AmbientBusHandle | null {
+  if (!audioContext || !limiter || !connected) return null;
+  if (!ambientBus) {
+    ambientBus = audioContext.createGain();
+    ambientBus.gain.value = 1;
+    ambientBus.connect(limiter);
+  }
+  return { context: audioContext, input: ambientBus };
+}
+
+/**
+ * Take the ambience bus back out of the graph. The engine calls this once it
+ * has faded out and stopped its sources, so an idle ambience costs the audio
+ * thread nothing at all.
+ */
+export function releaseAmbientBus(): void {
+  if (!ambientBus) return;
+  try {
+    ambientBus.disconnect();
+  } catch {
+    /* ok */
+  }
+  ambientBus = null;
+}
+
+/**
+ * Be told when the graph is built (first play) or torn down (unmount). Returns
+ * the unsubscribe function.
+ */
+export function subscribeAudioGraph(listener: () => void): () => void {
+  graphListeners.add(listener);
+  return () => {
+    graphListeners.delete(listener);
+  };
 }
 
 /**
@@ -378,6 +459,12 @@ export function destroyAnalyser() {
   } catch {
     /* ok */
   }
+  try {
+    musicBus?.disconnect();
+  } catch {
+    /* ok */
+  }
+  releaseAmbientBus();
   for (const node of eqNodes) {
     try {
       node.disconnect();
@@ -408,8 +495,10 @@ export function destroyAnalyser() {
   preamp = null;
   dryGain = null;
   eqGain = null;
+  musicBus = null;
   eqNodes = [];
   limiter = null;
   connected = false;
   eqWired = false;
+  notifyGraphListeners();
 }
