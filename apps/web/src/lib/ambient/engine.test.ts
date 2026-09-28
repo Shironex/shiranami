@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_AMBIENT_LEVELS, type AmbientLayerId } from '@/stores/useAmbientStore';
-import { createAmbientEngine, type ILayerAssets, type IAmbientEngine } from './engine';
+import { fadeOut } from '@/hooks/useAudioEngine';
+import {
+  createAmbientEngine,
+  sleepFadeCurve,
+  type ILayerAssets,
+  type IAmbientEngine,
+} from './engine';
 import type { AmbientTarget } from './target';
 
 /**
@@ -357,6 +363,12 @@ describe('ambience engine', () => {
       // Equal-power: still at cos(π/4) halfway through, not at 0.5.
       const mid = fade.curve[Math.round((fade.curve.length - 1) / 2)];
       expect(mid).toBeGreaterThan(0.6);
+    });
+
+    it('uses the same curve the audio engine fades the deck with', () => {
+      for (const p of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
+        expect(sleepFadeCurve(p)).toBeCloseTo(fadeOut(p), 12);
+      }
     });
 
     it('does not restart the curve on repeated sleep targets', async () => {

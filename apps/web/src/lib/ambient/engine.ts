@@ -24,7 +24,6 @@
  */
 
 import { acquireAmbientBus, releaseAmbientBus, type AmbientBusHandle } from '@/lib/audioAnalyser';
-import { fadeOut } from '@/hooks/useAudioEngine';
 import { logger } from '@/lib/logger';
 import { seededRandom } from '@/lib/showcase/determinism';
 import { AMBIENT_LAYER_IDS, type AmbientLayerId } from '@/stores/useAmbientStore';
@@ -49,6 +48,16 @@ const SCHEDULER_INTERVAL_MS = 250;
 const SCHEDULE_AHEAD_SECONDS = 1.2;
 /** Points in the sleep fade curve handed to `setValueCurveAtTime`. */
 const SLEEP_CURVE_POINTS = 64;
+
+/**
+ * The equal-power fade-out the audio engine ramps the active deck with
+ * (`fadeOut` in `useAudioEngine`), restated here so this lazy chunk does not
+ * import the audio engine's whole module graph. `engine.test.ts` pins the two
+ * together.
+ */
+export function sleepFadeCurve(progress: number): number {
+  return Math.cos(progress * Math.PI * 0.5);
+}
 
 /** Offset of the second bed voice, as a fraction of the loop. */
 const SECOND_VOICE_OFFSET = 0.37;
@@ -360,7 +369,7 @@ class AmbientEngine implements IAmbientEngine {
     const from = param.value;
     const curve = new Float32Array(SLEEP_CURVE_POINTS);
     for (let i = 0; i < SLEEP_CURVE_POINTS; i++) {
-      curve[i] = from * fadeOut(i / (SLEEP_CURVE_POINTS - 1));
+      curve[i] = from * sleepFadeCurve(i / (SLEEP_CURVE_POINTS - 1));
     }
     param.cancelScheduledValues(now);
     param.setValueCurveAtTime(curve, now, seconds);
