@@ -17,6 +17,8 @@ const shareTakePendingDeepLink = vi.fn<() => Promise<string | null>>();
 /** The live `share:deep-link` registration, observable and drivable. */
 const live = {
   emit: (_payload: unknown) => {},
+  /** When the webview's listen round-trip completes; immediate unless a test holds it. */
+  registered: Promise.resolve() as Promise<void>,
 };
 
 vi.mock('@shiranami/contracts/bindings', () => ({
@@ -27,7 +29,7 @@ vi.mock('@shiranami/contracts/bindings', () => ({
     shareDeepLink: {
       listen: (callback: (event: { payload: unknown }) => void) => {
         live.emit = payload => callback({ payload });
-        return Promise.resolve(() => {});
+        return live.registered.then(() => () => {});
       },
     },
   },
@@ -64,9 +66,32 @@ async function loadShareApi() {
 beforeEach(() => {
   vi.clearAllMocks();
   live.emit = () => {};
+  live.registered = Promise.resolve();
 });
 
 describe('share.onDeepLink', () => {
+  /**
+   * The take flips the shell from holding links to emitting them. Taking before
+   * the live listener is registered would open a gap in which an emitted link
+   * reaches nobody.
+   */
+  it('takes the pending link only once the live listener is registered', async () => {
+    const registration = deferred<void>();
+    live.registered = registration.promise;
+    shareTakePendingDeepLink.mockResolvedValue('AbC123');
+    const shareApi = await loadShareApi();
+    const seen = vi.fn();
+
+    shareApi.onDeepLink(seen);
+    await settle();
+    expect(shareTakePendingDeepLink).not.toHaveBeenCalled();
+
+    registration.resolve();
+    await settle();
+    expect(shareTakePendingDeepLink).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledWith('AbC123');
+  });
+
   it('delivers a cold-start link once', async () => {
     shareTakePendingDeepLink.mockResolvedValue('AbC123');
     const shareApi = await loadShareApi();

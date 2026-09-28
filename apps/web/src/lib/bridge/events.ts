@@ -47,6 +47,8 @@ interface Registration {
   unlisten: (() => void) | null;
   /** True once the last subscriber left, so a late-resolving listen tears down. */
   closed: boolean;
+  /** Settles once the Tauri registration is live, or has failed. Never rejects. */
+  ready: Promise<void>;
 }
 
 const registry = new Map<string, Registration>();
@@ -68,10 +70,15 @@ function safeUnlisten(unlisten: () => void): void {
 }
 
 function open(channel: string, binding: EventBinding): Registration {
-  const registration: Registration = { listeners: new Set(), unlisten: null, closed: false };
+  const registration: Registration = {
+    listeners: new Set(),
+    unlisten: null,
+    closed: false,
+    ready: Promise.resolve(),
+  };
   registry.set(channel, registration);
 
-  void binding
+  registration.ready = binding
     .listen(event => {
       // A copy, so a callback that unsubscribes itself (or a sibling) mid-fanout
       // does not mutate the set being iterated.
@@ -135,6 +142,19 @@ export function subscribeChannel<T>(
     registration.listeners.delete(listener);
     if (registration.listeners.size === 0) close(channel, registration);
   };
+}
+
+/**
+ * Settles once `channel`'s Tauri listener is live (or failed to register).
+ *
+ * `subscribeChannel` returns before the webview's listen round-trip completes,
+ * so an event emitted in that gap reaches nobody. Almost every caller can
+ * accept that; one that must not miss an event, such as the cold-start deep
+ * link drain, waits on this first. Resolves at once for a channel nobody has
+ * subscribed to.
+ */
+export function whenListening(channel: string): Promise<void> {
+  return registry.get(channel)?.ready ?? Promise.resolve();
 }
 
 /**

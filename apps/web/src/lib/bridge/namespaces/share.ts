@@ -9,7 +9,7 @@ import {
 import { events } from '@shiranami/contracts/bindings';
 import { logger } from '@/lib/logger';
 import { commands } from '../commands';
-import { subscribeChannel } from '../events';
+import { subscribeChannel, whenListening } from '../events';
 import { bareString } from '../narrowers';
 import { asContract } from '../wire';
 
@@ -64,16 +64,21 @@ let heldCode: string | null = null;
 const waiting = new Set<(code: string) => void>();
 
 function startDrain(): Promise<void> {
-  drain ??= commands.shareTakePendingDeepLink().then(
-    code => {
-      if (typeof code === 'string' && code.length > 0) heldCode = code;
-    },
-    (error: unknown) => {
-      // A failed take costs the cold-start link and nothing else: the live
-      // subscription is already in place and must keep working.
-      logger.warn('[bridge] could not take the pending share deep link', error);
-    }
-  );
+  // The take switches the shell from holding links to emitting them, so the
+  // live listener has to be registered first: a link emitted in between would
+  // reach nobody and be lost.
+  drain ??= whenListening(C.deepLink)
+    .then(() => commands.shareTakePendingDeepLink())
+    .then(
+      code => {
+        if (typeof code === 'string' && code.length > 0) heldCode = code;
+      },
+      (error: unknown) => {
+        // A failed take costs the cold-start link and nothing else: the live
+        // subscription is already in place and must keep working.
+        logger.warn('[bridge] could not take the pending share deep link', error);
+      }
+    );
   return drain;
 }
 
