@@ -91,7 +91,7 @@ async fn promote_one(staged: &Path, final_path: &Path) -> Result<Promoted> {
         if had_previous {
             // Put the original back; the staged file stays where it was for
             // the caller to clean up.
-            restore(&backup, final_path).await;
+            let _restored = restore(&backup, final_path).await;
         }
         return Err(error);
     }
@@ -102,19 +102,70 @@ async fn promote_one(staged: &Path, final_path: &Path) -> Result<Promoted> {
     })
 }
 
-/// Undo a promotion: remove each new binary and put its predecessor back.
+/// Undo a promotion: put each predecessor back over its replacement.
 ///
-/// Best effort and logged, never failing: this runs on a path that is already
-/// reporting an error, and a second error would hide the first. A binary with
-/// no predecessor (a first install) is simply removed, which leaves the tool
-/// "not installed" rather than installed and broken.
-pub async fn roll_back(promoted: &[Promoted]) {
+/// Each restore is **one rename of `.old` over the final path**, never "delete
+/// the new file, then rename": `rename` replaces its target atomically on Unix,
+/// and Rust's `rename` on Windows is `MoveFileExW` with
+/// `MOVEFILE_REPLACE_EXISTING`, so at no instant is there no binary at all. A
+/// binary with no predecessor (a first install) is removed, which leaves the
+/// tool "not installed" rather than installed and broken.
+///
+/// Never fails, because it runs on a path that is already reporting an error,
+/// but answers whether every predecessor is back, so that error can say so
+/// truthfully instead of claiming the previous version was kept.
+pub async fn roll_back(promoted: &[Promoted]) -> bool {
+    let mut restored = true;
     for entry in promoted.iter().rev() {
-        remove_quietly(&entry.final_path).await;
-        if let Some(backup) = &entry.backup {
-            restore(backup, &entry.final_path).await;
+        match &entry.backup {
+            Some(backup) => restored &= restore(backup, &entry.final_path).await,
+            None => remove_quietly(&entry.final_path).await,
         }
     }
+    restored
+}
+
+/// Finish a swap that was interrupted between its two renames.
+///
+/// A crash or a quit after the current binary moved aside and before the new
+/// one moved in leaves only `<name>.old`. Nothing else reads `.old`, so without
+/// this the tool would show as not installed and automatic updates, which
+/// never install a missing tool, would refuse to touch it.
+///
+/// `finals` is one tool's binaries, and they are restored **as a pair**: when
+/// any of them is missing beside its backup, every one that has a backup is
+/// restored, so ffmpeg and ffprobe never end up from different builds.
+/// Answers whether anything was restored.
+///
+/// Callers must hold the tool's install lock (or know no install can run), or
+/// this would read a live swap as an interrupted one.
+pub async fn recover(finals: &[PathBuf]) -> bool {
+    let mut interrupted = false;
+    for final_path in finals {
+        let missing = !exists(final_path).await;
+        if missing && exists(&backup_path(final_path)).await {
+            interrupted = true;
+        }
+    }
+    if !interrupted {
+        return false;
+    }
+
+    tracing::warn!(
+        ?finals,
+        "finishing an interrupted binary swap from its backup"
+    );
+    for final_path in finals {
+        let backup = backup_path(final_path);
+        if exists(&backup).await {
+            restore(&backup, final_path).await;
+        }
+    }
+    true
+}
+
+async fn exists(path: &Path) -> bool {
+    tokio::fs::try_exists(path).await.unwrap_or(false)
 }
 
 /// Keep a promotion: drop the predecessors.
@@ -127,14 +178,19 @@ pub async fn commit(promoted: &[Promoted]) {
     }
 }
 
-async fn restore(backup: &Path, final_path: &Path) {
-    if let Err(error) = tokio::fs::rename(backup, final_path).await {
-        tracing::error!(
-            backup = %backup.display(),
-            path = %final_path.display(),
-            %error,
-            "could not restore the previous binary"
-        );
+/// Rename `backup` over `final_path`, replacing it. Answers whether it worked.
+async fn restore(backup: &Path, final_path: &Path) -> bool {
+    match tokio::fs::rename(backup, final_path).await {
+        Ok(()) => true,
+        Err(error) => {
+            tracing::error!(
+                backup = %backup.display(),
+                path = %final_path.display(),
+                %error,
+                "could not restore the previous binary"
+            );
+            false
+        }
     }
 }
 
@@ -200,10 +256,79 @@ mod tests {
         let promoted = promote_all(&[(staged, final_path.clone())])
             .await
             .expect("promotes");
-        roll_back(&promoted).await;
+        assert!(roll_back(&promoted).await, "the predecessor is back");
 
         assert_eq!(read(&final_path).await, "old");
         assert!(!backup_path(&final_path).exists());
+    }
+
+    #[tokio::test]
+    async fn a_restore_that_fails_is_reported_rather_than_claimed() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let final_path = temp.path().join("yt-dlp");
+        write(&final_path, "new").await;
+
+        // The backup has gone missing, so it cannot be put back.
+        let promoted = [Promoted {
+            final_path: final_path.clone(),
+            backup: Some(backup_path(&final_path)),
+        }];
+
+        assert!(!roll_back(&promoted).await);
+        assert_eq!(
+            read(&final_path).await,
+            "new",
+            "a failed restore must not delete the only binary there is"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_interrupted_swap_is_finished_from_its_backup() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let final_path = temp.path().join("yt-dlp");
+        // The state a crash between the two renames leaves.
+        write(&backup_path(&final_path), "old").await;
+
+        assert!(recover(std::slice::from_ref(&final_path)).await);
+        assert_eq!(read(&final_path).await, "old");
+        assert!(!backup_path(&final_path).exists());
+
+        assert!(
+            !recover(std::slice::from_ref(&final_path)).await,
+            "an intact install is left alone"
+        );
+    }
+
+    #[tokio::test]
+    async fn an_interrupted_pair_is_restored_as_a_pair() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let ffmpeg = temp.path().join("ffmpeg");
+        let ffprobe = temp.path().join("ffprobe");
+        // ffprobe was swapped in, then the process died before ffmpeg's rename.
+        write(&backup_path(&ffmpeg), "old ffmpeg").await;
+        write(&ffprobe, "new ffprobe").await;
+        write(&backup_path(&ffprobe), "old ffprobe").await;
+
+        assert!(recover(&[ffmpeg.clone(), ffprobe.clone()]).await);
+
+        assert_eq!(read(&ffmpeg).await, "old ffmpeg");
+        assert_eq!(
+            read(&ffprobe).await,
+            "old ffprobe",
+            "the pair must not end up from different builds"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_leftover_backup_beside_a_working_binary_is_not_restored() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let final_path = temp.path().join("yt-dlp.exe");
+        // Windows could not delete a running `.old` after a good update.
+        write(&final_path, "new").await;
+        write(&backup_path(&final_path), "old").await;
+
+        assert!(!recover(std::slice::from_ref(&final_path)).await);
+        assert_eq!(read(&final_path).await, "new");
     }
 
     #[tokio::test]
@@ -218,7 +343,7 @@ mod tests {
             .expect("promotes");
         assert_eq!(promoted[0].backup, None);
 
-        roll_back(&promoted).await;
+        assert!(roll_back(&promoted).await);
         assert!(
             !final_path.exists(),
             "a binary that failed its probe is not left installed"
