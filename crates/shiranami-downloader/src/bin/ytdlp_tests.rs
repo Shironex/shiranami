@@ -192,3 +192,37 @@ fn the_managed_path_follows_the_platform() {
     let mac = YtDlpManager::new(PathBuf::from("/data/bin"), Platform::MacOs, client, runner);
     assert_eq!(mac.path(), PathBuf::from("/data/bin/yt-dlp"));
 }
+
+/// A torn marker left by a first install that crashed before its rename-in:
+/// neither a binary nor a backup exists. That must not wedge every later
+/// install of yt-dlp; the next one clears it and succeeds.
+#[tokio::test]
+async fn a_torn_first_install_marker_does_not_block_the_next_install() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let manager = manager(temp.path().to_path_buf(), Ok(output("2026.09.20", 0)));
+    let final_path = manager.path();
+    tokio::fs::write(swap::marker_path(&final_path), "")
+        .await
+        .expect("a torn marker");
+
+    let staged_path = temp.path().join("yt-dlp.next.tmp");
+    tokio::fs::write(&staged_path, b"new")
+        .await
+        .expect("staged");
+    let digest = checksum::digest_file(&staged_path).await.expect("hash");
+    let guard = manager.lock_install().await;
+    let staged = StagedYtDlp {
+        path: staged_path,
+        digest,
+        _under: PhantomData,
+    };
+
+    let version = manager
+        .promote_staged(&guard, staged)
+        .await
+        .expect("the next install goes ahead");
+
+    assert_eq!(version, "2026.09.20");
+    assert!(final_path.exists());
+    assert!(!swap::is_pending(std::slice::from_ref(&final_path)).await);
+}

@@ -45,10 +45,15 @@ pub const POST_INSTALL_PROBE_TIMEOUT: Duration = Duration::from_secs(60);
 /// What an install reports when the new binary does not answer `--version`.
 pub const PROBE_FAILED: &str = "The new yt-dlp did not run, so the previous version was kept";
 
+/// What a first install (nothing to keep) reports when the new binary does
+/// not run.
+pub const PROBE_FAILED_FIRST: &str = "The new yt-dlp did not run, so it was not installed";
+
 /// What an install reports when the new binary did not run **and** the
-/// previous one could not be put back.
-pub const PROBE_FAILED_UNRESTORED: &str = "The new yt-dlp did not run, and the previous version \
-     could not be restored. Install yt-dlp again from Settings, Downloads";
+/// previous state (the old binary, or none on a first install) could not be
+/// put back.
+pub const PROBE_FAILED_UNRESTORED: &str = "The new yt-dlp did not run, and what was installed \
+     before could not be put back. Install yt-dlp again from Settings, Downloads";
 
 /// The one field this crate reads from GitHub's latest-release document.
 #[derive(Debug, Deserialize)]
@@ -307,9 +312,10 @@ impl YtDlpManager {
     ///
     /// `InstallFailed` carrying [`checksum::CHECKSUM_MISMATCH`] when the staged
     /// file changed since it was verified, `Io` when a rename fails, and
-    /// `InstallFailed` carrying [`PROBE_FAILED`] (or
-    /// [`PROBE_FAILED_UNRESTORED`], when putting the old one back failed too)
-    /// when the new binary does not run.
+    /// `InstallFailed` carrying [`PROBE_FAILED`] ([`PROBE_FAILED_FIRST`] on a
+    /// first install, [`PROBE_FAILED_UNRESTORED`] when putting the previous
+    /// state back failed too) when the new binary does not run, and
+    /// [`swap::SWAP_PENDING`] when an earlier swap is still pending.
     pub async fn promote_staged(
         &self,
         guard: &InstallGuard<'_>,
@@ -322,9 +328,13 @@ impl YtDlpManager {
         let final_path = self.path();
 
         // A swap an earlier crash or failed rollback left pending is rolled
-        // back first. If that cannot finish, its `.old` may be the last
-        // known-good build, and this promotion must not touch it.
-        if !swap::recover(std::slice::from_ref(&final_path)).await {
+        // back first. If it is still pending afterwards (a restore failed and
+        // is worth retrying), its `.old` may be the last known-good build, and
+        // this promotion must not touch it. A marker with nothing left to
+        // restore is cleared by `recover`, so it never blocks this.
+        let finals = std::slice::from_ref(&final_path);
+        swap::recover(finals).await;
+        if swap::is_pending(finals).await {
             install::remove_quietly(&staged.path).await;
             return Err(DownloaderError::InstallFailed {
                 message: swap::SWAP_PENDING.to_owned(),
@@ -347,12 +357,13 @@ impl YtDlpManager {
 
         let Some(version) = self.version_within(POST_INSTALL_PROBE_TIMEOUT).await else {
             tracing::error!(path = %final_path.display(), "the new yt-dlp did not run; rolling back");
+            let had_previous = promoted.iter().any(|entry| entry.backup.is_some());
             let restored = swap::roll_back(&promoted).await;
             return Err(DownloaderError::InstallFailed {
-                message: if restored {
-                    PROBE_FAILED
-                } else {
-                    PROBE_FAILED_UNRESTORED
+                message: match (restored, had_previous) {
+                    (true, true) => PROBE_FAILED,
+                    (true, false) => PROBE_FAILED_FIRST,
+                    (false, _) => PROBE_FAILED_UNRESTORED,
                 }
                 .to_owned(),
             });

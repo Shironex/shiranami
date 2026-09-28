@@ -48,10 +48,14 @@ pub const ARCHIVE_INCOMPLETE: &str =
 /// What an install reports when the new pair does not run.
 pub const PROBE_FAILED: &str = "The new ffmpeg did not run, so the previous version was kept";
 
+/// What a first install (nothing to keep) reports when the new pair does not
+/// run.
+pub const PROBE_FAILED_FIRST: &str = "The new ffmpeg did not run, so it was not installed";
+
 /// What an install reports when the new pair did not run **and** the previous
-/// pair could not be put back.
-pub const PROBE_FAILED_UNRESTORED: &str = "The new ffmpeg did not run, and the previous version \
-     could not be restored. Install ffmpeg again from Settings, Downloads";
+/// state (the old pair, or none on a first install) could not be put back.
+pub const PROBE_FAILED_UNRESTORED: &str = "The new ffmpeg did not run, and what was installed \
+     before could not be put back. Install ffmpeg again from Settings, Downloads";
 
 /// The version out of ffmpeg's banner line.
 static VERSION_LINE: LazyLock<Regex> = LazyLock::new(|| {
@@ -261,8 +265,10 @@ impl FfmpegManager {
     ///
     /// `InstallFailed` carrying [`checksum::CHECKSUM_MISMATCH`] when a staged
     /// binary changed since staging, `Io` when a rename fails, `InstallFailed`
-    /// carrying [`PROBE_FAILED`] (or [`PROBE_FAILED_UNRESTORED`]) when the new
-    /// pair does not run.
+    /// carrying [`PROBE_FAILED`] ([`PROBE_FAILED_FIRST`] on a first install,
+    /// [`PROBE_FAILED_UNRESTORED`] when the previous state could not be put
+    /// back) when the new pair does not run, or [`swap::SWAP_PENDING`] while an
+    /// earlier swap is still pending.
     pub async fn promote_staged(
         &self,
         guard: &InstallGuard<'_>,
@@ -273,8 +279,11 @@ impl FfmpegManager {
             return Err(error);
         }
         // For `YtDlpManager::promote_staged`'s reason: a pending pair swap is
-        // rolled back first, and a pair that cannot be is left alone.
-        if !swap::recover(&[self.ffmpeg_path(), self.ffprobe_path()]).await {
+        // rolled back first, and a pair still pending afterwards (a restore
+        // worth retrying failed) is left alone.
+        let finals = [self.ffmpeg_path(), self.ffprobe_path()];
+        swap::recover(&finals).await;
+        if swap::is_pending(&finals).await {
             self.discard(staged).await;
             return Err(DownloaderError::InstallFailed {
                 message: swap::SWAP_PENDING.to_owned(),
@@ -333,12 +342,13 @@ impl FfmpegManager {
 
     async fn reject(&self, promoted: &[swap::Promoted]) -> Result<String> {
         tracing::error!(dir = %self.bin_dir.display(), "the new ffmpeg did not run; rolling back");
+        let had_previous = promoted.iter().any(|entry| entry.backup.is_some());
         let restored = swap::roll_back(promoted).await;
         Err(DownloaderError::InstallFailed {
-            message: if restored {
-                PROBE_FAILED
-            } else {
-                PROBE_FAILED_UNRESTORED
+            message: match (restored, had_previous) {
+                (true, true) => PROBE_FAILED,
+                (true, false) => PROBE_FAILED_FIRST,
+                (false, _) => PROBE_FAILED_UNRESTORED,
             }
             .to_owned(),
         })
@@ -356,141 +366,5 @@ impl FfmpegManager {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::spawn::ProcessOutput;
-    use crate::spawn::runner::LineSink;
-
-    struct Fixed(ProcessOutput);
-
-    #[async_trait::async_trait]
-    impl ProcessRunner for Fixed {
-        async fn run(
-            &self,
-            _spec: ProcessSpec,
-            _lines: Option<&(dyn LineSink + '_)>,
-            _cancel: &CancellationToken,
-        ) -> std::result::Result<ProcessOutput, crate::spawn::ProcessError> {
-            Ok(self.0.clone())
-        }
-    }
-
-    fn manager(bin_dir: PathBuf, platform: Platform, banner: &str) -> FfmpegManager {
-        FfmpegManager::new(
-            bin_dir,
-            platform,
-            Arc::new(HttpClient::new().expect("the client builds")),
-            Arc::new(Fixed(ProcessOutput {
-                stdout: banner.to_owned(),
-                ..ProcessOutput::default()
-            })),
-        )
-    }
-
-    async fn place_both(manager: &FfmpegManager) {
-        tokio::fs::write(manager.ffmpeg_path(), b"binary")
-            .await
-            .expect("place ffmpeg");
-        tokio::fs::write(manager.ffprobe_path(), b"binary")
-            .await
-            .expect("place ffprobe");
-    }
-
-    #[tokio::test]
-    async fn both_binaries_must_be_present_to_count_as_installed() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(temp.path().to_path_buf(), Platform::MacOs, "");
-
-        assert!(!manager.is_installed().await);
-
-        tokio::fs::write(manager.ffmpeg_path(), b"binary")
-            .await
-            .expect("place ffmpeg");
-        assert!(
-            !manager.is_installed().await,
-            "ffmpeg alone is not enough — yt-dlp's post-processing needs \
-             ffprobe too"
-        );
-
-        tokio::fs::write(manager.ffprobe_path(), b"binary")
-            .await
-            .expect("place ffprobe");
-        assert!(manager.is_installed().await);
-    }
-
-    #[tokio::test]
-    async fn reads_the_version_out_of_a_release_banner() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(
-            temp.path().to_path_buf(),
-            Platform::MacOs,
-            "ffmpeg version 7.1 Copyright (c) 2000-2024 the FFmpeg developers\n\
-             built with Apple clang\n",
-        );
-        place_both(&manager).await;
-
-        assert_eq!(manager.version().await, Some("7.1".to_owned()));
-    }
-
-    #[tokio::test]
-    async fn reads_the_version_out_of_a_nightly_banner() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(
-            temp.path().to_path_buf(),
-            Platform::MacOs,
-            "ffmpeg version N-113573-g4a2d1b0f9d Copyright (c) 2000-2024\n",
-        );
-        place_both(&manager).await;
-
-        assert_eq!(
-            manager.version().await,
-            Some("N-113573-g4a2d1b0f9d".to_owned())
-        );
-    }
-
-    #[tokio::test]
-    async fn falls_back_to_the_whole_first_line_when_the_banner_is_unfamiliar() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(
-            temp.path().to_path_buf(),
-            Platform::MacOs,
-            "  some other build banner  \nsecond line\n",
-        );
-        place_both(&manager).await;
-
-        assert_eq!(
-            manager.version().await,
-            Some("some other build banner".to_owned())
-        );
-    }
-
-    #[tokio::test]
-    async fn an_absent_install_reports_no_version() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(
-            temp.path().to_path_buf(),
-            Platform::MacOs,
-            "ffmpeg version 7.1",
-        );
-
-        assert_eq!(manager.version().await, None);
-    }
-
-    #[tokio::test]
-    async fn a_platform_with_no_automatic_install_refuses_with_v1s_message() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(temp.path().to_path_buf(), Platform::Other, "");
-
-        let error = manager.install(None).await.expect_err("nothing to install");
-
-        assert_eq!(error.to_string(), UNSUPPORTED_PLATFORM);
-    }
-
-    #[tokio::test]
-    async fn a_platform_with_no_automatic_install_reports_no_latest_version() {
-        let temp = tempfile::tempdir().expect("a temporary directory");
-        let manager = manager(temp.path().to_path_buf(), Platform::Other, "");
-
-        assert_eq!(manager.latest_version().await, None);
-    }
-}
+#[path = "ffmpeg_tests.rs"]
+mod tests;

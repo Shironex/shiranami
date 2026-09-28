@@ -54,6 +54,17 @@ impl Tools {
         ytdlp && ffmpeg
     }
 
+    /// Whether either tool still has a swap pending (see `bin::swap`), which
+    /// blocks installs of that tool until a rollback succeeds.
+    pub async fn has_pending_swap(&self) -> bool {
+        crate::bin::swap::is_pending(&[self.ytdlp.path()]).await
+            || crate::bin::swap::is_pending(&[
+                self.ffmpeg.ffmpeg_path(),
+                self.ffmpeg.ffprobe_path(),
+            ])
+            .await
+    }
+
     /// The cheap presence check, with no version probe and no network call.
     pub async fn check(&self) -> DependencyCheck {
         let (ytdlp_installed, ffmpeg_installed) =
