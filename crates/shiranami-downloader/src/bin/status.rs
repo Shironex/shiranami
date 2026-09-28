@@ -43,6 +43,17 @@ impl Tools {
         Self { ytdlp, ffmpeg }
     }
 
+    /// Roll back any swap a crash left pending, for both tools, waiting for
+    /// installs in progress rather than skipping. Answers whether both are
+    /// consistent afterwards.
+    pub async fn recover_interrupted(&self) -> bool {
+        let (ytdlp, ffmpeg) = tokio::join!(
+            self.ytdlp.recover_interrupted(),
+            self.ffmpeg.recover_interrupted()
+        );
+        ytdlp && ffmpeg
+    }
+
     /// The cheap presence check, with no version probe and no network call.
     pub async fn check(&self) -> DependencyCheck {
         let (ytdlp_installed, ffmpeg_installed) =

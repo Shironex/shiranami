@@ -95,6 +95,14 @@ impl FfmpegManager {
         }
     }
 
+    /// Roll back a pair swap a crash left pending, waiting for any install in
+    /// progress rather than skipping the check. For boot, before the download
+    /// queue resumes. Answers `false` when it could not be rolled back.
+    pub async fn recover_interrupted(&self) -> bool {
+        let _guard = self.lock_install().await;
+        swap::recover(&[self.ffmpeg_path(), self.ffprobe_path()]).await
+    }
+
     /// Wait for any install of ffmpeg in progress, then hold the lock.
     pub async fn lock_install(&self) -> InstallGuard<'_> {
         self.install_lock.lock().await
@@ -263,6 +271,14 @@ impl FfmpegManager {
         if let Err(error) = guard.check(&self.install_lock) {
             self.discard(staged).await;
             return Err(error);
+        }
+        // For `YtDlpManager::promote_staged`'s reason: a pending pair swap is
+        // rolled back first, and a pair that cannot be is left alone.
+        if !swap::recover(&[self.ffmpeg_path(), self.ffprobe_path()]).await {
+            self.discard(staged).await;
+            return Err(DownloaderError::InstallFailed {
+                message: swap::SWAP_PENDING.to_owned(),
+            });
         }
 
         // Checked again right before the renames, for the reason
