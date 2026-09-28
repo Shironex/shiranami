@@ -12,7 +12,7 @@ pub mod tokio_runner;
 pub mod version;
 
 pub use args::{FfmpegAvailability, append_url_arg};
-pub use classify::{classify_failure, tail_output};
+pub use classify::{FailureKind, classify_failure, failure_kind, tail_output};
 pub use runner::{Capture, LineSink, ProcessError, ProcessOutput, ProcessRunner, ProcessSpec};
 pub use tokio_runner::TokioRunner;
 pub use version::{has_update, version_segments};
