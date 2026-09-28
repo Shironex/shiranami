@@ -1,0 +1,27 @@
+{
+  "trigger": "Dźwięki tła",
+  "title": "Dźwięki tła",
+  "enable": "Odtwarzaj dźwięki tła",
+  "enableDesc": "Delikatne odgłosy pod twoją muzyką",
+  "layersLabel": "Warstwy",
+  "layers": {
+    "rain": "Deszcz",
+    "vinyl": "Trzaski winylu",
+    "noise": "Ciepły szum",
+    "fire": "Kominek",
+    "cafe": "Kawiarnia"
+  },
+  "layerVolume": "Głośność: {{layer}}",
+  "percent": "{{value}}%",
+  "keepWhenPaused": "Graj dalej, gdy muzyka jest wstrzymana",
+  "keepWhenPausedDesc": "W przeciwnym razie dźwięki tła milkną razem z muzyką",
+  "followWeather": "Podążaj za pogodą",
+  "followWeatherDesc": "Deszcz przybiera na sile, gdy naprawdę pada za oknem",
+  "followWeatherOff": "Wymaga pogody, która jest wyłączona w Ustawieniach",
+  "reset": "Przywróć domyślny miks",
+  "section": {
+    "subtitle": "Przytulne warstwy grające pod muzyką",
+    "sleepNote": "Dźwięki tła ruszają razem z muzyką, nie zmieniają głośności przy przenikaniu utworów i cichną wraz z wyłącznikiem czasowym oraz wyciszeniem.",
+    "credit": "Warstwa kawiarni to nagranie z domeny publicznej z Wikimedia Commons. Pozostałe warstwy są syntezowane na twoim urządzeniu."
+  }
+}
