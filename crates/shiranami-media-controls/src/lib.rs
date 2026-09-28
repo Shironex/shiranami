@@ -30,16 +30,19 @@
 //! | [`autostart`] | the login item, and v1's rule about never writing it on a fresh install |
 //! | [`progress`] | the Windows taskbar progress bar |
 //!
-//! # What the shell still has to do
+//! # What the shell supplies
 //!
 //! Three things need the Tauri app handle, which this crate does not depend on
-//! (§2.1: the composition root reaches for crates, never the reverse). Each has
-//! a trait here and an implementation in Phase 16: the tray itself
-//! ([`tray::TrayModel`] describes it, `tauri::tray` builds it),
-//! [`autostart::AutostartBackend`] (`tauri-plugin-autostart`), and
-//! [`progress::TaskbarProgressBackend`] (`Window::set_progress_bar`). The
-//! Windows window handle that [`souvlaki_backend`] needs arrives the same way,
-//! as a raw `isize` rather than a `tauri::Window`.
+//! (§2.1: the composition root reaches for crates, never the reverse), so each
+//! is a trait or a value here and an implementation in `apps/desktop/src-tauri`:
+//! the tray itself ([`tray::TrayModel`] describes it, the shell's `tray.rs`
+//! builds it with `tauri::tray`), [`autostart::AutostartBackend`] (the shell's
+//! `system.rs`, over `tauri-plugin-autostart`), and
+//! [`progress::TaskbarProgressBackend`] (the shell's `adapters.rs`, over
+//! `Window::set_progress_bar`). The shell also reads the two tray settings and
+//! applies [`system::SystemBehavior`]'s answers to its window. The Windows
+//! window handle that [`souvlaki_backend`] needs arrives the same way, as a raw
+//! `isize` rather than a `tauri::Window`.
 //!
 //! §2.8 also requires `SHIRANAMI_E2E=1` to disable media controls and the tray.
 //! That is a decision about whether to construct anything here at all, so it
