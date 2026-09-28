@@ -19,7 +19,7 @@ use shiranami_downloader::bin::{FfmpegManager, Platform, Tools, YtDlpManager};
 use shiranami_downloader::spawn::{
     LineSink, ProcessError, ProcessOutput, ProcessRunner, ProcessSpec,
 };
-use shiranami_downloader::update::{SwapGate, UpdateOutcome, update_tool};
+use shiranami_downloader::update::{SwapGate, SwapHold, UpdateOutcome, update_tool};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -56,10 +56,9 @@ struct Open;
 
 #[async_trait::async_trait]
 impl SwapGate for Open {
-    async fn quiesce(&self) -> bool {
-        true
+    async fn quiesce(&self) -> Option<SwapHold> {
+        Some(SwapHold::noop())
     }
-    async fn release(&self) {}
 }
 
 /// A gate that stays busy until the test says the downloads finished.
@@ -70,11 +69,10 @@ struct Busy {
 
 #[async_trait::async_trait]
 impl SwapGate for Busy {
-    async fn quiesce(&self) -> bool {
+    async fn quiesce(&self) -> Option<SwapHold> {
         self.finished.notified().await;
-        true
+        Some(SwapHold::noop())
     }
-    async fn release(&self) {}
 }
 
 fn tools(bin: &Path, server: &TestServer) -> Tools {
@@ -320,4 +318,166 @@ async fn a_manual_install_is_checksum_verified_too() {
             "/releases/latest/download/SHA2-256SUMS".to_owned(),
         ]
     );
+}
+
+/// Wait until the server has answered `count` requests.
+async fn requests(server: &TestServer, count: usize) {
+    for _ in 0..2_000 {
+        if server.paths().len() >= count {
+            return;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+    }
+    panic!("the server never saw {count} requests");
+}
+
+/// A manual click during an automatic update's wait for the queue queues
+/// behind it: it downloads nothing until the automatic update has promoted,
+/// and its own (tampered) download is then refused, leaving the verified
+/// binary in place and working.
+#[tokio::test]
+async fn a_manual_install_waits_for_an_automatic_update_in_progress() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let mut replies = release(NEW, NEW).await;
+    replies.push(Reply::Body(b"EVIL".to_vec()));
+    replies.push(Reply::Body(
+        format!("{}  yt-dlp.exe\n", hex_of(NEW).await).into_bytes(),
+    ));
+    let server = TestServer::start(replies).await;
+    let path = installed(temp.path()).await;
+    let tools = Arc::new(tools(temp.path(), &server));
+    let gate = Arc::new(Busy::default());
+
+    let automatic = {
+        let (tools, gate) = (Arc::clone(&tools), Arc::clone(&gate));
+        tokio::spawn(async move { update_tool(Tool::Ytdlp, &tools, gate.as_ref()).await })
+    };
+    requests(&server, 3).await;
+    let manual = {
+        let tools = Arc::clone(&tools);
+        tokio::spawn(async move { tools.ytdlp.install(None).await })
+    };
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+    assert!(
+        tools.ytdlp.is_installing(),
+        "the panel can see an install is in flight"
+    );
+    assert_eq!(
+        server.paths().len(),
+        3,
+        "the manual install must not download while the automatic one holds the lock"
+    );
+
+    gate.finished.notify_one();
+    assert!(matches!(
+        automatic.await.expect("completes"),
+        UpdateOutcome::Updated { .. }
+    ));
+    let error = manual.await.expect("completes").expect_err("tampered");
+    assert_eq!(error.to_string(), CHECKSUM_MISMATCH);
+
+    assert_eq!(
+        read(&path).await,
+        NEW,
+        "the verified binary stays, and it runs"
+    );
+    assert_eq!(tools.ytdlp.version().await.as_deref(), Some(NEW));
+    assert!(!tools.ytdlp.is_installing());
+}
+
+/// Whatever sits at the staged path is what runs next, so it is checked again
+/// right before the rename.
+#[tokio::test]
+async fn a_staged_file_changed_after_verification_is_refused() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    // No API request: the tag is given, so only the asset and its sums.
+    let mut replies = release(NEW, NEW).await;
+    replies.remove(0);
+    let server = TestServer::start(replies).await;
+    let path = installed(temp.path()).await;
+    let tools = tools(temp.path(), &server);
+
+    let guard = tools.ytdlp.lock_install().await;
+    let staged = tools
+        .ytdlp
+        .stage(&guard, Some(NEW), None)
+        .await
+        .expect("stages");
+    tokio::fs::write(staged.path(), b"swapped in after the check")
+        .await
+        .expect("tamper");
+    let staged_path = staged.path().to_path_buf();
+
+    let error = tools
+        .ytdlp
+        .promote_staged(&guard, staged)
+        .await
+        .expect_err("refused");
+
+    assert_eq!(error.to_string(), CHECKSUM_MISMATCH);
+    assert_eq!(read(&path).await, OLD);
+    assert!(!staged_path.exists());
+}
+
+#[tokio::test]
+async fn a_release_tag_that_is_not_a_plain_tag_is_refused() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start(vec![Reply::Body(
+        br#"{"tag_name":"2026.09.20/../../../evil"}"#.to_vec(),
+    )])
+    .await;
+    installed(temp.path()).await;
+    let tools = tools(temp.path(), &server);
+
+    let outcome = update_tool(Tool::Ytdlp, &tools, &Open).await;
+
+    assert_eq!(outcome, UpdateOutcome::Unreachable);
+    assert_eq!(
+        server.paths(),
+        vec!["/api".to_owned()],
+        "nothing else is fetched"
+    );
+
+    let guard = tools.ytdlp.lock_install().await;
+    assert!(tools.ytdlp.stage(&guard, Some("../x"), None).await.is_err());
+}
+
+/// A crash between the two renames leaves only `.old`; the next status check
+/// finishes the swap backwards, so the tool reads as installed again.
+#[tokio::test]
+async fn an_interrupted_swap_is_recovered_on_the_next_status_check() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start(Vec::new()).await;
+    let path = temp.path().join("yt-dlp.exe");
+    tokio::fs::write(backup_path(&path), OLD)
+        .await
+        .expect("the leftover");
+    let tools = tools(temp.path(), &server);
+
+    assert!(tools.ytdlp.is_installed().await);
+    assert_eq!(tools.ytdlp.version().await.as_deref(), Some(OLD));
+    assert!(!backup_path(&path).exists());
+}
+
+#[tokio::test]
+async fn ffmpeg_is_never_updated_unattended_on_macos() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start(Vec::new()).await;
+    let client = Arc::new(shiranami_net::HttpClient::new().expect("the client builds"));
+    let runner: Arc<dyn ProcessRunner> = Arc::new(FileVersionRunner);
+    let mac = |bin: &Path| {
+        FfmpegManager::new(
+            bin.to_path_buf(),
+            Platform::MacOs,
+            Arc::clone(&client),
+            Arc::clone(&runner),
+        )
+    };
+    let tools = Tools::new(tools(temp.path(), &server).ytdlp, mac(temp.path()));
+
+    let outcome = update_tool(Tool::Ffmpeg, &tools, &Open).await;
+
+    assert_eq!(outcome, UpdateOutcome::NotSupported);
+    assert!(server.paths().is_empty());
 }

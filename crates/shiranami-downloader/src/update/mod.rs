@@ -10,4 +10,4 @@ pub mod policy;
 pub mod run;
 
 pub use policy::{Consequence, UpdateOutcome};
-pub use run::{QUIESCE_LIMIT, QueueGate, SwapGate, update_tool};
+pub use run::{QUIESCE_LIMIT, QueueGate, SwapGate, SwapHold, update_tool};

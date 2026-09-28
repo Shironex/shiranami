@@ -3,19 +3,22 @@
 //!
 //! # The order is what keeps downloads safe
 //!
-//! 1. Ask the upstream. Unreachable is a quiet skip.
-//! 2. **Stage** the new binary beside the old one: download, verify the
+//! 1. Take the tool's **install lock** (`bin::lock`) and keep it to the end. A
+//!    manual install clicked meanwhile waits behind this one instead of
+//!    staging into, promoting over or rolling back the same files.
+//! 2. Ask the upstream. Unreachable is a quiet skip.
+//! 3. **Stage** the new binary beside the old one: download, verify the
 //!    checksum, make it executable. This is the slow part (seconds for yt-dlp,
 //!    up to a minute or two for ffmpeg), and it runs while downloads carry on,
 //!    because nothing installed is touched.
-//! 3. **Quiesce** the download queue: stop it starting anything new, and wait
+//! 4. **Quiesce** the download queue: stop it starting anything new, and wait
 //!    for the downloads already running to finish. Never swap a binary under a
 //!    running download; on Windows the swap would fail outright, and on macOS
 //!    a yt-dlp that is still unpacking itself would read a file that changed
-//!    beneath it.
-//! 4. **Promote**: move the old binary aside, move the new one in, probe it,
-//!    and roll back if the probe fails.
-//! 5. Release the queue, whatever happened in step 4.
+//!    beneath it. The hold is a [`SwapHold`] guard, released when it drops, so
+//!    a panic or an early return cannot leave the queue stuck.
+//! 5. **Promote**: re-check the staged file's digest, move the old binary
+//!    aside, move the new one in, probe it, and roll back if the probe fails.
 //!
 //! If the running downloads outlast [`QUIESCE_LIMIT`], the staged update is
 //! thrown away and the check reports [`UpdateOutcome::Busy`]. Holding the queue
@@ -30,23 +33,47 @@ use shiranami_core::models::Tool;
 use crate::bin::{FfmpegManager, Tools, YtDlpManager};
 use crate::queue::DownloadQueue;
 use crate::spawn::has_update;
-use crate::update::policy::UpdateOutcome;
+use crate::update::policy::{self, UpdateOutcome};
 
 /// How long a swap waits for running downloads before giving up for this
 /// window.
 pub const QUIESCE_LIMIT: Duration = Duration::from_secs(30 * 60);
+
+/// A quiet period, held for as long as this value lives.
+///
+/// Dropping it ends the hold. That is deliberately the only way: a hold that
+/// had to be released by hand would stay held forever after a panic or a `?`
+/// between quiesce and release.
+pub struct SwapHold(Option<Box<dyn FnOnce() + Send>>);
+
+impl SwapHold {
+    /// A hold that runs `release` when dropped.
+    pub fn new(release: impl FnOnce() + Send + 'static) -> Self {
+        Self(Some(Box::new(release)))
+    }
+
+    /// A hold with nothing to release, for a gate that holds nothing.
+    pub fn noop() -> Self {
+        Self(None)
+    }
+}
+
+impl Drop for SwapHold {
+    fn drop(&mut self) {
+        if let Some(release) = self.0.take() {
+            release();
+        }
+    }
+}
 
 /// Whatever must be quiet while a binary is swapped.
 #[async_trait::async_trait]
 pub trait SwapGate: Send + Sync {
     /// Stop new work and wait for running work to finish.
     ///
-    /// Returns `false` when running work did not finish in time. The gate is
-    /// then already released: the caller has nothing to undo.
-    async fn quiesce(&self) -> bool;
-
-    /// Let work start again.
-    async fn release(&self);
+    /// `None` when running work did not finish in time; the gate is then
+    /// already released and the caller has nothing to undo.
+    async fn quiesce(&self) -> Option<SwapHold>;
 }
 
 /// The download queue as a [`SwapGate`].
@@ -69,18 +96,17 @@ impl QueueGate {
 
 #[async_trait::async_trait]
 impl SwapGate for QueueGate {
-    async fn quiesce(&self) -> bool {
+    async fn quiesce(&self) -> Option<SwapHold> {
         self.queue.hold();
+        // Built before the wait, so even a panic inside it releases the queue.
+        let queue = Arc::clone(&self.queue);
+        let hold = SwapHold::new(move || queue.release_detached());
+
         if self.queue.wait_until_idle(self.limit).await {
-            return true;
+            return Some(hold);
         }
         tracing::info!("downloads are still running; postponing the tool update");
-        self.queue.release().await;
-        false
-    }
-
-    async fn release(&self) {
-        self.queue.release().await;
+        None
     }
 }
 
@@ -91,11 +117,16 @@ impl SwapGate for QueueGate {
 pub async fn update_tool(tool: Tool, tools: &Tools, gate: &dyn SwapGate) -> UpdateOutcome {
     match tool {
         Tool::Ytdlp => update_ytdlp(&tools.ytdlp, gate).await,
+        Tool::Ffmpeg if !policy::auto_updatable(tool, tools.ffmpeg.platform) => {
+            UpdateOutcome::NotSupported
+        }
         Tool::Ffmpeg => update_ffmpeg(&tools.ffmpeg, gate).await,
     }
 }
 
 async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutcome {
+    let guard = manager.lock_install().await;
+
     if !manager.is_installed().await {
         return UpdateOutcome::NotInstalled;
     }
@@ -111,17 +142,17 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
     tracing::info!(?current, latest, "a newer yt-dlp is available; staging it");
     // Pinned to the tag just read, so the asset and its checksum list come
     // from the same release.
-    let staged = match manager.stage(Some(&latest), None).await {
+    let staged = match manager.stage(&guard, Some(&latest), None).await {
         Ok(staged) => staged,
         Err(error) => return failed(Tool::Ytdlp, &error),
     };
 
-    if !gate.quiesce().await {
+    let Some(hold) = gate.quiesce().await else {
         manager.discard(staged).await;
         return UpdateOutcome::Busy;
-    }
-    let promoted = manager.promote_staged(staged).await;
-    gate.release().await;
+    };
+    let promoted = manager.promote_staged(&guard, staged).await;
+    drop(hold);
 
     match promoted {
         Ok(to) => UpdateOutcome::Updated { from: current, to },
@@ -130,6 +161,8 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
 }
 
 async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOutcome {
+    let guard = manager.lock_install().await;
+
     if !manager.is_installed().await {
         return UpdateOutcome::NotInstalled;
     }
@@ -143,17 +176,17 @@ async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOu
     }
 
     tracing::info!(?current, latest, "a newer ffmpeg is available; staging it");
-    let staged = match manager.stage(None).await {
+    let staged = match manager.stage(&guard, None).await {
         Ok(staged) => staged,
         Err(error) => return failed(Tool::Ffmpeg, &error),
     };
 
-    if !gate.quiesce().await {
+    let Some(hold) = gate.quiesce().await else {
         manager.discard(staged).await;
         return UpdateOutcome::Busy;
-    }
-    let promoted = manager.promote_staged(staged).await;
-    gate.release().await;
+    };
+    let promoted = manager.promote_staged(&guard, staged).await;
+    drop(hold);
 
     match promoted {
         Ok(to) => UpdateOutcome::Updated { from: current, to },
@@ -294,14 +327,17 @@ mod tests {
         assert_eq!(runner.started(), 3, "the fourth item must not start");
 
         runner.finish(2, done("2"));
-        assert!(quiescing.await.expect("the task completes"), "idle now");
+        let hold = quiescing
+            .await
+            .expect("the task completes")
+            .expect("idle now");
         assert!(queue.is_idle());
         assert!(
             !queue.snapshot().paused,
             "the hold is not the user's pause and must not show as one"
         );
 
-        gate.release().await;
+        drop(hold);
         runner.wait_for(4).await;
     }
 
@@ -315,10 +351,31 @@ mod tests {
         runner.wait_for(1).await;
 
         let gate = QueueGate::with_limit(Arc::clone(&queue), Duration::from_millis(20));
-        assert!(!gate.quiesce().await);
+        assert!(gate.quiesce().await.is_none());
 
         queue.enqueue(input("https://youtu.be/next")).await;
         runner.wait_for(2).await;
+    }
+
+    /// A hold is a guard: a task that panics while holding the queue still
+    /// releases it, so a bug in an update cannot stop downloads for good.
+    #[tokio::test]
+    async fn a_panic_while_holding_still_releases_the_queue() {
+        let runner = Arc::new(Parked::default());
+        let queue = queue(&runner);
+
+        let gate = QueueGate::new(Arc::clone(&queue));
+        let crashed = tokio::spawn(async move {
+            let _hold = gate
+                .quiesce()
+                .await
+                .expect("an idle queue quiesces at once");
+            panic!("an update that crashed mid-swap");
+        });
+        assert!(crashed.await.is_err(), "the task panicked");
+
+        queue.enqueue(input("https://youtu.be/after")).await;
+        runner.wait_for(1).await;
     }
 
     /// A failure is reported after the item settles as `error`, so a retry the

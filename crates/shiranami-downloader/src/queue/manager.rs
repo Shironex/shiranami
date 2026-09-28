@@ -120,6 +120,23 @@ impl DownloadQueue {
         self.apply(effects).await;
     }
 
+    /// [`Self::release`] from a synchronous context, such as a guard's `Drop`.
+    ///
+    /// The hold is lifted immediately; starting what it kept waiting needs the
+    /// async runtime, and is spawned onto it when there is one. Without a
+    /// runtime (only at process teardown) nothing is started, and the next
+    /// queue change starts it.
+    pub fn release_detached(self: &Arc<Self>) {
+        let effects = lock(&self.state).release();
+        if effects.is_empty() {
+            return;
+        }
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            let queue = Arc::clone(self);
+            runtime.spawn(async move { queue.apply(effects).await });
+        }
+    }
+
     /// Whether nothing is downloading.
     pub fn is_idle(&self) -> bool {
         lock(&self.state).is_idle()
