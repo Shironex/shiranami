@@ -41,7 +41,7 @@ export default meta;
 
 type Story = StoryObj<typeof PlayerBarPreview>;
 
-/** Shipping defaults — all twelve optional elements plus the waveform seekbar. */
+/** Shipping defaults: all twelve optional elements plus the waveform seekbar. */
 export const AllElements: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
