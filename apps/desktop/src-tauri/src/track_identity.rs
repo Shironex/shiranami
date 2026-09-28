@@ -110,7 +110,9 @@ pub async fn verified_gone(
     // errors, marks the roots in play as failed, so a hung mount costs at most
     // one timeout for its root and one for the first file under it, never one
     // per candidate. A file under a healthy root that hangs by itself still
-    // costs its own timeout. The database connection is free throughout.
+    // costs its own timeout, and so does every file under no registered folder
+    // and on no recognised volume root, which has no root verdict to cache.
+    // The database connection is free throughout.
     let gone = tauri::async_runtime::spawn_blocking(move || {
         shiranami_library::moved_away_all(candidates, &roots)
     })

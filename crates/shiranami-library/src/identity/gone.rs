@@ -38,8 +38,12 @@
 //!
 //! - **Files moved out of a folder that is left empty**, or holding only OS
 //!   droppings: after an unmount a mount point is exactly such a folder, so
-//!   the two cannot be distinguished. Moving the folder itself, renaming in
-//!   place, or moving some but not all of a folder's files is followed.
+//!   the two cannot be distinguished. Moving a folder itself is followed as
+//!   long as the folder it left still holds something real (another album,
+//!   any file that is not an OS dropping); moving a folder that was its
+//!   parent's only content leaves that parent empty and is not followed.
+//!   Renaming a file in place, or moving some but not all of a folder's
+//!   files, is followed.
 //! - A registered folder the user has emptied completely.
 //!
 //! And these can produce a false move, because the storage answers
@@ -61,7 +65,10 @@
 //! [`MovedAway`] instance. A root that fails, or a file whose own stat errors
 //! (a mount that hangs after its root answered), marks the roots in play as
 //! failed, so the rest of the batch under them is never statted: a hung mount
-//! costs at most one timeout for the root and one for the first file. A file
+//! costs at most one timeout for the root and one for the first file. That
+//! bound only exists where there is a root to cache: a file under no
+//! registered folder and on no recognised volume root (see [`volume_root`])
+//! has nothing to mark failed, so each such file costs its own stat. A file
 //! that answers "not found" is re-checked against fresh (uncached) root
 //! verdicts before it is accepted, so a root that went away mid-batch is not
 //! trusted from a stale cache.

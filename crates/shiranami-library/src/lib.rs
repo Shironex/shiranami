@@ -53,7 +53,10 @@
 //!   away ([`moved_away`]: definitely not found, with its volume, music folder
 //!   and nearest existing parent folder definitely present and holding real
 //!   entries) instead of inserting a stranger, so id, plays, favourite,
-//!   playlists and history survive a move or rename. v1 had no `UPDATE tracks SET file_path` at all.
+//!   playlists and history survive a move or rename that passes that guard.
+//!   Some moves deliberately do not (files moved out of a folder left empty,
+//!   among others): the residuals are listed in `identity/gone.rs`. v1 had no
+//!   `UPDATE tracks SET file_path` at all.
 //!   The hash lives here because it is filesystem work; the matching lives in
 //!   `shiranami-db` and the composition root, so this crate still holds no
 //!   database.
