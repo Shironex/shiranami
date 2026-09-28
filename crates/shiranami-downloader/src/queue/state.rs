@@ -87,6 +87,10 @@ pub enum Effect {
 pub struct QueueState {
     items: Vec<DownloadQueueItem>,
     paused: bool,
+    /// Held for a binary swap. Not the user's pause: never persisted, never in
+    /// a snapshot, and released by the updater that set it. See
+    /// [`Self::hold`].
+    held: bool,
 }
 
 impl QueueState {
@@ -108,6 +112,34 @@ impl QueueState {
     /// Whether queued items are being promoted.
     pub fn is_paused(&self) -> bool {
         self.paused
+    }
+
+    /// Whether nothing is downloading right now.
+    ///
+    /// The condition a binary swap waits for: no item holds a concurrency slot,
+    /// so no yt-dlp this queue started is running.
+    pub fn is_idle(&self) -> bool {
+        self.active_count() == 0
+    }
+
+    /// Stop promoting queued items, without touching the user's pause.
+    ///
+    /// Running downloads carry on; nothing new starts. An automatic tool update
+    /// holds the queue, waits for [`Self::is_idle`], swaps the binary and
+    /// releases. Kept apart from [`Self::pause`] because the user's pause is
+    /// persisted and shown, and a background update must not make the queue
+    /// look (or restart) paused.
+    pub fn hold(&mut self) {
+        self.held = true;
+    }
+
+    /// Undo [`Self::hold`] and start whatever the hold kept waiting.
+    pub fn release(&mut self) -> Vec<Effect> {
+        if !self.held {
+            return Vec::new();
+        }
+        self.held = false;
+        self.pump()
     }
 
     /// One item, by id.
@@ -387,7 +419,7 @@ impl QueueState {
 
     /// Promote queued items while slots are free.
     fn pump(&mut self) -> Vec<Effect> {
-        if self.paused {
+        if self.paused || self.held {
             return Vec::new();
         }
 

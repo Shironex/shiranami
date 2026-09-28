@@ -11,7 +11,7 @@ pub mod persistence;
 pub mod state;
 
 pub use broadcast::{NoSink, PROGRESS_THROTTLE, SnapshotSink};
-pub use manager::{DownloadDirectory, DownloadQueue};
+pub use manager::{DownloadDirectory, DownloadQueue, FailureObserver};
 pub use persistence::{
     NoPausedFlag, NoPersistence, PausedFlag, QueuePersistence, SqlitePersistence,
 };
