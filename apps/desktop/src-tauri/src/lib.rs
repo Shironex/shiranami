@@ -360,6 +360,14 @@ fn shutdown_once(app: &tauri::AppHandle) {
 /// The first E2E run of this path caught it on the first try. `shutdown` now
 /// takes `&self`, so the shared reference is enough and there is no unwrap left
 /// to fail.
+///
+/// # The wait is bounded
+///
+/// This runs on the main thread with the webview still alive, and a radio
+/// stream never ends, so an unbounded graceful shutdown froze Cmd+Q, the tray's
+/// Quit and the updater's restart for as long as radio played.
+/// `ServeHandle::shutdown` ends the stream on its signal and gives up on any
+/// other open response after `shiranami_serve::SHUTDOWN_GRACE`.
 fn stop_media_server(app: &tauri::AppHandle) {
     let Some(state) = app.try_state::<state::AppState>() else {
         return;

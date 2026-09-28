@@ -22,6 +22,7 @@ use crate::art_cache::ArtCache;
 use crate::icy::NowPlayingSink;
 use crate::token::SessionToken;
 use crate::upstream::RadioUpstream;
+use tokio_util::sync::CancellationToken;
 
 /// How many redirects the radio proxy will follow. v1's `MAX_REDIRECTS`.
 pub const MAX_REDIRECTS: usize = 5;
@@ -93,6 +94,7 @@ struct Inner {
     guard: UrlGuard,
     upstream: Arc<dyn RadioUpstream>,
     now_playing: NowPlayingSink,
+    shutdown: CancellationToken,
 }
 
 impl ServeState {
@@ -109,8 +111,18 @@ impl ServeState {
                 guard: config.guard,
                 upstream: config.upstream,
                 now_playing: config.now_playing,
+                shutdown: CancellationToken::new(),
             }),
         }
+    }
+
+    /// Fired once when the server is asked to stop.
+    ///
+    /// A live radio stream never ends by itself, and graceful shutdown waits
+    /// for every open response, so an endless body has to watch this and end
+    /// itself. See `ServeHandle::shutdown`.
+    pub fn shutdown_signal(&self) -> &CancellationToken {
+        &self.inner.shutdown
     }
 
     /// Whether `candidate` is this session's token. Constant time.
