@@ -49,9 +49,11 @@ describe('AmbienceMixer', () => {
     await user.click(screen.getByRole('button', { name: 'trigger' }));
 
     expect(await screen.findByRole('switch', { name: 'enable' })).toBeInTheDocument();
-    for (const layer of ['rain', 'vinyl', 'noise', 'fire', 'cafe']) {
-      expect(screen.getByRole('slider', { name: `layers.${layer} volume` })).toBeInTheDocument();
-    }
+    // One role query for all five, in mixer order.
+    const names = screen.getAllByRole('slider').map(s => s.getAttribute('aria-label'));
+    expect(names).toEqual(
+      ['rain', 'vinyl', 'noise', 'fire', 'cafe'].map(layer => `layers.${layer} volume`)
+    );
   });
 
   it('switches ambience on from the master switch', async () => {
