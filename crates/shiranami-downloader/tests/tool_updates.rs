@@ -271,6 +271,32 @@ async fn an_up_to_date_yt_dlp_downloads_nothing() {
     assert_eq!(server.paths(), vec!["/api".to_owned()]);
 }
 
+/// A binary that will not answer `--version` is not "up to date": the check
+/// fails, so the streak counts it, and nothing is downloaded or swapped.
+#[tokio::test]
+async fn an_unreadable_installed_version_fails_the_check() {
+    let temp = tempfile::tempdir().expect("a temporary directory");
+    let server = TestServer::start(vec![Reply::Body(
+        format!(r#"{{"tag_name":"{NEW}"}}"#).into_bytes(),
+    )])
+    .await;
+    let path = temp.path().join("yt-dlp.exe");
+    tokio::fs::write(&path, "")
+        .await
+        .expect("place a broken binary");
+    let tools = tools(temp.path(), &server);
+
+    let outcome = update_tool(Tool::Ytdlp, &tools, &Open).await;
+
+    assert!(
+        matches!(outcome, UpdateOutcome::Failed(_)),
+        "an unreadable version must not read as up to date: {outcome:?}"
+    );
+    assert_eq!(server.paths(), vec!["/api".to_owned()]);
+    assert_eq!(read(&path).await, "", "nothing is swapped in");
+    assert!(!tools.ytdlp.is_installing());
+}
+
 #[tokio::test]
 async fn an_unreachable_upstream_is_a_quiet_skip() {
     let temp = tempfile::tempdir().expect("a temporary directory");

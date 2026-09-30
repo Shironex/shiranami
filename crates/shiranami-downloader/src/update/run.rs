@@ -139,17 +139,22 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
     let Some(latest) = latest else {
         return UpdateOutcome::Unreachable;
     };
-    if !has_update(current.as_deref(), Some(&latest)) {
+    let Some(current) = current else {
+        return unreadable(Tool::Ytdlp);
+    };
+    if !has_update(Some(&current), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
 
     let guard = manager.lock_install().await;
-    let current = manager.version().await;
-    if !has_update(current.as_deref(), Some(&latest)) {
+    let Some(current) = manager.version().await else {
+        return unreadable(Tool::Ytdlp);
+    };
+    if !has_update(Some(&current), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
 
-    tracing::info!(?current, latest, "a newer yt-dlp is available; staging it");
+    tracing::info!(current, latest, "a newer yt-dlp is available; staging it");
     // Pinned to the tag just read, so the asset and its checksum list come
     // from the same release.
     let staged = match manager.stage(&guard, Some(&latest), None).await {
@@ -165,7 +170,10 @@ async fn update_ytdlp(manager: &YtDlpManager, gate: &dyn SwapGate) -> UpdateOutc
     drop(hold);
 
     match promoted {
-        Ok(to) => UpdateOutcome::Updated { from: current, to },
+        Ok(to) => UpdateOutcome::Updated {
+            from: Some(current),
+            to,
+        },
         Err(error) => failed(Tool::Ytdlp, &error),
     }
 }
@@ -179,17 +187,22 @@ async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOu
     let Some(latest) = latest else {
         return UpdateOutcome::Unreachable;
     };
-    if !has_update(current.as_deref(), Some(&latest)) {
+    let Some(current) = current else {
+        return unreadable(Tool::Ffmpeg);
+    };
+    if !has_update(Some(&current), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
 
     let guard = manager.lock_install().await;
-    let current = manager.version().await;
-    if !has_update(current.as_deref(), Some(&latest)) {
+    let Some(current) = manager.version().await else {
+        return unreadable(Tool::Ffmpeg);
+    };
+    if !has_update(Some(&current), Some(&latest)) {
         return UpdateOutcome::UpToDate;
     }
 
-    tracing::info!(?current, latest, "a newer ffmpeg is available; staging it");
+    tracing::info!(current, latest, "a newer ffmpeg is available; staging it");
     let staged = match manager.stage(&guard, None).await {
         Ok(staged) => staged,
         Err(error) => return failed(Tool::Ffmpeg, &error),
@@ -203,9 +216,28 @@ async fn update_ffmpeg(manager: &FfmpegManager, gate: &dyn SwapGate) -> UpdateOu
     drop(hold);
 
     match promoted {
-        Ok(to) => UpdateOutcome::Updated { from: current, to },
+        Ok(to) => UpdateOutcome::Updated {
+            from: Some(current),
+            to,
+        },
         Err(error) => failed(Tool::Ffmpeg, &error),
     }
+}
+
+/// An installed tool whose version cannot be read: a binary that will not run,
+/// or one that timed out answering `--version`.
+///
+/// Not [`UpdateOutcome::UpToDate`]: `has_update` cannot compare against nothing,
+/// and reading that as "up to date" would record a clean check for a tool that
+/// does not work. Nor an unattended reinstall: a slow cold start reads the same
+/// as a corrupt binary. A failure counts toward the streak, so a binary that
+/// stays broken is told to the user.
+fn unreadable(tool: Tool) -> UpdateOutcome {
+    tracing::warn!(
+        ?tool,
+        "could not read the installed version; not updating it"
+    );
+    UpdateOutcome::Failed("could not read the installed version".to_owned())
 }
 
 fn failed(tool: Tool, error: &crate::DownloaderError) -> UpdateOutcome {
