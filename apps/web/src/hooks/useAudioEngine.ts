@@ -160,6 +160,7 @@ export function useAudioEngine() {
   const animationFrameRef = useRef<number>(0);
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const seekingRef = useRef(false);
+  const seekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sleep-timer fade-out state. While `active`, the active deck's gain follows
   // the equal-power fadeOut curve down to silence over `duration` seconds,
@@ -1277,11 +1278,22 @@ export function useAudioEngine() {
       }
       seekingRef.current = true;
       markSessionClock(audio);
-      setTimeout(() => {
+      // A newer seek restarts the window rather than being cut short by the
+      // previous seek's timer.
+      if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+      seekTimeoutRef.current = setTimeout(() => {
         seekingRef.current = false;
+        seekTimeoutRef.current = null;
       }, 300);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+        seekTimeoutRef.current = null;
+        seekingRef.current = false;
+      }
+    };
   }, [_setCurrentTime]);
 
   // ── Audio element event listeners (active deck) ───────────────

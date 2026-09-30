@@ -378,6 +378,33 @@ describe('a sleep fade overlapping a crossfade', () => {
   });
 });
 
+describe('two seeks in quick succession', () => {
+  /**
+   * A seek holds the store position for 300 ms so a stale media clock cannot
+   * pull the seek bar back. The regression this pins: the first seek's timer
+   * still ran after a second seek and released the hold early.
+   */
+  it('holds the position for the full window after the second seek', () => {
+    play([track('a')]);
+    renderHook(() => useAudioEngine());
+    // The clock ticks every 250 ms; start between two ticks.
+    elapse(1020);
+
+    act(() => {
+      usePlaybackStore.getState().seek(50);
+    });
+    elapse(230);
+    act(() => {
+      usePlaybackStore.getState().seek(100);
+    });
+    // Past the first seek's 300 ms and through the next tick, still inside
+    // the second seek's window.
+    elapse(260);
+
+    expect(usePlaybackStore.getState().currentTime).toBe(100);
+  });
+});
+
 describe('a crossfade that starts late', () => {
   /**
    * The clock ticks every 250 ms, so the crossfade can start after its window
