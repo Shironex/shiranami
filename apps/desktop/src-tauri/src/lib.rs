@@ -195,6 +195,8 @@ pub fn run() {
         // `setup`, because `setup` dispatches the Windows launch link below and
         // the slot has to exist by then; see `deep_link`'s module docs.
         .manage(deep_link::PendingDeepLink::default())
+        // A reload leaves no listener until the new page drains the slot again.
+        .on_page_load(deep_link::on_page_load)
         .manage(system)
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {

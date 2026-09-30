@@ -65,11 +65,16 @@
 //! the live event, exactly as before. Only the latest held link survives: two
 //! clicks during a launch mean the user wants the second one.
 //!
+//! A reload replaces the page, and the new one has no listener until it mounts
+//! again, so [`PendingDeepLink::renderer_reset`] runs when the main webview
+//! starts a new document and puts the slot back to holding. The new page's
+//! bridge drains it exactly as the first one did.
+//!
 //! This is not the queue v1 declined. v1's `handleDeepLink` returned silently
 //! when its `mainWindow` was null, and its reasoning was that a queue would
 //! replay an import prompt at an arbitrary later moment. The slot is drained
-//! by the first render, the moment the app becomes usable, and never again, so
-//! the prompt appears as part of the launch the link caused. A link that finds
+//! by the first render of each page load, the moment the app becomes usable,
+//! so the prompt appears as part of the launch (or reload) the link caused. A link that finds
 //! no window **after** the drain is still dropped, as v1 did.
 
 use shiranami_core::sync::lock_or_recover;
@@ -159,8 +164,8 @@ pub struct PendingDeepLink {
 
 #[derive(Default)]
 struct Pending {
-    /// Set by the first [`PendingDeepLink::take`] and never cleared: a webview
-    /// reload finds the live event already wired, so the slot has no job left.
+    /// Set by [`PendingDeepLink::take`], cleared by
+    /// [`PendingDeepLink::renderer_reset`] when a new page starts loading.
     renderer_ready: bool,
     code: Option<String>,
 }
@@ -190,6 +195,29 @@ impl PendingDeepLink {
         let mut pending = lock_or_recover(&self.inner);
         pending.renderer_ready = true;
         pending.code.take()
+    }
+
+    /// The renderer is being replaced (a reload or a navigation), so hold links
+    /// again until the new page drains the slot. A link already held stays
+    /// held: the new page is the one that will take it.
+    pub fn renderer_reset(&self) {
+        lock_or_recover(&self.inner).renderer_ready = false;
+    }
+}
+
+/// `Builder::on_page_load`: a new document in the main webview means its live
+/// listener is gone until the new page subscribes and drains again.
+///
+/// `Started` is the committed new document on every backend (WebView2's
+/// `ContentLoading`, WebKit's `didCommitNavigation`), so a cancelled or
+/// same-document navigation does not reset the slot. `Finished` would be too
+/// late: it can land after the new page's take and park every later link.
+pub fn on_page_load(webview: &tauri::Webview, payload: &tauri::webview::PageLoadPayload<'_>) {
+    if webview.label() != "main" || payload.event() != tauri::webview::PageLoadEvent::Started {
+        return;
+    }
+    if let Some(pending) = webview.try_state::<PendingDeepLink>() {
+        pending.renderer_reset();
     }
 }
 
@@ -363,6 +391,31 @@ mod tests {
         assert_eq!(last_import_url(urls), Some("shiranami://import/second2"));
         assert_eq!(last_import_url(["https://example.com"]), None);
         assert_eq!(last_import_url([]), None);
+    }
+
+    /// A reload drops the page's listener, so a link that arrives before the
+    /// new page drains is held again rather than emitted into nothing.
+    #[test]
+    fn a_link_after_a_reload_is_held_until_the_new_page_drains() {
+        let pending = PendingDeepLink::default();
+        assert_eq!(pending.take(), None);
+
+        pending.renderer_reset();
+
+        assert_eq!(pending.offer("XyZ789".to_owned()), None);
+        assert_eq!(pending.take(), Some("XyZ789".to_owned()));
+        assert_eq!(pending.offer("next1".to_owned()), Some("next1".to_owned()));
+    }
+
+    /// A link held when the reload starts survives it, for the new page to take.
+    #[test]
+    fn a_held_link_survives_a_reset() {
+        let pending = PendingDeepLink::default();
+        pending.offer("AbC123".to_owned());
+
+        pending.renderer_reset();
+
+        assert_eq!(pending.take(), Some("AbC123".to_owned()));
     }
 
     /// Two clicks during one launch: the second is what the user wants now.
