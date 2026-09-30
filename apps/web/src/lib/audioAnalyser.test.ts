@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   EQ_BANDS,
+  acquireAmbientBus,
   applyEqPreset,
   destroyAnalyser,
   getFrequencyData,
   initAnalyser,
   isAnalyserReady,
+  releaseAmbientBus,
   setEqBand,
   setEqEnabled,
   setPreampDb,
+  subscribeAudioGraph,
 } from './audioAnalyser';
 import { dbToLinear } from '@/lib/loudness';
 
@@ -154,6 +157,21 @@ function reaches(from: FakeNode, to: FakeNode): boolean {
   return false;
 }
 
+/** Reachability with one node removed from the graph. */
+function reachesAvoiding(from: FakeNode, to: FakeNode, avoid: FakeNode): boolean {
+  const seen = new Set<FakeNode>([avoid]);
+  const stack: FakeNode[] = [from];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) break;
+    if (node === to) return true;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    for (const next of node.outputs) stack.push(next);
+  }
+  return false;
+}
+
 /** Every node on some path from `from` to `to`. */
 function nodesBetween(from: FakeNode, to: FakeNode): FakeNode[] {
   return [...allNodes()].filter(n => n !== from && reaches(from, n) && reaches(n, to));
@@ -171,15 +189,16 @@ function allNodes(): Set<FakeNode> {
 
 /** The graph pieces the module builds, in creation order. */
 function graph() {
-  const [gainA, gainB, mixGain, preamp, dryGain] = created.gains;
+  const [gainA, gainB, mixGain, preamp, dryGain, musicBus] = created.gains;
   return {
     gainA,
     gainB,
     mixGain,
     preamp,
     dryGain,
-    // The wet gain is created with the biquads, after the base chain's 5 gains.
-    eqGain: created.gains.at(5),
+    musicBus,
+    // The wet gain is created with the biquads, after the base chain's 6 gains.
+    eqGain: created.gains.at(6),
     limiter: created.compressors[0],
     analyser: created.analysers[0],
   };
@@ -211,16 +230,18 @@ describe('audioAnalyser EQ bypass', () => {
       expect(created.biquads).toHaveLength(0);
     });
 
-    it('routes the decks through the dry branch into the limiter', () => {
+    it('routes the decks through the dry branch and the music bus into the limiter', () => {
       initGraph();
-      const { gainA, gainB, mixGain, preamp, dryGain, limiter, analyser } = graph();
+      const { gainA, gainB, mixGain, preamp, dryGain, musicBus, limiter, analyser } = graph();
 
       expect(reaches(gainA, mixGain)).toBe(true);
       expect(reaches(gainB, mixGain)).toBe(true);
       expect(mixGain.outputs.has(preamp)).toBe(true);
       expect(preamp.outputs.has(dryGain)).toBe(true);
-      expect(dryGain.outputs.has(limiter)).toBe(true);
-      expect(limiter.outputs.has(analyser)).toBe(true);
+      expect(dryGain.outputs.has(musicBus)).toBe(true);
+      expect(musicBus.outputs.has(limiter)).toBe(true);
+      expect(musicBus.outputs.has(analyser)).toBe(true);
+      expect(limiter.outputs.has(contexts[0].destination)).toBe(true);
       expect(dryGain.gain.value).toBe(1);
     });
 
@@ -249,12 +270,12 @@ describe('audioAnalyser EQ bypass', () => {
       expect(created.biquads).toHaveLength(0);
 
       setEqEnabled(true);
-      const { preamp, dryGain, eqGain, limiter } = graph();
+      const { preamp, dryGain, eqGain, musicBus } = graph();
 
       expect(created.biquads).toHaveLength(EQ_BANDS.length);
       expect(eqGain).toBeDefined();
       expect(preamp.outputs.has(created.biquads[0])).toBe(true);
-      expect(eqGain?.outputs.has(limiter)).toBe(true);
+      expect(eqGain?.outputs.has(musicBus)).toBe(true);
       // Crossfaded, not switched: dry out, wet in.
       expect(dryGain.gain.value).toBe(0);
       expect(eqGain?.gain.value).toBe(1);
@@ -295,7 +316,7 @@ describe('audioAnalyser EQ bypass', () => {
     it('fades back to dry before unwiring anything', () => {
       initGraph();
       setEqEnabled(true);
-      const { preamp, dryGain, eqGain, limiter } = graph();
+      const { preamp, dryGain, eqGain, musicBus } = graph();
 
       setEqEnabled(false);
 
@@ -303,19 +324,19 @@ describe('audioAnalyser EQ bypass', () => {
       expect(eqGain?.gain.value).toBe(0);
       // Still wired while the ramp is in flight — disconnecting mid-fade pops.
       expect(preamp.outputs.has(created.biquads[0])).toBe(true);
-      expect(eqGain?.outputs.has(limiter)).toBe(true);
+      expect(eqGain?.outputs.has(musicBus)).toBe(true);
     });
 
     it('drops the filters out of the render graph once the ramp is done', () => {
       initGraph();
       setEqEnabled(true);
       setEqEnabled(false);
-      const { preamp, limiter, analyser, eqGain } = graph();
+      const { preamp, musicBus, analyser, eqGain } = graph();
 
       vi.runAllTimers();
 
       expect(preamp.outputs.has(created.biquads[0])).toBe(false);
-      expect(eqGain?.outputs.has(limiter)).toBe(false);
+      expect(eqGain?.outputs.has(musicBus)).toBe(false);
       expect(nodesBetween(preamp, analyser)).not.toContain(created.biquads[0]);
       expect(reaches(preamp, analyser)).toBe(true);
     });
@@ -328,9 +349,9 @@ describe('audioAnalyser EQ bypass', () => {
 
       vi.runAllTimers();
 
-      const { preamp, dryGain, eqGain, limiter } = graph();
+      const { preamp, dryGain, eqGain, musicBus } = graph();
       expect(preamp.outputs.has(created.biquads[0])).toBe(true);
-      expect(eqGain?.outputs.has(limiter)).toBe(true);
+      expect(eqGain?.outputs.has(musicBus)).toBe(true);
       expect(dryGain.gain.value).toBe(0);
       expect(eqGain?.gain.value).toBe(1);
     });
@@ -351,6 +372,47 @@ describe('audioAnalyser EQ bypass', () => {
     });
   });
 
+  describe('the limiter as the only way out', () => {
+    it('is the only path from the decks to the speakers, EQ off or on', () => {
+      initGraph();
+      const { gainA, gainB, limiter } = graph();
+      const destination = contexts[0].destination;
+
+      for (const eqOn of [false, true]) {
+        setEqEnabled(eqOn);
+        vi.runAllTimers();
+        for (const deck of [gainA, gainB]) {
+          expect(reaches(deck, destination)).toBe(true);
+          expect(reachesAvoiding(deck, destination, limiter)).toBe(false);
+        }
+      }
+    });
+
+    it('leaves the analyser tap with no outputs, so it can never bypass the limiter', () => {
+      initGraph();
+      const { analyser } = graph();
+
+      expect(analyser.outputs.size).toBe(0);
+    });
+  });
+
+  describe('a throwing graph listener', () => {
+    it('cannot abort the graph build or starve the other listeners', () => {
+      const after = vi.fn();
+      const unsubscribeThrowing = subscribeAudioGraph(() => {
+        throw new Error('listener bug');
+      });
+      const unsubscribeAfter = subscribeAudioGraph(after);
+
+      expect(() => initGraph()).not.toThrow();
+      expect(isAnalyserReady()).toBe(true);
+      expect(after).toHaveBeenCalledTimes(1);
+
+      unsubscribeThrowing();
+      unsubscribeAfter();
+    });
+  });
+
   describe('analyser tap', () => {
     it('stays fed by the deck mix while the EQ is bypassed', () => {
       initGraph();
@@ -363,25 +425,102 @@ describe('audioAnalyser EQ bypass', () => {
 
     it('keeps receiving data across an enable/disable cycle', () => {
       initGraph();
-      const { gainA, analyser, limiter } = graph();
+      const { gainA, analyser, musicBus } = graph();
       const buffer = new Uint8Array(128);
 
       setEqEnabled(true);
       expect(reaches(gainA, analyser)).toBe(true);
-      expect(limiter.outputs.has(analyser)).toBe(true);
+      expect(musicBus.outputs.has(analyser)).toBe(true);
       expect(getFrequencyData(buffer)).toBe(true);
       expect(buffer[0]).toBe(128);
 
       setEqEnabled(false);
       vi.runAllTimers();
       expect(reaches(gainA, analyser)).toBe(true);
-      expect(limiter.outputs.has(analyser)).toBe(true);
+      expect(musicBus.outputs.has(analyser)).toBe(true);
       expect(getFrequencyData(buffer)).toBe(true);
     });
 
     it('reports no data before the graph exists', () => {
       expect(getFrequencyData(new Uint8Array(128))).toBe(false);
       expect(isAnalyserReady()).toBe(false);
+    });
+  });
+
+  describe('ambience bus', () => {
+    /** The bus as a modelled node (the handle types it as a real GainNode). */
+    function ambientInput(): FakeNode {
+      const handle = acquireAmbientBus();
+      if (!handle) throw new Error('graph not ready');
+      return handle.input as unknown as FakeNode;
+    }
+
+    it('is unavailable until the music graph exists', () => {
+      expect(acquireAmbientBus()).toBeNull();
+    });
+
+    it('is not built until the ambience engine asks for it', () => {
+      initGraph();
+
+      expect(created.gains).toHaveLength(6);
+    });
+
+    it('reaches the limiter and the speakers', () => {
+      initGraph();
+      const bus = ambientInput();
+      const { limiter } = graph();
+
+      expect(bus.outputs.has(limiter)).toBe(true);
+      expect(reaches(bus, contexts[0].destination)).toBe(true);
+    });
+
+    it('bypasses the deck gains, loudness leveling, EQ and the analyser', () => {
+      initGraph();
+      setEqEnabled(true);
+      const bus = ambientInput();
+      const { gainA, gainB, preamp, dryGain, musicBus, eqGain, analyser } = graph();
+
+      const path = nodesBetween(bus, contexts[0].destination);
+      for (const node of [gainA, gainB, preamp, dryGain, musicBus, eqGain, analyser]) {
+        expect(path).not.toContain(node);
+      }
+      for (const biquad of created.biquads) expect(path).not.toContain(biquad);
+      expect(reaches(bus, analyser)).toBe(false);
+    });
+
+    it('is shared across acquisitions', () => {
+      initGraph();
+
+      expect(ambientInput()).toBe(ambientInput());
+      expect(created.gains).toHaveLength(7);
+    });
+
+    it('leaves the graph entirely when released', () => {
+      initGraph();
+      const bus = ambientInput();
+      const { limiter } = graph();
+
+      releaseAmbientBus();
+
+      expect(bus.outputs.size).toBe(0);
+      expect(reaches(bus, limiter)).toBe(false);
+      expect(ambientInput()).not.toBe(bus);
+    });
+
+    it('tells subscribers when the graph appears and goes away', () => {
+      const listener = vi.fn();
+      const unsubscribe = subscribeAudioGraph(listener);
+
+      initGraph();
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      destroyAnalyser();
+      expect(listener).toHaveBeenCalledTimes(2);
+      expect(acquireAmbientBus()).toBeNull();
+
+      unsubscribe();
+      initGraph();
+      expect(listener).toHaveBeenCalledTimes(2);
     });
   });
 

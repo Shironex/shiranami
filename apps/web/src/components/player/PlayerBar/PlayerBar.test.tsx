@@ -60,6 +60,7 @@ function reset(): void {
     playerQueueButton: true,
     playerSleepTimer: true,
     playerEqualizer: true,
+    playerAmbience: true,
     playerCompactButton: true,
     playerVisualizerButton: true,
     playerWaveformSeekbar: false,

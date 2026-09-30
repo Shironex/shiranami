@@ -4,6 +4,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useInterfaceStore } from '@/stores/useInterfaceStore';
 import { useCompactStore } from '@/stores/useCompactStore';
 import { useEqStore } from '@/stores/useEqStore';
+import { useAmbientStore } from '@/stores/useAmbientStore';
 import { formatBindingLabel } from '@/lib/keymap';
 import { useKeymapStore } from '@/stores/useKeymapStore';
 import type { IPlayerOverflowMenuView } from './PlayerOverflowMenu.types';
@@ -18,14 +19,18 @@ export function usePlayerOverflowMenu(): IPlayerOverflowMenuView {
   const eqPreset = useEqStore(s => s.preset);
   // Mirror the PlayerBar element toggles so a hidden control stays hidden in
   // the narrow-width overflow too. The parent renders this menu only when at
-  // least one of the four is visible.
+  // least one of the five is visible.
   const showSleepTimer = useInterfaceStore(s => s.playerSleepTimer);
   const showEqualizer = useInterfaceStore(s => s.playerEqualizer);
+  const showAmbience = useInterfaceStore(s => s.playerAmbience);
+  const ambienceEnabled = useAmbientStore(s => s.enabled);
   const showCompactButton = useInterfaceStore(s => s.playerCompactButton);
   const showVisualizerButton = useInterfaceStore(s => s.playerVisualizerButton);
 
   const hasActive =
-    (showVisualizerButton && showVisualizer) || (showEqualizer && eqEnabled && eqPreset !== 'flat');
+    (showVisualizerButton && showVisualizer) ||
+    (showEqualizer && eqEnabled && eqPreset !== 'flat') ||
+    (showAmbience && ambienceEnabled);
 
   const onEnterCompact = useCallback(() => {
     void setCompactMode(true);
@@ -37,6 +42,7 @@ export function usePlayerOverflowMenu(): IPlayerOverflowMenuView {
     showVisualizer,
     showSleepTimer,
     showEqualizer,
+    showAmbience,
     showCompactButton,
     showVisualizerButton,
     compactTooltip: t('compactModeTooltip', { shortcut: formatBindingLabel(compactBinding) }),

@@ -32,6 +32,7 @@ import mixesEn from '@/locales/en/mixes.json';
 import nowPlayingEn from '@/locales/en/nowPlaying.json';
 import errorBoundaryEn from '@/locales/en/errorBoundary.json';
 import equalizerEn from '@/locales/en/equalizer.json';
+import ambienceEn from '@/locales/en/ambience.json';
 import enrichDialogEn from '@/locales/en/enrichDialog.json';
 import editTagsEn from '@/locales/en/editTags.json';
 import onboardingEn from '@/locales/en/onboarding.json';
@@ -100,6 +101,7 @@ const namespaces = [
   'nowPlaying',
   'errorBoundary',
   'equalizer',
+  'ambience',
   'enrichDialog',
   'editTags',
   'onboarding',
@@ -109,7 +111,7 @@ const namespaces = [
   'sanctuary',
 ] as const;
 
-// English is the fallback locale, so its 35 namespaces stay statically bundled
+// English is the fallback locale, so its 36 namespaces stay statically bundled
 // into the entry chunk — every key must resolve synchronously even when another
 // locale is active and missing a key. Every other locale is loaded on demand by
 // the backend below so its namespaces never weigh down first paint.
@@ -142,6 +144,7 @@ const englishResources: ResourceLanguage = {
   nowPlaying: nowPlayingEn,
   errorBoundary: errorBoundaryEn,
   equalizer: equalizerEn,
+  ambience: ambienceEn,
   enrichDialog: enrichDialogEn,
   editTags: editTagsEn,
   onboarding: onboardingEn,
