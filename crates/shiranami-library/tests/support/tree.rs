@@ -43,6 +43,17 @@ fn prepared(path: PathBuf) -> PathBuf {
     path
 }
 
+/// Join `root` with a `/`-separated `relative` one component at a time, so
+/// the result carries the platform separator throughout, never a literal
+/// `/` baked in from the caller's string, which is what a plain
+/// `root.join(relative)` would leave on Windows and which then fails to
+/// match a path the product code built by walking the real directory tree.
+fn joined(root: &Path, relative: &str) -> PathBuf {
+    relative
+        .split('/')
+        .fold(root.to_path_buf(), |path, part| path.join(part))
+}
+
 /// Write a minimal but valid PCM WAV at `root/relative`.
 ///
 /// Synthesised rather than committed: the contents are irrelevant here, only
@@ -72,7 +83,7 @@ pub(crate) fn wav(root: &Path, relative: &str) -> PathBuf {
     bytes.extend_from_slice(&data_len.to_le_bytes());
     bytes.resize(44 + data_len as usize, 0);
 
-    let path = prepared(root.join(relative));
+    let path = prepared(joined(root, relative));
     fs::write(&path, &bytes).expect("the synthesised WAV writes");
     path
 }
@@ -80,14 +91,14 @@ pub(crate) fn wav(root: &Path, relative: &str) -> PathBuf {
 /// A file with arbitrary bytes — used both for non-audio entries and for
 /// unparseable ones with an audio extension.
 pub(crate) fn raw(root: &Path, relative: &str, contents: &[u8]) -> PathBuf {
-    let path = prepared(root.join(relative));
+    let path = prepared(joined(root, relative));
     fs::write(&path, contents).expect("the fixture writes");
     path
 }
 
 /// An empty directory.
 pub(crate) fn dir(root: &Path, relative: &str) -> PathBuf {
-    let path = root.join(relative);
+    let path = joined(root, relative);
     fs::create_dir_all(&path).expect("the fixture writes");
     path
 }

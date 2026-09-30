@@ -40,11 +40,22 @@ export interface UseLibraryRescanResult {
   clearDetectedSubfolders: () => void;
 }
 
+/**
+ * The rescan toast when some files were followed to a new path, e.g.
+ * "Library updated: 3 moved, 2 new, 1 removed". Only the non-zero parts are
+ * listed. Without moves the rescan keeps its original wording.
+ */
+function rescanSummaryWithMoves(added: number, moved: number, removed: number): string {
+  const parts = [i18n.t('rescanPartMoved', { ns: 'toast', count: moved })];
+  if (added > 0) parts.push(i18n.t('rescanPartNew', { ns: 'toast', count: added }));
+  if (removed > 0) parts.push(i18n.t('rescanPartRemoved', { ns: 'toast', count: removed }));
+  return i18n.t('rescanSummaryWithMoves', { ns: 'toast', parts: parts.join(', ') });
+}
+
 export function useLibraryRescan(): UseLibraryRescanResult {
   const queryClient = useQueryClient();
   const { data: playlists = [] } = usePlaylistsQuery();
   const clearQueue = usePlaybackStore(s => s.clearQueue);
-  const removeFromLibrary = useLibraryStore(s => s.removeFromLibrary);
   const scanState = useLibraryStore(s => s.scanState);
   const setScanState = useLibraryStore(s => s.setScanState);
   const resetScanProgress = useLibraryStore(s => s.resetScanProgress);
@@ -88,13 +99,14 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
     setScanState('scanning');
     let totalAdded = 0;
+    const movedIds = new Set<string>();
     const allDetectedSubfolders: SubfolderGroup[] = [];
     const unscannedIds = new Set<string>();
 
     try {
       for (const folder of folders) {
         try {
-          const result = await scanAndPersistFolder(folder.path);
+          const result = await scanAndPersistFolder(folder.path, { followMoves: true });
           if (result.empty) unscannedIds.add(folder.id);
 
           if (result.subfolders.length > 0) {
@@ -102,6 +114,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
           }
 
           totalAdded += result.addedCount;
+          for (const id of result.movedIds) movedIds.add(id);
 
           // Update last scanned timestamp (matches original behavior).
           await window.electronAPI.db.folders.updateScanned(folder.id);
@@ -111,12 +124,15 @@ export function useLibraryRescan(): UseLibraryRescanResult {
         }
       }
 
-      // Validate existing tracks — remove any whose files are missing from disk
+      // Remove tracks whose files are gone. Read the library only now, after
+      // every folder has persisted: moved files were re-pointed (same id, new
+      // path) during persistence, so this snapshot already holds their new
+      // paths, and movedIds keeps them out of the check regardless.
       let totalRemoved = 0;
       const currentLibrary = tracksInFolders(
         useLibraryStore.getState().library,
         folderIds ? folders : undefined
-      );
+      ).filter(t => !movedIds.has(t.id));
       if (currentLibrary.length > 0) {
         const allPaths = currentLibrary.map(t => t.filePath);
         const validated = await window.electronAPI.library.validateFiles(allPaths);
@@ -132,21 +148,29 @@ export function useLibraryRescan(): UseLibraryRescanResult {
           : await confirmMissing(validated);
         if (missingPaths.length > 0) {
           const missingSet = new Set(missingPaths);
-          const staleIds = currentLibrary.filter(t => missingSet.has(t.filePath)).map(t => t.id);
-          if (staleIds.length > 0) {
-            await window.electronAPI.db.tracks.removeMany(staleIds);
-            removeFromLibrary(staleIds);
-            totalRemoved = staleIds.length;
+          const stale = currentLibrary.filter(t => missingSet.has(t.filePath));
+          if (stale.length > 0) {
+            // The backend deletes a track only if it still holds the path
+            // checked here, and answers with exactly the ids it deleted.
+            const removedIds = await window.electronAPI.db.tracks.removeMany(
+              stale.map(t => t.id),
+              stale.map(t => t.filePath)
+            );
+            useLibraryStore.getState().removeFromLibrary(removedIds);
+            totalRemoved = removedIds.length;
           }
         }
       }
+      const totalMoved = movedIds.size;
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
       // Files were added/removed on disk — recompute disk usage.
       queryClient.invalidateQueries({ queryKey: diskUsageKeys.all });
 
-      if (totalAdded > 0 && totalRemoved > 0) {
+      if (totalMoved > 0) {
+        toast.success(rescanSummaryWithMoves(totalAdded, totalMoved, totalRemoved));
+      } else if (totalAdded > 0 && totalRemoved > 0) {
         toast.success(
           i18n.t('rescanSummary', { ns: 'toast', added: totalAdded, removed: totalRemoved })
         );
@@ -174,7 +198,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       resetScanProgress();
       releaseScanLock();
     }
-  }, [queryClient, playlists, removeFromLibrary, setScanState, resetScanProgress]);
+  }, [queryClient, playlists, setScanState, resetScanProgress]);
 
   const rescan = useCallback(
     (options?: RescanOptions) => {

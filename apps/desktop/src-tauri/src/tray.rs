@@ -17,6 +17,15 @@
 //! and a menu that only ever grew would leave a stale title up after the queue
 //! emptied.
 //!
+//! # Who calls `update`, and in which language
+//!
+//! [`Tray::update`] is driven from `crate::adapters::MediaFanOut`, the same
+//! `crate::seam::MediaControls` value `media:playback-state` publishes to, so
+//! the OS media surface, this menu and the Windows taskbar bar are three
+//! renderings of one push. The labels come from `app.language`, the tag the
+//! renderer persists to the settings store, read at install and followed on
+//! the settings bus by [`watch_language`].
+//!
 //! # Every action is the same event the media keys send
 //!
 //! `TrayItemId::command` maps each action to a `MediaCommand`, which is what the
@@ -27,34 +36,46 @@
 
 use std::sync::Mutex;
 
-use shiranami_media_controls::tray::{TrayItem, TrayItemId, TrayModel, TrayView};
+use shiranami_core::store::{RendererStoreKey, SettingsStore};
+use shiranami_media_controls::tray::{TrayItem, TrayItemId, TrayLabels, TrayModel, TrayView};
 use shiranami_media_controls::{MediaCommand, MediaState};
-use tauri::AppHandle;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
+use tauri::{AppHandle, Manager as _};
 
 /// The live tray, and the view that decides when to rebuild it.
 pub struct Tray {
     icon: tauri::tray::TrayIcon,
-    view: Mutex<TrayView>,
+    inner: Mutex<Inner>,
+}
+
+/// The view, and the state it last drew, so a language change can redraw the
+/// same menu in new words without waiting for the next push.
+struct Inner {
+    view: TrayView,
+    last: MediaState,
+    /// The newest model not drawn yet. The draw runs later on the main thread
+    /// and takes whatever is here then, so a playback push and a language
+    /// change racing each other cannot leave the older model on screen.
+    pending: Option<TrayModel>,
 }
 
 impl Tray {
-    /// Show a tray icon with the idle menu.
+    /// Show a tray icon with the idle menu, in the given language.
     ///
     /// # Errors
     ///
     /// Whatever Tauri refused. The caller logs and carries on: v1 wrapped
     /// `createTray` in its own try/catch for the same reason — a desktop
     /// environment with no tray is a degraded app, not a failed launch.
-    pub fn install(app: &AppHandle) -> tauri::Result<Self> {
-        let mut view = TrayView::new();
+    pub fn install(app: &AppHandle, labels: TrayLabels) -> tauri::Result<Self> {
+        let mut view = TrayView::with_labels(labels.clone());
         // `apply` returns `Some` only on a change, and the first call is always
         // a change, so this is the initial model.
         let model = view
             .apply(&MediaState::default())
             .cloned()
-            .unwrap_or_else(|| TrayModel::build(&MediaState::default(), &Default::default()));
+            .unwrap_or_else(|| TrayModel::build(&MediaState::default(), &labels));
 
         let icon = TrayIconBuilder::new()
             .icon(
@@ -71,7 +92,11 @@ impl Tray {
 
         Ok(Self {
             icon,
-            view: Mutex::new(view),
+            inner: Mutex::new(Inner {
+                view,
+                last: MediaState::default(),
+                pending: None,
+            }),
         })
     }
 
@@ -81,15 +106,47 @@ impl Tray {
     /// renderer pushes state on every playhead tick and only a track change or a
     /// play/pause moves the menu.
     pub fn update(&self, app: &AppHandle, state: &MediaState) {
-        let model = {
-            let mut view = self
-                .view
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            view.apply(state).cloned()
-        };
+        {
+            let mut inner = self.lock();
+            inner.last = state.clone();
+            let Some(model) = inner.view.apply(state).cloned() else {
+                return;
+            };
+            inner.pending = Some(model);
+        }
 
-        let Some(model) = model else {
+        schedule_render(app);
+    }
+
+    /// Redraw the current menu with the labels for `language`.
+    pub fn set_language(&self, app: &AppHandle, language: Option<&str>) {
+        {
+            let mut inner = self.lock();
+            inner.view.set_labels(TrayLabels::for_language(language));
+            let last = inner.last.clone();
+            let Some(model) = inner.view.apply(&last).cloned() else {
+                return;
+            };
+            inner.pending = Some(model);
+        }
+
+        schedule_render(app);
+    }
+
+    fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
+        self.inner
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Draw the newest pending model, if another draw has not already.
+    ///
+    /// Main thread only, via [`schedule_render`]: the jobs run one at a time in
+    /// the order they were queued, and each draws the latest model, so the last
+    /// one to run always shows the newest state. The lock is released before
+    /// drawing because the tray setters wait on the main thread.
+    fn render(&self, app: &AppHandle) {
+        let Some(model) = self.lock().pending.take() else {
             return;
         };
 
@@ -106,6 +163,47 @@ impl Tray {
             Err(error) => tracing::warn!(%error, "could not build the tray menu"),
         }
     }
+}
+
+/// Queue a tray draw on the main thread.
+///
+/// Called with the `Inner` lock released: on the main thread the job runs
+/// inline, and it takes that lock itself.
+fn schedule_render(app: &AppHandle) {
+    let handle = app.clone();
+    let queued = app.run_on_main_thread(move || {
+        if let Some(tray) = handle.try_state::<Tray>() {
+            tray.render(&handle);
+        }
+    });
+    if let Err(error) = queued {
+        // Only once the event loop is gone, that is while quitting.
+        tracing::debug!(%error, "could not queue a tray redraw");
+    }
+}
+
+/// The tray labels for the language stored right now.
+pub fn labels(settings: &SettingsStore) -> TrayLabels {
+    TrayLabels::for_language(language(settings.get(RendererStoreKey::AppLanguage)).as_deref())
+}
+
+fn language(value: Option<serde_json::Value>) -> Option<String> {
+    value.and_then(|value| value.as_str().map(str::to_owned))
+}
+
+/// Follow `app.language` so the tray switches language with the window.
+///
+/// The tray is looked up per change rather than captured, because it is
+/// managed state that may be absent (a desktop with no tray, or the harness).
+pub fn watch_language(app: &AppHandle, settings: &SettingsStore) {
+    let app = app.clone();
+    settings
+        .bus()
+        .subscribe(RendererStoreKey::AppLanguage.path(), move |event| {
+            if let Some(tray) = app.try_state::<Tray>() {
+                tray.set_language(&app, language(event.current.clone()).as_deref());
+            }
+        });
 }
 
 /// Turn the crate's item list into a Tauri menu.
@@ -148,7 +246,7 @@ fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
 
     match id {
         TrayItemId::Show => crate::focus_main_window(app),
-        TrayItemId::Quit => app.exit(0),
+        TrayItemId::Quit => crate::system::quit(app),
         other => send_command(app, other.command()),
     }
 }

@@ -39,6 +39,13 @@ interface LibraryState {
 
 interface LibraryActions {
   setLibrary: (tracks: Track[]) => void;
+  /**
+   * Add tracks, or replace the ones whose id the library already holds. An
+   * import can hand back an existing row re-pointed at a moved file (same id,
+   * new `filePath`), and that must update the entry in place, never duplicate
+   * it. A replaced track's new path and title also reach the queue and the
+   * current track, so playback follows the file.
+   */
   addToLibrary: (tracks: Track[]) => void;
   removeFromLibrary: (trackIds: string[]) => void;
   /**
@@ -109,7 +116,23 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     set({ library: tracks });
   },
 
-  addToLibrary: tracks => set(s => ({ library: [...s.library, ...tracks] })),
+  addToLibrary: tracks => {
+    const incoming = new Map(tracks.map(t => [t.id, t]));
+    const replaced: Track[] = [];
+    set(s => {
+      const library = s.library.map(t => {
+        const next = incoming.get(t.id);
+        if (!next) return t;
+        incoming.delete(t.id);
+        replaced.push(next);
+        return next;
+      });
+      return { library: [...library, ...incoming.values()] };
+    });
+    for (const next of replaced) {
+      syncPlaybackTrack(next.id, t => ({ ...t, filePath: next.filePath, title: next.title }));
+    }
+  },
 
   updateTrackTags: (trackId, patch) =>
     set(s => ({

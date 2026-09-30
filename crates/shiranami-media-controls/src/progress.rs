@@ -13,7 +13,11 @@
 //!
 //! §2.7: *"Windows taskbar progress moves from `win.setProgressBar` to
 //! `Window::set_progress_bar`."* That call needs the Tauri window, so it lives
-//! behind [`TaskbarProgressBackend`] and Phase 16 supplies it.
+//! behind [`TaskbarProgressBackend`], and the shell's implementation
+//! (`apps/desktop/src-tauri/src/adapters.rs`) is constructed on Windows only.
+//! Tauri's call is not Windows-only: on macOS it draws an app-wide bar on the
+//! dock icon, which v1 never had, so every other platform gets no backend at
+//! all rather than a real one.
 //!
 //! # Percent, not fraction
 //!

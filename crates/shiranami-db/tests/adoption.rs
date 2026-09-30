@@ -461,12 +461,14 @@ async fn an_old_era_database_gets_its_missing_tables_and_columns() {
         "track_number",
         "updated_at",
         "year",
-        // v2's own: migration `0003` (bpm/key) and `0005` (feature wave F5).
+        // v2's own: migration `0003` (bpm/key), `0005` (feature wave F5) and
+        // `0009` (content identity).
         "bpm",
         "musical_key",
         "album_loudness_lufs",
         "loudness_range",
         "true_peak_db",
+        "content_hash",
     ];
     expected.sort_unstable();
 

@@ -20,6 +20,10 @@
 //!   `update_settings` genuinely is.
 //! - [`MediaControlsAdapter`] wraps a `&mut`-only service in the lock its
 //!   thread-affinity demands, which is the choice `seam.rs` says lives here.
+//! - [`MediaFanOut`] is the seam value `media:playback-state` actually talks to.
+//!   v1's handler updated the tray and the Windows taskbar bar from the same
+//!   push as the OS media surface, and `commands/media.rs` promises the seam
+//!   covers all three, so this is where one push becomes three renderings.
 //! - [`PluginUpdater`] is the only one with no crate behind it at all
 //!   (`crate::commands::updater`), so it is the largest, and it lives in its own
 //!   module.
@@ -32,7 +36,12 @@ use shiranami_core::models::{
 };
 use shiranami_core::notice::NoticeSink;
 use shiranami_integrations::discord::{DiscordPresence, PresenceSocket};
-use shiranami_media_controls::{MediaControlsBackend, MediaControlsService, MediaState};
+use shiranami_media_controls::progress::{ProgressStatus, TaskbarProgress, TaskbarProgressBackend};
+use shiranami_media_controls::{
+    MediaControlsBackend, MediaControlsError, MediaControlsService, MediaState,
+};
+use tauri::window::{ProgressBarState, ProgressBarStatus};
+use tauri::{AppHandle, Manager as _, WebviewWindow};
 
 use crate::seam::{MediaControls, Presence};
 
@@ -154,9 +163,161 @@ impl<B: MediaControlsBackend + Send + 'static> MediaControls for MediaControlsAd
     }
 }
 
+/// A shell surface drawn from the playback state: the tray and the taskbar bar.
+///
+/// Synchronous and infallible for the same reason as the seam: each is a
+/// cheap, cosmetic native call, and a failure is logged where it happens.
+pub trait StateSurface: Send + Sync {
+    /// Draw this state.
+    fn show(&self, state: &MediaState);
+}
+
+/// `crate::seam::MediaControls` over every surface that shows what is playing.
+///
+/// The OS media surface is optional inside it: souvlaki can refuse to open (a
+/// missing window handle, a locked-down session), and a tray that stopped
+/// showing the current track because SMTC did would be a coupling v1 never
+/// had. So the fan-out exists whenever the shell has surfaces, and the OS one
+/// is one member of it.
+pub struct MediaFanOut {
+    os: Option<Arc<dyn MediaControls>>,
+    surfaces: Vec<Box<dyn StateSurface>>,
+}
+
+impl MediaFanOut {
+    /// Fan one push out to the OS surface, when there is one, and `surfaces`.
+    pub fn new(os: Option<Arc<dyn MediaControls>>, surfaces: Vec<Box<dyn StateSurface>>) -> Self {
+        Self { os, surfaces }
+    }
+}
+
+#[async_trait]
+impl MediaControls for MediaFanOut {
+    async fn publish(&self, state: MediaState) {
+        for surface in &self.surfaces {
+            surface.show(&state);
+        }
+        if let Some(os) = &self.os {
+            os.publish(state).await;
+        }
+    }
+
+    /// v1's `media:clear-state` took the tray back to its idle menu and removed
+    /// the taskbar bar, which is exactly what drawing `Cleared` does.
+    async fn clear(&self) {
+        for surface in &self.surfaces {
+            surface.show(&MediaState::Cleared);
+        }
+        if let Some(os) = &self.os {
+            os.clear().await;
+        }
+    }
+}
+
+/// The tray's now-playing block.
+///
+/// Looks the tray up on every push rather than holding it, because the tray is
+/// installed after boot builds this value and may not exist at all.
+pub struct TraySurface {
+    app: AppHandle,
+}
+
+impl TraySurface {
+    /// Draw into whatever tray `app` manages.
+    pub fn new(app: AppHandle) -> Self {
+        Self { app }
+    }
+}
+
+impl StateSurface for TraySurface {
+    fn show(&self, state: &MediaState) {
+        if let Some(tray) = self.app.try_state::<crate::tray::Tray>() {
+            tray.update(&self.app, state);
+        }
+    }
+}
+
+/// The taskbar bar, written only when it changes.
+///
+/// v1 wrote it on every push. The percentage moves about once every couple
+/// of seconds on a typical track, so comparing first saves most of the native
+/// calls for the price of one lock.
+pub struct TaskbarSurface<B: TaskbarProgressBackend> {
+    backend: B,
+    last: Mutex<Option<TaskbarProgress>>,
+}
+
+impl<B: TaskbarProgressBackend> TaskbarSurface<B> {
+    /// Draw through `backend`.
+    pub fn new(backend: B) -> Self {
+        Self {
+            backend,
+            last: Mutex::new(None),
+        }
+    }
+}
+
+impl<B: TaskbarProgressBackend + Send + Sync> StateSurface for TaskbarSurface<B> {
+    fn show(&self, state: &MediaState) {
+        let next = TaskbarProgress::from_state(state);
+        let mut last = self
+            .last
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+        if *last == Some(next) {
+            return;
+        }
+
+        match self.backend.set_progress(next) {
+            Ok(()) => *last = Some(next),
+            // Not recorded, so the next push tries again.
+            Err(error) => tracing::warn!(%error, "could not update the taskbar progress"),
+        }
+    }
+}
+
+/// `Window::set_progress_bar` as the crate's backend.
+///
+/// Compiles everywhere but is constructed on Windows only (see
+/// `crate::media::build`): on macOS the same call draws a bar on the dock icon,
+/// which v1 never had.
+pub struct WindowTaskbarProgress {
+    window: WebviewWindow,
+}
+
+impl WindowTaskbarProgress {
+    /// Draw on `window`'s taskbar button.
+    pub fn new(window: WebviewWindow) -> Self {
+        Self { window }
+    }
+}
+
+impl TaskbarProgressBackend for WindowTaskbarProgress {
+    fn set_progress(&self, progress: TaskbarProgress) -> shiranami_media_controls::Result<()> {
+        self.window
+            .set_progress_bar(progress_bar_state(progress))
+            .map_err(|error| MediaControlsError::Backend(error.to_string()))
+    }
+}
+
+/// The crate's bar as Tauri's. Electron's `setProgressBar(-1)` is Tauri's
+/// `ProgressBarStatus::None`, and v1's `{ mode: 'paused' }` is `Paused`.
+fn progress_bar_state(progress: TaskbarProgress) -> ProgressBarState {
+    ProgressBarState {
+        status: Some(match progress.status {
+            ProgressStatus::None => ProgressBarStatus::None,
+            ProgressStatus::Normal => ProgressBarStatus::Normal,
+            ProgressStatus::Paused => ProgressBarStatus::Paused,
+        }),
+        progress: progress.percent,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::seam::fake::RecordingMediaControls;
     use shiranami_media_controls::NullBackend;
 
     /// The adapter satisfies the seam over the crate's own null backend, and
@@ -181,5 +342,189 @@ mod tests {
         ));
 
         assert_eq!(Arc::strong_count(&adapter), 1);
+    }
+
+    fn track(is_playing: bool, current_time: f64) -> MediaState {
+        MediaState::Loaded(shiranami_media_controls::NowPlaying {
+            is_playing,
+            title: "Sakura Nights".to_owned(),
+            artist: "Yumemi".to_owned(),
+            album: "Lofi".to_owned(),
+            duration: 200.0,
+            current_time,
+            album_art: None,
+        })
+    }
+
+    /// Records every state a surface was asked to draw.
+    #[derive(Default)]
+    struct RecordingSurface {
+        shown: Arc<Mutex<Vec<MediaState>>>,
+    }
+
+    impl StateSurface for RecordingSurface {
+        fn show(&self, state: &MediaState) {
+            self.shown.lock().expect("unpoisoned").push(state.clone());
+        }
+    }
+
+    /// Records every bar written, and can refuse.
+    #[derive(Default, Clone)]
+    struct RecordingProgress {
+        written: Arc<Mutex<Vec<TaskbarProgress>>>,
+        refuse: Arc<std::sync::atomic::AtomicBool>,
+    }
+
+    impl TaskbarProgressBackend for RecordingProgress {
+        fn set_progress(&self, progress: TaskbarProgress) -> shiranami_media_controls::Result<()> {
+            if self.refuse.load(std::sync::atomic::Ordering::SeqCst) {
+                return Err(MediaControlsError::Backend("no taskbar".to_owned()));
+            }
+            self.written.lock().expect("unpoisoned").push(progress);
+            Ok(())
+        }
+    }
+
+    impl RecordingProgress {
+        fn written(&self) -> Vec<TaskbarProgress> {
+            self.written.lock().expect("unpoisoned").clone()
+        }
+    }
+
+    /// The promise `commands/media.rs` makes: one push reaches the OS surface
+    /// and every shell surface, and so does a clear.
+    #[tokio::test]
+    async fn one_push_reaches_the_os_surface_and_every_shell_surface() {
+        let os = Arc::new(RecordingMediaControls::default());
+        let shown = Arc::new(Mutex::new(Vec::new()));
+        let fan_out = MediaFanOut::new(
+            Some(Arc::clone(&os) as Arc<dyn MediaControls>),
+            vec![Box::new(RecordingSurface {
+                shown: Arc::clone(&shown),
+            })],
+        );
+
+        fan_out.publish(track(true, 10.0)).await;
+        fan_out.clear().await;
+
+        assert_eq!(os.published(), [track(true, 10.0)]);
+        assert_eq!(os.clear_count(), 1);
+        assert_eq!(
+            *shown.lock().expect("unpoisoned"),
+            [track(true, 10.0), MediaState::Cleared],
+            "a clear takes the tray back to idle and removes the bar"
+        );
+    }
+
+    /// Souvlaki refusing to open must not take the tray down with it.
+    #[tokio::test]
+    async fn the_shell_surfaces_draw_without_an_os_surface() {
+        let shown = Arc::new(Mutex::new(Vec::new()));
+        let fan_out = MediaFanOut::new(
+            None,
+            vec![Box::new(RecordingSurface {
+                shown: Arc::clone(&shown),
+            })],
+        );
+
+        fan_out.publish(track(false, 5.0)).await;
+
+        assert_eq!(*shown.lock().expect("unpoisoned"), [track(false, 5.0)]);
+    }
+
+    /// v1's three states, through the surface: a normal bar, a paused bar at
+    /// the same fraction, and no bar.
+    #[test]
+    fn the_taskbar_follows_playing_paused_and_stopped() {
+        let backend = RecordingProgress::default();
+        let surface = TaskbarSurface::new(backend.clone());
+
+        surface.show(&track(true, 100.0));
+        surface.show(&track(false, 100.0));
+        surface.show(&MediaState::Cleared);
+
+        assert_eq!(
+            backend.written(),
+            [
+                TaskbarProgress {
+                    status: ProgressStatus::Normal,
+                    percent: Some(50)
+                },
+                TaskbarProgress {
+                    status: ProgressStatus::Paused,
+                    percent: Some(50)
+                },
+                TaskbarProgress::CLEARED,
+            ]
+        );
+    }
+
+    /// A tick that does not move the percentage is not a native call.
+    #[test]
+    fn an_unchanged_bar_is_not_rewritten() {
+        let backend = RecordingProgress::default();
+        let surface = TaskbarSurface::new(backend.clone());
+
+        surface.show(&track(true, 100.0));
+        surface.show(&track(true, 100.4));
+        surface.show(&track(true, 102.0));
+
+        assert_eq!(
+            backend.written().len(),
+            2,
+            "50% twice is one write, 51% is the second"
+        );
+    }
+
+    /// A refused write is retried on the next push rather than remembered as
+    /// done, or a bar that failed once would stay wrong until the percentage
+    /// moved.
+    #[test]
+    fn a_refused_write_is_retried() {
+        let backend = RecordingProgress::default();
+        let surface = TaskbarSurface::new(backend.clone());
+
+        backend
+            .refuse
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+        surface.show(&track(true, 100.0));
+        backend
+            .refuse
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+        surface.show(&track(true, 100.0));
+
+        assert_eq!(backend.written().len(), 1);
+    }
+
+    #[test]
+    fn the_crate_bar_maps_onto_tauris() {
+        let cases = [
+            (TaskbarProgress::CLEARED, ProgressBarStatus::None, None),
+            (
+                TaskbarProgress {
+                    status: ProgressStatus::Normal,
+                    percent: Some(42),
+                },
+                ProgressBarStatus::Normal,
+                Some(42),
+            ),
+            (
+                TaskbarProgress {
+                    status: ProgressStatus::Paused,
+                    percent: Some(7),
+                },
+                ProgressBarStatus::Paused,
+                Some(7),
+            ),
+        ];
+
+        for (progress, status, percent) in cases {
+            let state = progress_bar_state(progress);
+            assert!(
+                matches!(state.status, Some(ref actual) if std::mem::discriminant(actual) == std::mem::discriminant(&status)),
+                "{progress:?}"
+            );
+            assert_eq!(state.progress, percent);
+        }
     }
 }

@@ -21,6 +21,9 @@ fs4 = { workspace = true }
 notify = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+# Content identity (`identity`): sha256 over sampled audio-payload windows.
+# Already pinned for the art and peaks caches, so this adds no new crate.
+sha2 = { workspace = true }
 specta = { workspace = true }
 specta-typescript = { workspace = true }
 sysinfo = { workspace = true }

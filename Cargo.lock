@@ -5263,6 +5263,7 @@ name = "shiranami-desktop"
 version = "2.0.0"
 dependencies = [
  "async-trait",
+ "auto-launch",
  "fix-path-env",
  "keepawake",
  "rayon",
@@ -5370,6 +5371,7 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "shiranami-core",
  "shiranami-db",
  "shiranami-metadata",

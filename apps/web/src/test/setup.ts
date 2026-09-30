@@ -197,7 +197,7 @@ function createElectronAPIMock(): ElectronAPI {
         add: vi.fn(),
         addMany: asyncFn([]),
         remove: asyncFn(undefined),
-        removeMany: asyncFn(undefined),
+        removeMany: asyncFn([]),
         update: vi.fn(),
         toggleFavorite: vi.fn(),
         getFavorites: asyncFn([]),

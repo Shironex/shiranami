@@ -87,6 +87,35 @@ describe('useLibraryStore', () => {
 
       expect(useTrackOverlayStore.getState().overlays.get('a')).toEqual({ playCount: 4 });
     });
+
+    it('replaces a track whose id is already present instead of duplicating it', () => {
+      useLibraryStore.setState({ library: [makeTrack('a'), makeTrack('b')] });
+
+      useLibraryStore
+        .getState()
+        .addToLibrary([makeTrack('b', { filePath: '/moved/b.mp3' }), makeTrack('c')]);
+
+      const library = useLibraryStore.getState().library;
+      expect(library.map(t => t.id)).toEqual(['a', 'b', 'c']);
+      expect(library[1].filePath).toBe('/moved/b.mp3');
+    });
+
+    it('points queued and current copies of a replaced track at its new file', () => {
+      const moved = makeTrack('a', { filePath: '/moved/a.mp3' });
+      useLibraryStore.setState({ library: [makeTrack('a')] });
+      usePlaybackStore.setState({
+        queue: [makeTrack('a'), makeTrack('x')],
+        queueIndex: 0,
+        currentTrack: makeTrack('a'),
+      });
+
+      useLibraryStore.getState().addToLibrary([moved]);
+
+      const playback = usePlaybackStore.getState();
+      expect(playback.queue[0].filePath).toBe('/moved/a.mp3');
+      expect(playback.currentTrack?.filePath).toBe('/moved/a.mp3');
+      expect(playback.queue[1].filePath).toBe(makeTrack('x').filePath);
+    });
   });
 
   describe('removeFromLibrary', () => {

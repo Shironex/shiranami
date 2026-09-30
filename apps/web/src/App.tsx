@@ -64,6 +64,7 @@ const OnboardingWizard = lazy(
 );
 const NamingCeremony = lazy(() => import('@/components/companion/NamingCeremony/NamingCeremony'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { useAmbience } from '@/hooks/useAmbience';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useLibrarySync } from '@/hooks/useLibrarySync';
@@ -126,6 +127,7 @@ function App() {
   const reducedMotion = useReducedMotion();
 
   useAudioEngine();
+  useAmbience();
   useMediaSession();
   usePlayerPreferences();
   const {

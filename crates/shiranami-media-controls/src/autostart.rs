@@ -3,8 +3,9 @@
 //! Ported from `applyLaunchAtStartup` and `initializeSystemBehavior` in
 //! `apps/desktop/src/main/app/system-behavior.ts`. The OS write itself needs the
 //! Tauri app handle (`tauri-plugin-autostart`, §2.2 row 7), so it lives behind
-//! [`AutostartBackend`] and Phase 16 supplies it. What lives here is the part
-//! with a decision in it.
+//! [`AutostartBackend`], implemented by the shell's `system.rs`: a Launch Agent
+//! on macOS and the `HKCU` Run key on Windows. What lives here is the part with
+//! a decision in it.
 //!
 //! # The decision
 //!

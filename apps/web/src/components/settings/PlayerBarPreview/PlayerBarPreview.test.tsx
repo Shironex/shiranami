@@ -28,9 +28,9 @@ describe('PlayerBarPreview', () => {
   it('renders every optional element expanded with the shipping defaults', () => {
     const { container } = render(<PlayerBarPreview />);
 
-    // Album art, favorite, two time labels, six utility buttons, volume.
+    // Album art, favorite, two time labels, seven utility buttons, volume.
     const elements = container.querySelectorAll(ELEMENT);
-    expect(elements).toHaveLength(11);
+    expect(elements).toHaveLength(12);
     for (const element of elements) {
       expect(element).toHaveClass('opacity-100');
     }

@@ -27,19 +27,22 @@
 //! none of it can be run without a real window, so none of it may decide
 //! anything.
 //!
-//! # Phase 16 owns two things this module cannot do itself
+//! # Two things are wired from outside this module
 //!
-//! - Calling [`persist_compact_bounds`] from the window's `close` handler. v1
-//!   did (`mainWindow.on('close', persistCompactBounds)`) because quitting from
-//!   compact mode — taskbar, Alt+F4 — bypasses the explicit exit path and would
-//!   otherwise lose the corner the user parked the mini-player in.
-//! - `window:set-compact-mode` additionally needs `AppState` for that corner, so
-//!   it answers "state not managed" until Phase 16 boots. The other five work
-//!   from this phase onward.
+//! - [`persist_compact_bounds`] runs from the window's close handler in
+//!   `crate::window`, as v1's `mainWindow.on('close', persistCompactBounds)`
+//!   did, because quitting from compact mode (taskbar, Alt+F4) bypasses the
+//!   explicit exit path and would otherwise lose the corner the user parked
+//!   the mini-player in. That handler also hides the window instead of closing
+//!   it when `system.closeToTray` is on.
+//! - `window:minimize` asks `crate::system` whether `system.minimizeToTray` turns
+//!   the minimize into a hide. That is the one decision a titlebar button here
+//!   defers, and the crate's `SystemBehavior` makes it.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{LogicalPosition, LogicalSize, State};
+use shiranami_media_controls::system::MinimizeAction;
+use tauri::{LogicalPosition, LogicalSize, Manager as _, State};
 use tauri_specta::Event as _;
 
 use shiranami_core::store::{MainStoreKey, SettingsStore};
@@ -73,11 +76,20 @@ macro_rules! commands {
 }
 pub(crate) use commands;
 
-/// `window:minimize`.
+/// `window:minimize`, or a hide when `system.minimizeToTray` is on.
+///
+/// v1 did the same from its `minimize` listener. Tauri has no such event, so
+/// the titlebar's button is where the setting is honoured. On Windows a
+/// minimize the OS performs (the taskbar button, Win+Down) is caught by the
+/// resize hook in `crate::window`; macOS sends no resize for a minimize, so
+/// Cmd+M there still minimizes to the Dock whatever the setting.
 #[tauri::command]
 #[specta::specta]
 pub async fn window_minimize(window: tauri::Window) {
-    report("minimize", window.minimize());
+    match crate::system::minimize_action(window.app_handle()) {
+        MinimizeAction::HideToTray => report("hide to the tray", window.hide()),
+        MinimizeAction::Minimize => report("minimize", window.minimize()),
+    }
 }
 
 /// `window:maximize` — a **toggle**, not a maximize.

@@ -93,6 +93,7 @@ describe('useLibraryRescan watcher deletion guards', () => {
     vi.mocked(scanAndPersistFolder).mockResolvedValue({
       addedCount: 0,
       subfolders: [],
+      movedIds: [],
       empty: false,
       allExisted: true,
     });
@@ -112,7 +113,10 @@ describe('useLibraryRescan watcher deletion guards', () => {
 
     await watcherRescan();
 
-    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(['2']);
+    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
+      ['2'],
+      ['/music/b/two.mp3']
+    );
   });
 
   it('deletes nothing when the root vanished between the batch and validation', async () => {
@@ -127,6 +131,7 @@ describe('useLibraryRescan watcher deletion guards', () => {
     vi.mocked(scanAndPersistFolder).mockResolvedValue({
       addedCount: 0,
       subfolders: [],
+      movedIds: [],
       empty: true,
       allExisted: false,
     });
@@ -177,6 +182,7 @@ describe('useLibraryRescan watcher deletion guards', () => {
     vi.mocked(scanAndPersistFolder).mockResolvedValue({
       addedCount: 0,
       subfolders: [],
+      movedIds: [],
       empty: true,
       allExisted: false,
     });
@@ -187,6 +193,9 @@ describe('useLibraryRescan watcher deletion guards', () => {
       await result.current.rescan();
     });
 
-    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(['1', '2', '3']);
+    expect(window.electronAPI.db.tracks.removeMany).toHaveBeenCalledWith(
+      ['1', '2', '3'],
+      ['/music/b/one.mp3', '/music/b/two.mp3', '/music/b/three.mp3']
+    );
   });
 });

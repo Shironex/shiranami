@@ -259,8 +259,10 @@ impl Updater for PluginUpdater {
             // inside `install`. On macOS `install` only swaps the bundle on disk
             // and returns, so the restart that loads the new one is ours. Either
             // way the renderer never observes this resolving — which is why the
-            // command returns `void` rather than a status.
-            Ok(()) => self.app.restart(),
+            // command returns `void` rather than a status. Through
+            // `crate::system` so the quit flag is set first: a close-to-tray
+            // user must not have the restart turned into a hide.
+            Ok(()) => crate::system::restart(&self.app),
             Err(error) => {
                 let message = error.to_string();
                 self.events.send(UpdaterEvent::failed(&message));
