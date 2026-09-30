@@ -154,8 +154,9 @@ fn forward(events: &EventSender, result: notify::Result<notify::Event>) {
             // what is really on disk, and the renderer refuses deletions from a
             // folder that has gone missing. Not every loss arrives here: notify
             // 8.2's Windows backend drops a buffer overflow, and a watch it
-            // gives up on, without reporting anything, which is what
-            // `worker`'s periodic re-arm is for.
+            // gives up on, without reporting anything, and on Linux a root that
+            // is unmounted or replaced takes its inotify watch with it. That is
+            // what `worker`'s periodic re-arm is for.
             tracing::warn!(%error, "the folder watcher reported an error");
             events.rescan(error.paths);
         }

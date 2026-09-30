@@ -8,15 +8,19 @@
 //! A watch can die without a word. `notify`'s Windows backend drops a
 //! directory's watch on an unexpected ReadDirectoryChangesW error or
 //! `ACCESS_DENIED` and emits nothing, so a folder that merely *looks* watched
-//! would stay deaf until the next launch. Two cheap defences:
+//! would stay deaf until the next launch. On Linux an inotify watch belongs to
+//! the directory, not the path: when the root is unmounted, deleted or renamed
+//! away, the watch goes with it, and a drive plugged back in or a folder
+//! recreated at the same path is not watched at all. Two cheap defences:
 //!
 //! - every root refresh re-watches every root, not only the new ones;
-//! - with [`Timing::rearm`] set (Windows by default), every root that exists is
-//!   re-watched on that period, which also retries a folder whose drive has come
-//!   back.
+//! - with [`Timing::rearm`] set (Windows and Linux by default), every root that
+//!   exists is re-watched on that period, which also retries a folder whose
+//!   drive has come back.
 //!
-//! macOS gets the first and not the second: FSEvents does not drop a stream
-//! silently, and re-creating one opens a short window in which events are lost.
+//! macOS gets the first and not the second: FSEvents watches the path and does
+//! not drop a stream silently, and re-creating one opens a short window in
+//! which events are lost.
 //!
 //! # Probing runs on the tick
 //!

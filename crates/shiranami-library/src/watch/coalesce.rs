@@ -53,7 +53,8 @@ pub struct Timing {
     /// kept here so one value configures the whole watcher.
     pub tick: Duration,
     /// How often every existing root is re-watched, if at all. See
-    /// `watch::worker` for why this is Windows-only by default.
+    /// `watch::worker` for why this is on for Windows and Linux only by
+    /// default.
     pub rearm: Option<Duration>,
 }
 
@@ -69,7 +70,7 @@ impl Timing {
         stable_for: Duration::from_secs(1),
         give_up_after: Duration::from_secs(10 * 60),
         tick: Duration::from_millis(500),
-        rearm: if cfg!(windows) {
+        rearm: if cfg!(any(windows, target_os = "linux")) {
             Some(Duration::from_secs(5 * 60))
         } else {
             None
@@ -288,6 +289,16 @@ mod tests {
 
     fn written(path: &str) -> Change {
         Change::Written(PathBuf::from(path))
+    }
+
+    #[test]
+    fn the_default_rearms_where_a_watch_can_be_lost_silently() {
+        // Windows drops watches on errors and Linux loses them with an unmounted
+        // or replaced root; FSEvents keeps its stream.
+        #[cfg(any(windows, target_os = "linux"))]
+        assert!(Timing::DEFAULT.rearm.is_some());
+        #[cfg(target_os = "macos")]
+        assert!(Timing::DEFAULT.rearm.is_none());
     }
 
     #[test]
