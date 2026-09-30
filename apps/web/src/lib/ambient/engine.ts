@@ -308,6 +308,8 @@ class AmbientEngine implements IAmbientEngine {
       })
       .catch((error: unknown) => {
         if (this.assets.get(id) === pending) this.assets.delete(id);
+        // Drop the empty voice too, so the next target that wants it retries.
+        if (this.voices.get(id) === voice) this.dropVoice(id);
         logger.warn(`[ambience] layer "${id}" failed to load`, error);
       });
     return voice;

@@ -288,6 +288,19 @@ describe('ambience engine', () => {
     expect(bedSources().filter(s => s.stopped)).toHaveLength(2);
   });
 
+  it('retries a layer whose load failed the next time it is asked for', async () => {
+    loader.mockImplementationOnce(() => Promise.reject(new Error('offline')));
+    engine.apply(target());
+    await settle();
+    expect(bedSources()).toHaveLength(0);
+
+    engine.apply(target({ gains: { ...DEFAULT_AMBIENT_LEVELS, rain: 0.3 } }));
+    await settle();
+
+    expect(loader).toHaveBeenCalledTimes(2);
+    expect(bedSources()).toHaveLength(2);
+  });
+
   describe('repeated identical targets', () => {
     /** Automation calls across every param the engine owns (master, voices, panners). */
     function automationCalls(): number {
