@@ -63,7 +63,10 @@ export default function UpdatesSection() {
           )}
         </div>
 
-        <p className={cn('text-xs', isError ? 'text-destructive' : 'text-muted-foreground')}>
+        <p
+          role="status"
+          className={cn('text-xs', isError ? 'text-destructive' : 'text-muted-foreground')}
+        >
           {statusMessage}
         </p>
 

@@ -51,6 +51,12 @@ describe('UpdatesSection', () => {
     expect(screen.getByText('No updates available')).toBeInTheDocument();
   });
 
+  it('announces the status message as a live region', () => {
+    renderSection();
+
+    expect(screen.getByRole('status')).toHaveTextContent('No updates available');
+  });
+
   describe.each(['win32', 'darwin'] as const)('on %s', platform => {
     it('renders the check for updates flow', () => {
       mockPlatform(platform);
