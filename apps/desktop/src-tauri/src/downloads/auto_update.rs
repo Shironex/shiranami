@@ -238,6 +238,11 @@ impl AutoUpdater {
         // `HOST`, not a parameter: ffmpeg on macOS is never due (its upstream
         // publishes no checksum; see `update::policy`).
         for tool in policy::due_tools(&load_state(&self.settings), now_ms(), Platform::HOST) {
+            // Read again per tool: the wait for `running` and the tool before
+            // this one can each take minutes, and turning it off means now.
+            if !enabled(&self.settings) {
+                return;
+            }
             let outcome = self.update(tool).await;
             self.record(tool, &outcome);
         }
@@ -251,6 +256,10 @@ impl AutoUpdater {
         lock_or_recover(&self.suspects).insert(id);
 
         let _running = self.running.lock().await;
+        // Read again: the setting may have been turned off during the wait.
+        if !enabled(&self.settings) {
+            return;
+        }
         let mut state = load_state(&self.settings);
         let now = now_ms();
         if !policy::may_check_after_failure(&state, now) {
