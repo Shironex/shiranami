@@ -54,6 +54,10 @@ pub struct Tray {
 struct Inner {
     view: TrayView,
     last: MediaState,
+    /// The newest model not drawn yet. The draw runs later on the main thread
+    /// and takes whatever is here then, so a playback push and a language
+    /// change racing each other cannot leave the older model on screen.
+    pending: Option<TrayModel>,
 }
 
 impl Tray {
@@ -91,6 +95,7 @@ impl Tray {
             inner: Mutex::new(Inner {
                 view,
                 last: MediaState::default(),
+                pending: None,
             }),
         })
     }
@@ -101,25 +106,31 @@ impl Tray {
     /// renderer pushes state on every playhead tick and only a track change or a
     /// play/pause moves the menu.
     pub fn update(&self, app: &AppHandle, state: &MediaState) {
-        let model = {
+        {
             let mut inner = self.lock();
             inner.last = state.clone();
-            inner.view.apply(state).cloned()
-        };
+            let Some(model) = inner.view.apply(state).cloned() else {
+                return;
+            };
+            inner.pending = Some(model);
+        }
 
-        self.render(app, model);
+        schedule_render(app);
     }
 
     /// Redraw the current menu with the labels for `language`.
     pub fn set_language(&self, app: &AppHandle, language: Option<&str>) {
-        let model = {
+        {
             let mut inner = self.lock();
             inner.view.set_labels(TrayLabels::for_language(language));
             let last = inner.last.clone();
-            inner.view.apply(&last).cloned()
-        };
+            let Some(model) = inner.view.apply(&last).cloned() else {
+                return;
+            };
+            inner.pending = Some(model);
+        }
 
-        self.render(app, model);
+        schedule_render(app);
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -128,8 +139,14 @@ impl Tray {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
-    fn render(&self, app: &AppHandle, model: Option<TrayModel>) {
-        let Some(model) = model else {
+    /// Draw the newest pending model, if another draw has not already.
+    ///
+    /// Main thread only, via [`schedule_render`]: the jobs run one at a time in
+    /// the order they were queued, and each draws the latest model, so the last
+    /// one to run always shows the newest state. The lock is released before
+    /// drawing because the tray setters wait on the main thread.
+    fn render(&self, app: &AppHandle) {
+        let Some(model) = self.lock().pending.take() else {
             return;
         };
 
@@ -145,6 +162,23 @@ impl Tray {
             }
             Err(error) => tracing::warn!(%error, "could not build the tray menu"),
         }
+    }
+}
+
+/// Queue a tray draw on the main thread.
+///
+/// Called with the `Inner` lock released: on the main thread the job runs
+/// inline, and it takes that lock itself.
+fn schedule_render(app: &AppHandle) {
+    let handle = app.clone();
+    let queued = app.run_on_main_thread(move || {
+        if let Some(tray) = handle.try_state::<Tray>() {
+            tray.render(&handle);
+        }
+    });
+    if let Err(error) = queued {
+        // Only once the event loop is gone, that is while quitting.
+        tracing::debug!(%error, "could not queue a tray redraw");
     }
 }
 
