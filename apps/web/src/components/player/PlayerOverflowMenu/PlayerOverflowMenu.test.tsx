@@ -25,6 +25,7 @@ function reset(): void {
   useInterfaceStore.setState({
     playerSleepTimer: true,
     playerEqualizer: true,
+    playerAmbience: true,
     playerCompactButton: true,
     playerVisualizerButton: true,
   });
