@@ -78,14 +78,14 @@ pub async fn handle(
             })?;
 
         if !REDIRECT_STATUSES.contains(&head.status) {
-            return respond(head, &requested, state.now_playing());
+            return respond(head, &requested, &state);
         }
 
         // A 3xx with no usable `Location` is not a redirect we can follow, so
         // it is forwarded as the response it is — which fails the success check
         // in `respond` and reaches the renderer as the station's own status.
         let Some(location) = head.location() else {
-            return respond(head, &requested, state.now_playing());
+            return respond(head, &requested, &state);
         };
 
         if hop == MAX_REDIRECTS {
@@ -117,7 +117,7 @@ fn resolve_location(base: &Url, location: &str) -> Option<String> {
 fn respond(
     head: UpstreamHead,
     requested: &str,
-    sink: &NowPlayingSink,
+    state: &ServeState,
 ) -> Result<Response, ServeError> {
     let status = StatusCode::from_u16(head.status).unwrap_or(StatusCode::BAD_GATEWAY);
     if !status.is_success() {
@@ -131,9 +131,17 @@ fn respond(
     // title-less, so the absence of the header is a hard "pass through".
     let metaint = head.metaint();
     let body = match metaint {
-        Some(metaint) => deframed(head.body, metaint, requested.to_owned(), sink.clone()),
+        Some(metaint) => deframed(
+            head.body,
+            metaint,
+            requested.to_owned(),
+            state.now_playing().clone(),
+        ),
         None => head.body,
     };
+    // A station never ends its stream, and graceful shutdown waits for every
+    // open response: without this the app could not quit while radio played.
+    let body = body.take_until(state.shutdown_signal().clone().cancelled_owned());
 
     Ok((
         StatusCode::OK,

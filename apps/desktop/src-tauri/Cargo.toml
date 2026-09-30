@@ -92,6 +92,9 @@ tauri-plugin-deep-link = { workspace = true }
 tauri-plugin-os = { workspace = true }
 tauri-plugin-global-shortcut = { workspace = true }
 tauri-plugin-autostart = { workspace = true }
+# v1's Windows login item cleanup (`crate::system`). Unconditional so the call
+# is type-checked on every platform; it only acts on Windows.
+auto-launch = { workspace = true }
 tauri-plugin-sentry = { workspace = true }
 sentry = { workspace = true }
 

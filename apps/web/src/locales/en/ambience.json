@@ -1,0 +1,27 @@
+{
+  "trigger": "Ambience",
+  "title": "Ambience",
+  "enable": "Play ambience",
+  "enableDesc": "Soft sounds under your music",
+  "layersLabel": "Layers",
+  "layers": {
+    "rain": "Rain",
+    "vinyl": "Vinyl crackle",
+    "noise": "Warm noise",
+    "fire": "Fireplace",
+    "cafe": "Café"
+  },
+  "layerVolume": "{{layer}} volume",
+  "percent": "{{value}}%",
+  "keepWhenPaused": "Keep playing when music pauses",
+  "keepWhenPausedDesc": "Otherwise ambience pauses with the music",
+  "followWeather": "Follow the weather",
+  "followWeatherDesc": "Rain rises when it's actually raining outside",
+  "followWeatherOff": "Needs weather, which is off in Settings",
+  "reset": "Reset mix",
+  "section": {
+    "subtitle": "Cozy layers that play under the music",
+    "sleepNote": "Ambience starts with your music, holds its level through crossfades, and fades out with the sleep timer and wind-down.",
+    "credit": "The café layer is a public-domain recording from Wikimedia Commons. Every other layer is synthesized on your device."
+  }
+}

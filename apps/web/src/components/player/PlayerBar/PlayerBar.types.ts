@@ -47,6 +47,8 @@ export interface IPlayerBarView {
   readonly showSleepTimer: boolean;
   /** Whether the equalizer control is shown inline. */
   readonly showEqualizer: boolean;
+  /** Whether the ambience mixer control is shown inline. */
+  readonly showAmbience: boolean;
   /** Whether the compact-mode button is shown inline. */
   readonly showCompactButton: boolean;
   /** Whether the visualizer toggle is shown inline. */

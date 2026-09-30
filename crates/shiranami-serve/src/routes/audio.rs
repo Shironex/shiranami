@@ -18,10 +18,11 @@ use axum::extract::{Path as UrlPath, State};
 use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use bytes::Bytes;
-use futures_util::Stream;
+use futures_util::{Stream, StreamExt};
 use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
+use tokio_util::sync::CancellationToken;
 
 use crate::error::ServeError;
 use crate::media_types::{UNKNOWN_AUDIO_MIME, audio_mime, extension_of, is_audio_path};
@@ -90,9 +91,16 @@ pub async fn handle(
         "audio route serving"
     );
 
+    // A response still being read when the app quits ends on the shutdown
+    // signal, so it does not hold the quit for the whole grace period. One
+    // that nobody reads cannot notice the signal; the bound in
+    // `ServeHandle::shutdown` covers that.
+    let shutdown = state.shutdown_signal().clone();
     match resolve(range_header(&headers), total) {
-        RangeOutcome::Full => Ok(full_response(file, total, content_type)),
-        RangeOutcome::Partial(range) => partial_response(file, range, total, content_type).await,
+        RangeOutcome::Full => Ok(full_response(file, total, content_type, shutdown)),
+        RangeOutcome::Partial(range) => {
+            partial_response(file, range, total, content_type, shutdown).await
+        }
         RangeOutcome::Unsatisfiable => Err(ServeError::RangeNotSatisfiable { total }),
     }
 }
@@ -115,8 +123,15 @@ fn range_header(headers: &HeaderMap) -> Option<&str> {
 }
 
 /// 200 with the whole file.
-fn full_response(file: File, total: u64, content_type: &str) -> Response {
-    let body = Body::from_stream(ReaderStream::with_capacity(file, CHUNK_SIZE));
+fn full_response(
+    file: File,
+    total: u64,
+    content_type: &str,
+    shutdown: CancellationToken,
+) -> Response {
+    let body = Body::from_stream(
+        ReaderStream::with_capacity(file, CHUNK_SIZE).take_until(shutdown.cancelled_owned()),
+    );
 
     (
         StatusCode::OK,
@@ -138,8 +153,13 @@ async fn partial_response(
     range: ResolvedRange,
     total: u64,
     content_type: &str,
+    shutdown: CancellationToken,
 ) -> Result<Response, ServeError> {
-    let body = Body::from_stream(range_stream(file, range).await?);
+    let body = Body::from_stream(
+        range_stream(file, range)
+            .await?
+            .take_until(shutdown.cancelled_owned()),
+    );
 
     Ok((
         StatusCode::PARTIAL_CONTENT,
@@ -178,7 +198,6 @@ pub async fn range_stream(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures_util::StreamExt;
 
     /// Big enough that a whole-file read would be obvious in the chunk count.
     const FILE_SIZE: usize = CHUNK_SIZE * 8;

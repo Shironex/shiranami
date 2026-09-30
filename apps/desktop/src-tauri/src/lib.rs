@@ -29,6 +29,7 @@ pub mod paths;
 pub mod seam;
 pub mod shortcuts;
 pub mod state;
+pub mod system;
 pub mod track_identity;
 pub mod tray;
 pub mod updater;
@@ -65,6 +66,11 @@ pub fn run() {
     // the same instance the bindings were exported from, or the renderer calls
     // names the handler does not answer to.
     let specta = bindings::builder();
+
+    // Close and minimize to tray. Managed on the builder rather than in
+    // `setup` so it exists before the first window event and the first tray
+    // click; the settings it reads are already loaded by preflight.
+    let system = system::SystemState::new(system::SystemPrefs::watch(&preflight.settings));
 
     // The webview's pre-page script: `__SHIRANAMI_E2E__`, the mediaSession
     // suppression (D10), and §3.5's `localStorage` seed when a v1 dump was
@@ -117,6 +123,15 @@ pub fn run() {
     // the first `pnpm tauri:dev` boot.
     if updater::is_supported(e2e) {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    // Launch at startup: registered behind the same predicate that decides
+    // whether anything writes through it (`system::watch_autostart` below), so
+    // a development build neither loads the plugin nor leaves a login item
+    // pointing at its target directory. The default macOS launcher is a Launch
+    // Agent; Windows uses the `HKCU` Run key.
+    if system::autostart_enabled(e2e) {
+        builder = builder.plugin(tauri_plugin_autostart::Builder::new().build());
     }
 
     // The embedded W3C WebDriver server the Phase 18 E2E suite drives (§8 ring
@@ -177,6 +192,13 @@ pub fn run() {
         // Sanctuary Mode's display-sleep assertion: also `Default`, also
         // purely in-memory — the guard object inside is the whole state.
         .manage(commands::window::SleepInhibitor::default())
+        // The cold-start deep link's holding slot. On the builder, not in
+        // `setup`, because `setup` dispatches the Windows launch link below and
+        // the slot has to exist by then; see `deep_link`'s module docs.
+        .manage(deep_link::PendingDeepLink::default())
+        // A reload leaves no listener until the new page drains the slot again.
+        .on_page_load(deep_link::on_page_load)
+        .manage(system)
         .invoke_handler(specta.invoke_handler())
         .setup(move |app| {
             // Required for the typed events to be addressable from the webview.
@@ -235,9 +257,10 @@ pub fn run() {
 
             // §2.8 step 7: no tray, no media keys, no Discord, no updater.
             if !e2e {
-                match tray::Tray::install(&handle) {
+                match tray::Tray::install(&handle, tray::labels(&preflight.settings)) {
                     Ok(tray) => {
                         app.manage(tray);
+                        tray::watch_language(&handle, &preflight.settings);
                     }
                     // v1 wrapped `createTray` in its own try/catch: a desktop
                     // environment with no tray is a degraded app, not a failed
@@ -245,12 +268,20 @@ pub fn run() {
                     Err(error) => tracing::warn!(%error, "could not create the tray"),
                 }
             }
+            if system::autostart_enabled(e2e) {
+                system::watch_autostart(&handle, &preflight.settings);
+            }
             shortcuts::register(&handle, e2e);
+            // macOS has no runtime claim; its links arrive as
+            // `RunEvent::Opened` in the run loop below.
+            #[cfg(not(target_os = "macos"))]
             deep_link::register(&handle);
 
             // v1 never handled a cold-start deep link — its argv scan lived in
             // the `second-instance` handler only — so clicking a share link with
-            // the app closed opened the app and dropped the link.
+            // the app closed opened the app and dropped the link. The renderer
+            // is not listening yet, so this lands in `PendingDeepLink` and is
+            // drained when the bridge first subscribes.
             if let Some(url) = deep_link::initial_argument() {
                 let handle = handle.clone();
                 tauri::async_runtime::spawn(async move {
@@ -266,10 +297,29 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to start the Shiranami desktop shell");
 
-    app.run(|app, event| {
-        if let tauri::RunEvent::ExitRequested { .. } = event {
+    app.run(|app, event| match event {
+        // Every way out reaches one of these two, and both set the quit flag
+        // before anything else so no close issued on the way can be hidden.
+        // `Exit` alone is how Cmd+Q arrives on macOS: `applicationWillTerminate`
+        // becomes tao's `LoopDestroyed` with no `ExitRequested` before it, so
+        // until this arm the media server was never stopped on Cmd+Q.
+        tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+            system::begin_quit(app);
             shutdown(app);
         }
+        // A dock click on macOS. With close to tray on, the window is hidden
+        // rather than gone, and this is the only way back other than the tray.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => focus_main_window(app),
+        // A `shiranami://` link on macOS, including the one that launched the
+        // app: that one arrives before `setup` runs, which only this callback
+        // is early enough to hear. See `deep_link`'s module docs.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Opened { urls } => deep_link::on_opened(app, &urls),
+        _ => {}
     });
 }
 
@@ -288,7 +338,18 @@ pub fn run() {
 /// says so in the log — and the flush below is what makes those lines survive
 /// `tao`'s `std::process::exit`, which runs no destructors and was silently
 /// eating the tail of every session's log.
+///
+/// # Once, whichever event gets here first
+///
+/// A tray Quit produces `ExitRequested` and then `Exit`; Cmd+Q on macOS
+/// produces `Exit` only. The guard makes the second arrival a no-op rather
+/// than a second `block_on` against a server that has already stopped.
 fn shutdown(app: &tauri::AppHandle) {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| shutdown_once(app));
+}
+
+fn shutdown_once(app: &tauri::AppHandle) {
     tracing::info!("exit requested; shutting down");
     stop_media_server(app);
     tracing::info!("graceful shutdown complete");
@@ -316,6 +377,14 @@ fn shutdown(app: &tauri::AppHandle) {
 /// The first E2E run of this path caught it on the first try. `shutdown` now
 /// takes `&self`, so the shared reference is enough and there is no unwrap left
 /// to fail.
+///
+/// # The wait is bounded
+///
+/// This runs on the main thread with the webview still alive, and a radio
+/// stream never ends, so an unbounded graceful shutdown froze Cmd+Q, the tray's
+/// Quit and the updater's restart for as long as radio played.
+/// `ServeHandle::shutdown` ends the stream on its signal and gives up on any
+/// other open response after `shiranami_serve::SHUTDOWN_GRACE`.
 fn stop_media_server(app: &tauri::AppHandle) {
     let Some(state) = app.try_state::<state::AppState>() else {
         return;

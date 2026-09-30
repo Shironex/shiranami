@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import {
   AudioLines,
+  CloudRain,
   ListMusic,
   Mic2,
   Minimize2,
@@ -32,6 +33,7 @@ const WAVE_BARS: readonly IPlayerWaveBar[] = PREVIEW_WAVE_BARS.map((height, i) =
 const PLAYER_UTILITY_ICONS: ReadonlyArray<{ key: PlayerElementKey; Icon: LucideIcon }> = [
   { key: 'playerSleepTimer', Icon: Moon },
   { key: 'playerEqualizer', Icon: SlidersHorizontal },
+  { key: 'playerAmbience', Icon: CloudRain },
   { key: 'playerCompactButton', Icon: Minimize2 },
   { key: 'playerVisualizerButton', Icon: AudioLines },
   { key: 'playerLyricsButton', Icon: Mic2 },

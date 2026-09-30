@@ -14,6 +14,7 @@ import { WaveformSeekbar } from '../WaveformSeekbar';
 import { VolumeControl } from '../VolumeControl';
 import { SleepTimer } from '../SleepTimer';
 import { EqualizerPanel } from '../EqualizerPanel';
+import { AmbienceMixer } from '../AmbienceMixer';
 import { PlayerOverflowMenu } from '../PlayerOverflowMenu';
 import { TimeDisplay } from '../TimeDisplay';
 import { usePlayerBar } from './PlayerBar.hooks';
@@ -33,6 +34,7 @@ export default function PlayerBar() {
     showTimeLabels,
     showSleepTimer,
     showEqualizer,
+    showAmbience,
     showCompactButton,
     showVisualizerButton,
     showLyricsButton,
@@ -205,6 +207,7 @@ export default function PlayerBar() {
                     <div className="hidden min-[900px]:flex items-center gap-0.5">
                       {showSleepTimer && <SleepTimer />}
                       {showEqualizer && <EqualizerPanel />}
+                      {showAmbience && <AmbienceMixer />}
                       {showCompactButton && (
                         <Tooltip>
                           <TooltipTrigger asChild>

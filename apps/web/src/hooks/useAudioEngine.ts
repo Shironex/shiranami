@@ -13,6 +13,7 @@ import {
   initAnalyser,
   destroyAnalyser,
   setDeckGain,
+  rampDeckGain,
   isAnalyserReady,
   resumeAudioContext,
   applyEqPreset,
@@ -31,7 +32,29 @@ import { toStreamUrl } from '@/lib/bridge/stream-urls';
 const STORE_UPDATE_INTERVAL = 250;
 const MIN_HISTORY_SECONDS = 30;
 const MIN_HISTORY_COMPLETION_RATIO = 0.5;
-const MAX_SESSION_DELTA_SECONDS = 1;
+
+/**
+ * How often (ms) the playback clock ticks while playing, on top of the decks'
+ * own `timeupdate` events.
+ *
+ * The clock used to be the animation-frame loop, which a hidden window (the
+ * tray) never runs, so crossfades never started, the sleep fade stalled and
+ * listening time stopped counting. `timeupdate` keeps firing for a playing
+ * element whatever the page's visibility, and this interval is the backstop
+ * for a deck that has stopped emitting (a stall); both engines may slow it
+ * while hidden, which only delays bookkeeping, never the audible ramps (those
+ * run on the audio clock, see `rampDeck`).
+ */
+const TICK_INTERVAL_MS = 250;
+
+/**
+ * Wall-clock slack (seconds) allowed when crediting listening time, so timer
+ * jitter between two ticks cannot drop a sliver of real playback.
+ */
+const SESSION_TICK_SLACK_SECONDS = 0.25;
+
+/** Samples per second of a scheduled gain curve. The audio thread interpolates between them. */
+const RAMP_POINTS_PER_SECOND = 30;
 
 type Deck = 'A' | 'B';
 
@@ -57,6 +80,40 @@ export function fadeOut(progress: number): number {
 }
 export function fadeIn(progress: number): number {
   return Math.sin(progress * Math.PI * 0.5);
+}
+
+/**
+ * The rest of a fade as gain values: `curve` sampled from `fromProgress` to 1,
+ * scaled by `scale`, dense enough for `durationSeconds`. This is what gets
+ * scheduled on the audio clock. Exported for unit testing.
+ */
+export function sampleRamp(
+  curve: (progress: number) => number,
+  fromProgress: number,
+  scale: number,
+  durationSeconds: number
+): number[] {
+  const from = clamp01(fromProgress);
+  const points = Math.max(2, Math.ceil(durationSeconds * RAMP_POINTS_PER_SECOND) + 1);
+  const values: number[] = [];
+  for (let i = 0; i < points; i++) {
+    values.push(scale * curve(from + ((1 - from) * i) / (points - 1)));
+  }
+  return values;
+}
+
+/**
+ * Listening time to credit between two clock ticks: how far the media clock
+ * moved, but never more than the wall clock allows.
+ *
+ * The media clock is what makes this honest while the window is hidden, where
+ * ticks can be seconds apart: every second of audio actually played counts.
+ * The wall-clock bound is what keeps a seek forward, or a suspend and resume,
+ * from minting time. Exported for unit testing.
+ */
+export function creditedListeningSeconds(mediaDelta: number, wallDeltaSeconds: number): number {
+  if (!(mediaDelta > 0) || !(wallDeltaSeconds > 0)) return 0;
+  return Math.min(mediaDelta, wallDeltaSeconds + SESSION_TICK_SLACK_SECONDS);
 }
 
 /**
@@ -101,11 +158,13 @@ export function useAudioEngine() {
   const activeDeckRef = useRef<Deck>('A');
 
   const animationFrameRef = useRef<number>(0);
+  const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const seekingRef = useRef(false);
+  const seekTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sleep-timer fade-out state. While `active`, the RAF loop ramps the active
-  // deck's gain down to silence over `duration` seconds using the equal-power
-  // fadeOut curve (reusing the crossfade ramp), mirroring the crossfade branch.
+  // Sleep-timer fade-out state. While `active`, the active deck's gain follows
+  // the equal-power fadeOut curve down to silence over `duration` seconds,
+  // scheduled on the audio clock (reusing the crossfade ramp).
   const sleepFadeRef = useRef<{ active: boolean; startTime: number; duration: number }>({
     active: false,
     startTime: 0,
@@ -190,15 +249,20 @@ export function useAudioEngine() {
     deck: null,
   });
 
+  // `lastTickAt` (wall clock) and `lastMediaTime` (the deck's own clock) are
+  // the baseline the next tick credits listening time from; both null means
+  // "not counting" (paused, buffering, between tracks).
   const playbackSessionRef = useRef<{
     track: Track | null;
     listenedSeconds: number;
     lastTickAt: number | null;
+    lastMediaTime: number | null;
     recorded: boolean;
   }>({
     track: null,
     listenedSeconds: 0,
     lastTickAt: null,
+    lastMediaTime: null,
     recorded: false,
   });
 
@@ -252,6 +316,107 @@ export function useAudioEngine() {
     }
   }
 
+  /** The volume the user asked for, respecting mute. */
+  function userVolume(): number {
+    const s = usePlaybackStore.getState();
+    return s.isMuted ? 0 : s.volume;
+  }
+
+  /**
+   * Put a deck on the rest of a fade: `curve` from `progress` to 1 over what is
+   * left of `durationSeconds`, at the user's volume.
+   *
+   * The ramp is scheduled on the audio clock, so it runs to the end at sample
+   * accuracy whether or not the page is visible. Before the Web Audio graph
+   * exists (it is built on the first play) there is nothing to schedule on, and
+   * the deck is set to the curve's current value instead; the clock tick keeps
+   * stepping it in that case.
+   */
+  function rampDeck(
+    deck: Deck,
+    curve: (progress: number) => number,
+    progress: number,
+    durationSeconds: number
+  ) {
+    const p = clamp01(progress);
+    const remaining = (1 - p) * durationSeconds;
+    const vol = userVolume();
+    if (
+      remaining > 0 &&
+      isAnalyserReady() &&
+      rampDeckGain(
+        deck,
+        sampleRamp(curve, p, vol * deckLoudnessRef.current[deck], remaining),
+        remaining
+      )
+    ) {
+      return;
+    }
+    setVolume(deck, vol * curve(p));
+  }
+
+  /** How far through the running crossfade we are, 0 to 1 (and past 1 once due). */
+  function crossfadeProgress(): number {
+    const cf = crossfadeRef.current;
+    if (cf.duration <= 0) return 1;
+    return (performance.now() - cf.startTime) / 1000 / cf.duration;
+  }
+
+  /** (Re)schedule both decks' crossfade ramps from where the crossfade is now. */
+  function scheduleCrossfadeRamps() {
+    const cf = crossfadeRef.current;
+    if (!cf.active) return;
+    const progress = crossfadeProgress();
+    rampDeck(cf.outgoingDeck, fadeOut, progress, cf.duration);
+    rampDeck(cf.incomingDeck, fadeIn, progress, cf.duration);
+  }
+
+  /** (Re)schedule the sleep fade on the active deck from where it is now. */
+  function scheduleSleepFade() {
+    const sf = sleepFadeRef.current;
+    if (!sf.active) return;
+    const progress = (performance.now() - sf.startTime) / (sf.duration * 1000);
+    rampDeck(activeDeckRef.current, fadeOut, progress, sf.duration);
+  }
+
+  /**
+   * Start the sleep fade if the sleep timer has asked for one. Deferred while a
+   * crossfade owns the deck gains; `completeCrossfade` calls this again.
+   */
+  function maybeStartSleepFade() {
+    const s = usePlaybackStore.getState();
+    const sf = sleepFadeRef.current;
+    if (!s._sleepFading || sf.active || crossfadeRef.current.active || !s.isPlaying) return;
+    sf.active = true;
+    sf.startTime = performance.now();
+    sf.duration = Math.max(0.1, s.sleepFadeDuration);
+    scheduleSleepFade();
+  }
+
+  /**
+   * Apply the user's volume to the active deck, unless a fade owns it: then the
+   * fade is rescheduled at the new volume, as the per-frame loop used to do by
+   * recomputing every frame.
+   */
+  function applyActiveVolume() {
+    if (crossfadeRef.current.active) {
+      scheduleCrossfadeRamps();
+      return;
+    }
+    if (sleepFadeRef.current.active) {
+      scheduleSleepFade();
+      return;
+    }
+    setVolume(activeDeckRef.current, userVolume());
+  }
+
+  /** Re-baseline the listening clock on `audio` (or stop it when null). */
+  function markSessionClock(audio: HTMLAudioElement | null) {
+    const session = playbackSessionRef.current;
+    session.lastTickAt = audio ? performance.now() : null;
+    session.lastMediaTime = audio ? audio.currentTime : null;
+  }
+
   // ── Preamp gain (EQ preamp only) ──────────────────────────────
   //
   // The preamp GainNode now carries only the EQ preamp slider. Loudness leveling
@@ -293,6 +458,7 @@ export function useAudioEngine() {
       track: track && !isRadioTrack(track.filePath) ? track : null,
       listenedSeconds: 0,
       lastTickAt: null,
+      lastMediaTime: null,
       recorded: false,
     };
   }, []);
@@ -311,6 +477,7 @@ export function useAudioEngine() {
       (playedSeconds >= MIN_HISTORY_SECONDS || completionRatio >= MIN_HISTORY_COMPLETION_RATIO);
 
     session.lastTickAt = null;
+    session.lastMediaTime = null;
 
     if (!track || !shouldRecord) return;
 
@@ -417,6 +584,9 @@ export function useAudioEngine() {
     }
     deckTrackIdRef.current[cf.incomingDeck] = null;
     setVolume(cf.incomingDeck, 0);
+    // The outgoing deck was mid-ramp on the audio clock; a plain set cancels
+    // the rest of it so it does not keep fading out under the next track.
+    setVolume(cf.outgoingDeck, userVolume());
     crossfadeRef.current = {
       active: false,
       startTime: 0,
@@ -457,27 +627,46 @@ export function useAudioEngine() {
     incomingAudio.src = getTrackSrc(nextTrack);
     incomingAudio.load();
     deckTrackIdRef.current[incomingDeckId] = nextTrack.id;
-    // Normalize the incoming deck to its own track before the RAF ramp starts
-    // applying volumes to it.
+    // Normalize the incoming deck to its own track before its ramp is
+    // scheduled, since the ramp is scaled by that factor.
     setDeckTrackLoudness(incomingDeckId, nextTrack);
 
     // Set crossfade state BEFORE registering canplay listener so the
     // onCanPlay guard always sees active === true (fixes race where
     // cached audio fires canplay synchronously or the eager readyState
     // check passes before the ref is assigned).
+    // The clock ticks every `TICK_INTERVAL_MS`, so the crossfade can start a
+    // moment after the window opened. It must still finish before the
+    // outgoing track does, or the tail of that track is cut off audibly.
+    const outgoing = getActiveDeck();
+    const timeLeft =
+      outgoing && isFinite(outgoing.duration)
+        ? outgoing.duration - outgoing.currentTime
+        : crossfadeDuration;
     crossfadeRef.current = {
       active: true,
       startTime: performance.now(),
-      duration: crossfadeDuration,
+      duration: Math.max(0.1, Math.min(crossfadeDuration, timeLeft)),
       outgoingDeck: activeDeckRef.current,
       incomingDeck: incomingDeckId,
     };
+    // A crossfade takes the deck gains over from a running sleep fade, which
+    // ends here. The rule is the old frame loop's, and it keeps one invariant:
+    // the sleep fade is never active while a crossfade is. If the timer is
+    // still fading when the crossfade completes, `completeCrossfade` starts a
+    // fresh fade on the new deck.
+    sleepFadeRef.current.active = false;
+    // Both ramps run on the audio clock from here, so the crossfade completes
+    // on time even with the window hidden to the tray.
+    scheduleCrossfadeRamps();
 
     const onCanPlay = () => {
       incomingAudio.removeEventListener('canplay', onCanPlay);
       if (!crossfadeRef.current.active) return;
       resumeAudioContext();
-      setVolume(incomingDeckId, 0);
+      // Re-sync the incoming ramp to where the crossfade is now: the deck may
+      // have taken a moment to buffer.
+      scheduleCrossfadeRamps();
       incomingAudio.play().catch(err => {
         if (err?.name !== 'AbortError') logger.error('[audio] play() rejected', err);
       });
@@ -549,6 +738,9 @@ export function useAudioEngine() {
     // Advance the store (this sets currentTrack, triggering the load effect —
     // the effect will see the track is already loaded on the new active deck and skip reload)
     usePlaybackStore.getState().next();
+
+    // A sleep fade that arrived mid-crossfade waited for the decks to settle.
+    maybeStartSleepFade();
   }, [resetPlaybackSession, _setDuration, _setIsLoading]);
 
   // ── Initialization ────────────────────────────────────────────
@@ -581,127 +773,183 @@ export function useAudioEngine() {
       }
       _setIsLoading(false);
       cancelAnimationFrame(animationFrameRef.current);
+      if (tickIntervalRef.current !== null) {
+        clearInterval(tickIntervalRef.current);
+        tickIntervalRef.current = null;
+      }
     };
   }, [_setIsLoading, flushPlaybackSession]);
 
-  // ── RAF time-update loop (with crossfade monitoring) ──────────
+  // ── Playback clock (with crossfade monitoring) ────────────────
 
-  const updateTime = useCallback(() => {
+  /**
+   * Everything that has to happen while playing, in time: listening time,
+   * the store's position, starting and finishing crossfades, the sleep fade
+   * and the gapless pre-buffer.
+   *
+   * Driven by the decks' `timeupdate` events and a `TICK_INTERVAL_MS` interval,
+   * never by animation frames: a window hidden to the tray runs none, and this
+   * is the part of playback that has to keep going there. The audible ramps are
+   * not stepped here; they are scheduled once on the audio clock (`rampDeck`).
+   */
+  const tick = useCallback(() => {
+    if (!usePlaybackStore.getState().isPlaying) return;
     const audio = getActiveDeck();
-    if (audio) {
-      // Handle pending seek
-      const { _seekTarget } = usePlaybackStore.getState();
-      if (_seekTarget !== null && isFinite(_seekTarget)) {
-        audio.currentTime = _seekTarget;
-        usePlaybackStore.getState()._clearSeekTarget();
-        seekingRef.current = true;
-        playbackSessionRef.current.lastTickAt = performance.now();
-        setTimeout(() => {
-          seekingRef.current = false;
-        }, 300);
-      } else if (!seekingRef.current) {
-        // Accumulate listening time
-        const session = playbackSessionRef.current;
-        const tickNow = performance.now();
-        const canAccumulate =
-          session.track &&
-          !audio.paused &&
-          !audio.ended &&
-          !audio.seeking &&
-          audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+    if (!audio) return;
 
-        if (canAccumulate) {
-          if (session.lastTickAt !== null) {
-            session.listenedSeconds += Math.max(
-              0,
-              Math.min(MAX_SESSION_DELTA_SECONDS, (tickNow - session.lastTickAt) / 1000)
-            );
-          }
-          session.lastTickAt = tickNow;
-        } else if (session.track) {
-          session.lastTickAt = tickNow;
+    if (!seekingRef.current) {
+      // Accumulate listening time from the media clock, bounded by the wall
+      // clock (see `creditedListeningSeconds`).
+      const session = playbackSessionRef.current;
+      const tickNow = performance.now();
+      const canAccumulate =
+        session.track &&
+        !audio.paused &&
+        !audio.ended &&
+        !audio.seeking &&
+        audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+
+      if (canAccumulate) {
+        if (session.lastTickAt !== null && session.lastMediaTime !== null) {
+          session.listenedSeconds += creditedListeningSeconds(
+            audio.currentTime - session.lastMediaTime,
+            (tickNow - session.lastTickAt) / 1000
+          );
         }
-
-        currentTimeRef.current = audio.currentTime;
-
-        const storeUpdateNow = performance.now();
-        if (storeUpdateNow - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
-          lastStoreUpdateRef.current = storeUpdateNow;
-          _setCurrentTime(audio.currentTime);
-        }
+        markSessionClock(audio);
+      } else if (session.track) {
+        markSessionClock(audio);
       }
 
-      // ── Sleep-timer fade-out ──
-      // Reuse the equal-power crossfade curve to ramp the active deck down to
-      // silence before the timer pauses. A crossfade owns deck volumes while
-      // active, so we don't fight it — let the deferred pause handle that case.
-      const sf = sleepFadeRef.current;
-      const sleepFading = usePlaybackStore.getState()._sleepFading;
-      if (sleepFading && !crossfadeRef.current.active) {
-        const s = usePlaybackStore.getState();
-        const userVol = s.isMuted ? 0 : s.volume;
-        if (!sf.active) {
-          sf.active = true;
-          sf.startTime = performance.now();
-          sf.duration = Math.max(0.1, s.sleepFadeDuration);
-        }
-        const progress = Math.min(1, (performance.now() - sf.startTime) / (sf.duration * 1000));
-        setVolume(activeDeckRef.current, userVol * fadeOut(progress));
-      } else if (sf.active) {
-        // Fade ended — either it completed (store paused us) or it was
-        // cancelled (timer cancelled while still playing). Restore the prior
-        // volume so the next play / continued playback isn't silent.
-        sf.active = false;
-        const s = usePlaybackStore.getState();
-        setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
-      }
+      currentTimeRef.current = audio.currentTime;
 
-      // ── Crossfade monitoring ──
-      const cf = crossfadeRef.current;
-      const state = usePlaybackStore.getState();
-
-      if (cf.active) {
-        // Update crossfade volumes
-        const elapsed = (performance.now() - cf.startTime) / 1000;
-        const progress = Math.min(1, elapsed / cf.duration);
-        const userVol = state.isMuted ? 0 : state.volume;
-
-        setVolume(cf.outgoingDeck, userVol * fadeOut(progress));
-        setVolume(cf.incomingDeck, userVol * fadeIn(progress));
-
-        if (progress >= 1) {
-          completeCrossfade();
-        }
-      } else if (
-        state.crossfadeEnabled &&
-        state.isPlaying &&
-        !isRadioTrack(state.currentTrack?.filePath ?? '') &&
-        state.repeatMode !== 'one'
-      ) {
-        // Check if we should start crossfade
-        const dur = audio.duration;
-        if (isFinite(dur) && dur > 0 && dur > state.crossfadeDuration) {
-          const timeLeft = dur - audio.currentTime;
-          if (timeLeft <= state.crossfadeDuration && timeLeft > 0.1) {
-            startCrossfade();
-          }
-        }
-      } else if (state.isPlaying && !isRadioTrack(state.currentTrack?.filePath ?? '')) {
-        // ── Near-gapless pre-buffer (crossfade OFF) ──
-        // Once we're a few seconds from the end, decode-ahead the next queue
-        // track onto the idle deck. Cheap + idempotent: maybePreBuffer no-ops
-        // when the right track is already buffered.
-        const dur = audio.duration;
-        if (isFinite(dur) && dur > 0 && dur - audio.currentTime <= 30) {
-          maybePreBuffer();
-        }
+      if (tickNow - lastStoreUpdateRef.current >= STORE_UPDATE_INTERVAL) {
+        lastStoreUpdateRef.current = tickNow;
+        _setCurrentTime(audio.currentTime);
       }
     }
 
-    if (usePlaybackStore.getState().isPlaying) {
-      animationFrameRef.current = requestAnimationFrame(updateTime);
+    // ── Sleep-timer fade-out ──
+    // Normally started by the `_sleepFading` subscription; checked here too so a
+    // fade deferred behind a crossfade can never be missed.
+    maybeStartSleepFade();
+
+    // ── Crossfade monitoring ──
+    const cf = crossfadeRef.current;
+    const state = usePlaybackStore.getState();
+
+    if (cf.active) {
+      const progress = crossfadeProgress();
+      if (!isAnalyserReady()) {
+        // No audio clock to schedule on yet: step the volumes per tick.
+        const userVol = userVolume();
+        setVolume(cf.outgoingDeck, userVol * fadeOut(clamp01(progress)));
+        setVolume(cf.incomingDeck, userVol * fadeIn(clamp01(progress)));
+      }
+      if (progress >= 1) {
+        completeCrossfade();
+      }
+    } else if (
+      state.crossfadeEnabled &&
+      !isRadioTrack(state.currentTrack?.filePath ?? '') &&
+      state.repeatMode !== 'one'
+    ) {
+      // Check if we should start crossfade
+      const dur = audio.duration;
+      if (isFinite(dur) && dur > 0 && dur > state.crossfadeDuration) {
+        const timeLeft = dur - audio.currentTime;
+        if (timeLeft <= state.crossfadeDuration && timeLeft > 0.1) {
+          startCrossfade();
+        }
+      }
+    } else if (!isRadioTrack(state.currentTrack?.filePath ?? '')) {
+      // ── Near-gapless pre-buffer (crossfade OFF) ──
+      // Once we're a few seconds from the end, decode-ahead the next queue
+      // track onto the idle deck. Cheap + idempotent: maybePreBuffer no-ops
+      // when the right track is already buffered.
+      const dur = audio.duration;
+      if (isFinite(dur) && dur > 0 && dur - audio.currentTime <= 30) {
+        maybePreBuffer();
+      }
     }
   }, [_setCurrentTime, completeCrossfade, startCrossfade, maybePreBuffer]);
+
+  // The listeners below outlive any one `tick`, so they call the latest one.
+  const tickRef = useRef(tick);
+  useEffect(() => {
+    tickRef.current = tick;
+  }, [tick]);
+
+  /**
+   * The seek bar's smooth position while the window is visible: the only job
+   * animation frames still have. It decides nothing, so a hidden window that
+   * runs no frames loses nothing but the smoothness nobody can see.
+   */
+  const visualFrame = useCallback(() => {
+    const audio = getActiveDeck();
+    if (audio && !seekingRef.current) currentTimeRef.current = audio.currentTime;
+    if (usePlaybackStore.getState().isPlaying) {
+      animationFrameRef.current = requestAnimationFrame(visualFrame);
+    }
+  }, []);
+
+  /** Start (or restart) the playback clock and the visual loop. */
+  const startClock = useCallback(() => {
+    if (tickIntervalRef.current !== null) clearInterval(tickIntervalRef.current);
+    tickIntervalRef.current = setInterval(() => tickRef.current(), TICK_INTERVAL_MS);
+    cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = requestAnimationFrame(visualFrame);
+  }, [visualFrame]);
+
+  /** Stop the playback clock and the visual loop. */
+  const stopClock = useCallback(() => {
+    if (tickIntervalRef.current !== null) {
+      clearInterval(tickIntervalRef.current);
+      tickIntervalRef.current = null;
+    }
+    cancelAnimationFrame(animationFrameRef.current);
+  }, []);
+
+  // Both decks drive the clock: the active one always, and the incoming one
+  // during a crossfade, whose ramp ends while the outgoing deck may already be
+  // silent and done.
+  useEffect(() => {
+    const decks = [deckARef.current, deckBRef.current].filter(
+      (deck): deck is HTMLAudioElement => deck !== null
+    );
+    const onTimeUpdate = () => tickRef.current();
+    for (const deck of decks) deck.addEventListener('timeupdate', onTimeUpdate);
+    return () => {
+      for (const deck of decks) deck.removeEventListener('timeupdate', onTimeUpdate);
+    };
+  }, []);
+
+  // The sleep timer raises `_sleepFading` for the fade and lowers it when the
+  // fade ends. Reacting to the flag, rather than polling it per frame, is what
+  // lets the fade start in a hidden window.
+  useEffect(() => {
+    return usePlaybackStore.subscribe((state, prev) => {
+      if (state._sleepFading === prev._sleepFading) return;
+      if (state._sleepFading) {
+        maybeStartSleepFade();
+        return;
+      }
+      // Lowered: the sleep timer lowers the flag and pauses in the same
+      // breath, and on that path the pause branch of the play effect restores
+      // the volume once the deck is silent. Restoring here instead would put
+      // the full volume back for a moment before the pause. So wait a
+      // microtask, and restore only if playback is still going (the timer was
+      // cancelled mid-fade). The fade itself always ends here, whatever
+      // happens to the volume.
+      queueMicrotask(() => {
+        const sf = sleepFadeRef.current;
+        if (!sf.active) return;
+        if (!usePlaybackStore.getState().isPlaying) return;
+        sf.active = false;
+        if (!crossfadeRef.current.active) setVolume(activeDeckRef.current, userVolume());
+      });
+    });
+  }, []);
 
   // ── Load track when currentTrack changes ──────────────────────
 
@@ -766,11 +1014,8 @@ export function useAudioEngine() {
               _setIsPlaying(false);
             }
           });
-          // NOTE: do not start a RAF loop here. The play/pause sync effect
-          // already runs `updateTime`, which self-perpetuates while playing.
-          // Spawning a second loop overwrites animationFrameRef.current,
-          // double-executes updateTime per frame, and leaks a loop that
-          // cancelAnimationFrame can never cancel (its handle is overwritten).
+          // NOTE: do not restart the clock here. The play/pause sync effect
+          // already started it, and it keeps running across the boundary.
         }
       }
       _setIsLoading(false);
@@ -804,7 +1049,7 @@ export function useAudioEngine() {
             _setIsPlaying(false);
           }
         });
-        animationFrameRef.current = requestAnimationFrame(updateTime);
+        startClock();
       }
     };
     audio.addEventListener('canplay', onCanPlayOnce);
@@ -827,7 +1072,7 @@ export function useAudioEngine() {
     _setCurrentTime,
     _setDuration,
     _setIsPlaying,
-    updateTime,
+    startClock,
     flushPlaybackSession,
     resetPlaybackSession,
     discardPreBuffer,
@@ -840,7 +1085,7 @@ export function useAudioEngine() {
     if (!active || !active.src) return;
 
     if (isPlaying) {
-      playbackSessionRef.current.lastTickAt = performance.now();
+      markSessionClock(active);
 
       // Lazily initialise the Web Audio analyser on first play
       if (!analyserInitRef.current && deckARef.current && deckBRef.current) {
@@ -884,9 +1129,9 @@ export function useAudioEngine() {
         });
       }
 
-      animationFrameRef.current = requestAnimationFrame(updateTime);
+      startClock();
     } else {
-      playbackSessionRef.current.lastTickAt = null;
+      markSessionClock(null);
       _setIsLoading(false);
       active.pause();
       // Also pause incoming deck if crossfading
@@ -898,22 +1143,30 @@ export function useAudioEngine() {
       // prior volume now that we're paused — neither the volume-sync effect
       // (deps don't include isPlaying) nor the play effect (only sets gain on
       // first init) would otherwise un-silence the deck on the next play.
-      if (sleepFadeRef.current.active && !crossfadeRef.current.active) {
+      // A pause ends the fade whatever else is going on; only the volume
+      // restore waits while a crossfade owns the gains (its completion sets
+      // them).
+      if (sleepFadeRef.current.active || usePlaybackStore.getState()._sleepFading) {
+        const wasFading = sleepFadeRef.current.active;
         sleepFadeRef.current.active = false;
-        setVolume(activeDeckRef.current, isMuted ? 0 : volume);
+        if (wasFading && !crossfadeRef.current.active) {
+          setVolume(activeDeckRef.current, isMuted ? 0 : volume);
+        }
         // A manual pause mid-fade abandons the fade entirely — clear the
         // store signal so resuming doesn't re-trigger the ramp. (When the
         // fade completes naturally the sleep-timer store has already cleared
-        // this, so this only matters for the manual-pause path.)
+        // this, so this only matters for the manual-pause path, including a
+        // fade that was waiting behind a crossfade.)
         if (usePlaybackStore.getState()._sleepFading) {
           usePlaybackStore.getState()._setSleepFading(false);
         }
       }
-      cancelAnimationFrame(animationFrameRef.current);
+      stopClock();
     }
   }, [
     isPlaying,
-    updateTime,
+    startClock,
+    stopClock,
     _setError,
     _setIsPlaying,
     _setIsLoading,
@@ -925,12 +1178,10 @@ export function useAudioEngine() {
   // ── Sync volume ───────────────────────────────────────────────
 
   useEffect(() => {
-    // During crossfade, volume is managed by the RAF loop
-    if (crossfadeRef.current.active) return;
-
-    const userVol = isMuted ? 0 : volume;
-    setVolume(activeDeckRef.current, userVol);
-    setVolume(getIdleDeckId(), 0);
+    // During a crossfade or the sleep fade the ramps own the gains; they are
+    // rescheduled at the new volume instead of being overwritten.
+    applyActiveVolume();
+    if (!crossfadeRef.current.active) setVolume(getIdleDeckId(), 0);
   }, [volume, isMuted, currentTrack]);
 
   // ── Sync EQ store into the Web Audio chain ────────────────────
@@ -976,20 +1227,17 @@ export function useAudioEngine() {
     // gain node. The volume-sync effect runs BEFORE this one (it also depends on
     // currentTrack) using the previous track's still-cached factor, and nothing
     // else calls setVolume during steady playback — so without this a manual
-    // skip / normal load would keep the old track's loudness. Guarded off during
-    // an active crossfade, where the RAF loop owns deck volumes.
-    if (!crossfadeRef.current.active) {
-      const s = usePlaybackStore.getState();
-      setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
-    }
+    // skip / normal load would keep the old track's loudness. During a fade the
+    // fade is rescheduled with the new factor instead.
+    applyActiveVolume();
   }, [currentTrack]);
 
   // React to loudness toggle / target changes only (the store fires on every
   // currentTime tick, so guard on the loudness fields to avoid recomputing every
   // frame). Loudness now rides each deck's gain, so recompute BOTH deck factors
   // and re-apply the active deck's volume immediately (respecting mute) so the
-  // change is audible without waiting for a track change. The RAF crossfade loop
-  // re-calls setVolume per frame, so mid-crossfade changes self-correct.
+  // change is audible without waiting for a track change. Mid-fade, the fade is
+  // rescheduled with the new factors.
   useEffect(() => {
     let prevEnabled = usePlaybackStore.getState().loudnessEnabled;
     let prevTarget = usePlaybackStore.getState().loudnessTargetLufs;
@@ -1007,26 +1255,45 @@ export function useAudioEngine() {
       prevMode = state.loudnessLevelingMode;
       updateDeckLoudness('A');
       updateDeckLoudness('B');
-      if (!crossfadeRef.current.active) {
-        const s = usePlaybackStore.getState();
-        setVolume(activeDeckRef.current, s.isMuted ? 0 : s.volume);
-      }
+      applyActiveVolume();
     });
     return unsub;
   }, []);
 
-  // ── Handle seeks while paused ─────────────────────────────────
+  // ── Handle seeks ──────────────────────────────────────────────
+  //
+  // Applied as soon as the store asks, playing or paused. The per-frame loop
+  // used to pick up a seek while playing, which a hidden window never ran.
 
   useEffect(() => {
     const unsub = usePlaybackStore.subscribe(state => {
       const audio = getActiveDeck();
-      if (audio && state._seekTarget !== null && isFinite(state._seekTarget) && !state.isPlaying) {
-        audio.currentTime = state._seekTarget;
-        usePlaybackStore.getState()._clearSeekTarget();
-        _setCurrentTime(state._seekTarget);
+      if (!audio || state._seekTarget === null || !isFinite(state._seekTarget)) return;
+      const target = state._seekTarget;
+      audio.currentTime = target;
+      usePlaybackStore.getState()._clearSeekTarget();
+      if (!state.isPlaying) {
+        _setCurrentTime(target);
+        return;
       }
+      seekingRef.current = true;
+      markSessionClock(audio);
+      // A newer seek restarts the window rather than being cut short by the
+      // previous seek's timer.
+      if (seekTimeoutRef.current) clearTimeout(seekTimeoutRef.current);
+      seekTimeoutRef.current = setTimeout(() => {
+        seekingRef.current = false;
+        seekTimeoutRef.current = null;
+      }, 300);
     });
-    return unsub;
+    return () => {
+      unsub();
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+        seekTimeoutRef.current = null;
+        seekingRef.current = false;
+      }
+    };
   }, [_setCurrentTime]);
 
   // ── Audio element event listeners (active deck) ───────────────
@@ -1083,13 +1350,13 @@ export function useAudioEngine() {
     };
 
     const onWaiting = () => {
-      playbackSessionRef.current.lastTickAt = null;
+      markSessionClock(null);
       if (usePlaybackStore.getState().isPlaying) {
         _setIsLoading(true);
       }
     };
     const onPlaying = () => {
-      playbackSessionRef.current.lastTickAt = performance.now();
+      markSessionClock(audio);
       _setIsLoading(false);
     };
 

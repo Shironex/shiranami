@@ -1311,6 +1311,23 @@ export const commands = {
 	 *  track skips yt-dlp entirely. Returns nothing, as v1 did.
 	 */
 	shareCacheYoutubeId: (trackId: string, youtubeId: string) => __TAURI_INVOKE<null>("share_cache_youtube_id", { trackId, youtubeId }),
+	/**
+	 *  Hand the renderer the deep link that arrived before it was listening, and
+	 *  switch every later link to the live `share:deep-link` event. Ports no v1
+	 *  channel.
+	 * 
+	 *  v1 dropped cold-start links entirely: its argv scan ran only for a second
+	 *  instance, and a link that launched the app reached a window with nothing
+	 *  subscribed yet. Emitting earlier cannot fix that, because the listener is a
+	 *  React effect that does not exist until the first render, so the renderer
+	 *  has to come and ask. [`crate::deep_link::PendingDeepLink`] explains why a
+	 *  link is held *or* emitted, never both.
+	 * 
+	 *  The bridge shim calls this once per page load. A second call is harmless:
+	 *  the slot is taken, so it answers `None`. `async` for the arch guard, which
+	 *  with borrowed `State` forces the `Result` return; it is always `Ok`.
+	 */
+	shareTakePendingDeepLink: () => __TAURI_INVOKE<string | null>("share_take_pending_deep_link"),
 	/**  `shell:show-in-folder` — reveal a file in the OS file manager. */
 	shellShowInFolder: (filePath: string) => __TAURI_INVOKE<null>("shell_show_in_folder", { filePath }),
 	/**
@@ -1410,7 +1427,15 @@ export const commands = {
 	 *  coordinates.
 	 */
 	weatherGetCurrent: (coords: Coordinates) => __TAURI_INVOKE<WeatherCurrent>("weather_get_current", { coords }),
-	/**  `window:minimize`. */
+	/**
+	 *  `window:minimize`, or a hide when `system.minimizeToTray` is on.
+	 * 
+	 *  v1 did the same from its `minimize` listener. Tauri has no such event, so
+	 *  the titlebar's button is where the setting is honoured. On Windows a
+	 *  minimize the OS performs (the taskbar button, Win+Down) is caught by the
+	 *  resize hook in `crate::window`; macOS sends no resize for a minimize, so
+	 *  Cmd+M there still minimizes to the Dock whatever the setting.
+	 */
 	windowMinimize: () => __TAURI_INVOKE<void>("window_minimize"),
 	/**
 	 *  `window:maximize` — a **toggle**, not a maximize.

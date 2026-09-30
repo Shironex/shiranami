@@ -29,57 +29,18 @@
 //!
 //! # About the labels
 //!
-//! They are English literals, and that is the faithful port rather than an
-//! oversight. v1's main process has no i18n at all — `react-i18next` lives in
-//! the renderer and cannot reach across the process boundary, which
-//! `packages/shared/src/types/discord.ts` states outright: *"There is no
-//! main-process i18n in Shiranami … default template fields ship as literal
-//! English strings."* The only localized strings anywhere near this surface are
-//! the `settings:sys.*` keys describing the toggles in the settings UI.
-//!
-//! So [`TrayLabels`] carries v1's six literals as its `Default`, and exists as a
-//! struct rather than as `const`s only so that a later phase can hand localized
-//! strings in without touching the model. Nothing in v2 has to change for the
-//! port to be correct; the seam costs one struct.
+//! See the [`labels`] submodule for [`TrayLabels`] and why the six strings it
+//! holds are a table rather than an i18n crate.
 
 use crate::command::MediaCommand;
 use crate::state::MediaState;
 
+mod labels;
+
+pub use labels::TrayLabels;
+
 /// The tooltip base, and the label of the "Show …" item.
 pub const APP_NAME: &str = "Shiranami";
-
-/// The visible text of every tray item.
-///
-/// `Default` is v1's, verbatim. See the module docs for why they are not
-/// translation keys.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TrayLabels {
-    /// Shown on the toggle item while paused.
-    pub play: String,
-    /// Shown on the toggle item while playing.
-    pub pause: String,
-    /// The previous-track item.
-    pub previous: String,
-    /// The next-track item.
-    pub next: String,
-    /// The show-window item.
-    pub show: String,
-    /// The quit item.
-    pub quit: String,
-}
-
-impl Default for TrayLabels {
-    fn default() -> Self {
-        Self {
-            play: "Play".to_owned(),
-            pause: "Pause".to_owned(),
-            previous: "Previous".to_owned(),
-            next: "Next".to_owned(),
-            show: format!("Show {APP_NAME}"),
-            quit: "Quit".to_owned(),
-        }
-    }
-}
 
 /// Which tray item was clicked.
 ///
@@ -293,6 +254,18 @@ impl TrayView {
         }
     }
 
+    /// Swap the labels, for a language change.
+    ///
+    /// Forgets the last menu, so the next [`Self::apply`] rebuilds even for a
+    /// playback state that has not moved. Without that, a language switch while
+    /// paused would leave the old words up until the next track.
+    pub fn set_labels(&mut self, labels: TrayLabels) {
+        if self.labels != labels {
+            self.labels = labels;
+            self.current = None;
+        }
+    }
+
     /// Offer a state, and get the new menu back when it differs.
     pub fn apply(&mut self, state: &MediaState) -> Option<&TrayModel> {
         let next = TrayModel::build(state, &self.labels);
@@ -325,19 +298,6 @@ mod tests {
 
     fn loaded(current_time: f64) -> MediaState {
         MediaState::Loaded(playing(current_time))
-    }
-
-    /// v1's labels, verbatim. The main process had no i18n to read them from.
-    #[test]
-    fn the_default_labels_are_v1s_literals() {
-        let labels = labels();
-
-        assert_eq!(labels.play, "Play");
-        assert_eq!(labels.pause, "Pause");
-        assert_eq!(labels.previous, "Previous");
-        assert_eq!(labels.next, "Next");
-        assert_eq!(labels.show, "Show Shiranami");
-        assert_eq!(labels.quit, "Quit");
     }
 
     /// v1's idle tray: three rows, no now-playing block.
@@ -549,6 +509,37 @@ mod tests {
 
         assert_eq!(rebuilt.actions(), [TrayItemId::Show, TrayItemId::Quit]);
         assert_eq!(rebuilt.tooltip, "Shiranami");
+    }
+
+    /// A language switch while nothing moves still redraws the menu, since
+    /// the state the view compares against has not changed.
+    #[test]
+    fn new_labels_rebuild_the_menu_for_an_unchanged_state() {
+        let mut view = TrayView::new();
+        let state = loaded(10.0);
+        view.apply(&state);
+
+        view.set_labels(TrayLabels::for_language(Some("pl")));
+        let rebuilt = view
+            .apply(&state)
+            .expect("the words changed, so the menu has to");
+
+        assert!(rebuilt.items.contains(&TrayItem::Action {
+            id: TrayItemId::Quit,
+            label: "Zakończ".to_owned()
+        }));
+    }
+
+    /// Re-setting the same labels is not a change, so it costs no rebuild.
+    #[test]
+    fn the_same_labels_do_not_rebuild_the_menu() {
+        let mut view = TrayView::new();
+        let state = loaded(10.0);
+        view.apply(&state);
+
+        view.set_labels(TrayLabels::default());
+
+        assert!(view.apply(&state).is_none());
     }
 
     #[test]
