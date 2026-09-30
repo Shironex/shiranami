@@ -181,10 +181,14 @@ pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranam
     let mut after = 0;
     let mut hashed = 0;
     let mut verdicts = HashMap::new();
+    // One pool for the whole run: an import swaps the live pool, and a hash
+    // measured against the old library must not land on a same-id row in the
+    // new one. The import closes this pool, which ends the run below.
+    let pool = state.pool();
 
     loop {
         let (page, roots) = {
-            let Ok(mut conn) = state.conn().await else {
+            let Ok(mut conn) = pool.acquire().await else {
                 return Ok(hashed);
             };
             let page = tracks::unhashed(&mut conn, after, PAGE).await?;
@@ -215,7 +219,7 @@ pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranam
             .collect();
 
         if !measured.is_empty() {
-            let Ok(mut conn) = state.conn().await else {
+            let Ok(mut conn) = pool.acquire().await else {
                 return Ok(hashed);
             };
             hashed += tracks::set_content_hashes(&mut conn, &measured).await?;
