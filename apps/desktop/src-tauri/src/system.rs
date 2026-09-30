@@ -92,10 +92,12 @@ impl SystemPrefs {
     }
 
     fn flag(&self, key: RendererStoreKey) -> &AtomicBool {
-        if key == RendererStoreKey::SystemCloseToTray {
-            &self.close_to_tray
-        } else {
-            &self.minimize_to_tray
+        match key {
+            RendererStoreKey::SystemCloseToTray => &self.close_to_tray,
+            RendererStoreKey::SystemMinimizeToTray => &self.minimize_to_tray,
+            // `watch` subscribes these two keys and no others, so a third one
+            // here is a new subscription that needs its own flag.
+            other => unreachable!("{other:?} is not a tray preference"),
         }
     }
 }
