@@ -31,11 +31,12 @@ describe('useUpdateSettingsMutation', () => {
       result.current.save.mutate({ a: 1 });
       result.current.save.mutate({ b: 2 });
     });
-    await waitFor(() => expect(releases).toHaveLength(2));
-
+    // Saves run one at a time: the second write starts only once the first lands.
+    await waitFor(() => expect(releases).toHaveLength(1));
     await act(async () => {
       releases[0]();
     });
+    await waitFor(() => expect(releases).toHaveLength(2));
     expect(get.mock.calls.length).toBe(readsBefore);
 
     await act(async () => {

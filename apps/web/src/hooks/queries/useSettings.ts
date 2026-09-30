@@ -33,6 +33,10 @@ export function useUpdateSettingsMutation() {
 
   return useMutation({
     mutationKey: settingsSaveKey,
+    // Each save writes the whole blob, so two saves in flight at once could land
+    // on disk in either order and the older blob would win. A shared scope runs
+    // them one after another, each merging over the cache as it is by then.
+    scope: { id: settingsSaveKey.join(':') },
     mutationFn: async (patch: Partial<ElectronSettings>) => {
       if (!IS_ELECTRON) return;
       const current = queryClient.getQueryData<ElectronSettings | null>(settingsKeys.all) ?? {};

@@ -82,22 +82,26 @@ describe('MusicFoldersSection', () => {
   });
 
   it('two quick opt-outs both survive', async () => {
-    // The first write is still in flight when the second click lands.
-    const pending = () => new Promise<void>(() => {});
+    // The first write is still in flight when the second click lands, and the
+    // second waits for it rather than racing it to disk.
+    const releases: Array<() => void> = [];
+    const held = () => new Promise<void>(resolve => releases.push(resolve));
     vi.mocked(window.electronAPI.store.set)
-      .mockImplementationOnce(pending)
-      .mockImplementationOnce(pending);
+      .mockImplementationOnce(held)
+      .mockImplementationOnce(held);
     renderSection(<MusicFoldersSection />, folders);
 
     const toggles = screen.getAllByRole('button', { name: 'Watch this folder for changes' });
     await userEvent.click(toggles[0]);
     await userEvent.click(toggles[1]);
 
-    await waitFor(() =>
-      expect(window.electronAPI.store.set).toHaveBeenLastCalledWith('settings', {
-        watchFoldersExcluded: ['f-1', 'f-2'],
-      })
-    );
+    await waitFor(() => expect(releases).toHaveLength(1));
+    releases[0]();
+    await waitFor(() => expect(releases).toHaveLength(2));
+    expect(window.electronAPI.store.set).toHaveBeenLastCalledWith('settings', {
+      watchFoldersExcluded: ['f-1', 'f-2'],
+    });
+    releases[1]();
   });
 
   it('hides the per-folder controls while watching is off', () => {
