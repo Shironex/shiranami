@@ -135,8 +135,10 @@ fn save_state(settings: &SettingsStore, state: &ToolAutoUpdateState) {
 /// A swap whose rollback cannot finish (a rename that failed, worth retrying)
 /// stays pending and blocks installs of that tool, so it is not left to the
 /// log: it raises a `warn` system notice on every launch it is still there
-/// (the notice gate de-duplicates within five minutes). A swap with nothing
-/// left to restore is cleared by the rollback and raises nothing.
+/// (the notice gate de-duplicates within five minutes). It blocks downloads
+/// too: the queue still hydrates, and the download runner refuses every start
+/// while the marker is on disk (see `shiranami_downloader::download`). A swap
+/// with nothing left to restore is cleared by the rollback and raises nothing.
 pub async fn recover_interrupted_swaps(app: &AppHandle, state: &AppState) {
     let Some(services) = state.deferred().downloader.as_deref() else {
         return;

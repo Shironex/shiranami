@@ -20,7 +20,8 @@
 //! Between the two renames the final path does not exist for a moment. A spawn
 //! that lands exactly there fails with "not found" and is reported like any
 //! other failed spawn; the download queue is held idle across an automatic
-//! swap, so that window is only reachable by a search or a stream lookup.
+//! swap, and a download refuses to start while a marker is on disk, so that
+//! window is only reachable by a search or a stream lookup.
 //!
 //! # A marker makes the pair one unit
 //!

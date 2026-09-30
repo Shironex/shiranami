@@ -77,6 +77,7 @@ impl DownloaderServices {
             Arc::clone(&processes),
             yt_dlp_path.clone(),
             availability,
+            vec![yt_dlp_path.clone(), ffmpeg.ffmpeg_path()],
         ));
 
         Self {

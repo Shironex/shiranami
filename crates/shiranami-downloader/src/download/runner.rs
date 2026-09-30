@@ -22,6 +22,16 @@
 //! Nothing. Every path yt-dlp announced is removed along with its `.part`
 //! sibling — architecture §6's done-criterion for this phase, and the reason
 //! destinations are accumulated rather than overwritten.
+//!
+//! # Nothing runs while a tool swap is pending
+//!
+//! A swap marker that survives recovery (`crate::bin::swap`) means a rollback
+//! could not finish, and the tools may be a mixed pair. Every download starts
+//! here, whether the queue promoted it at boot, after an enqueue or on a retry,
+//! or the single-URL command asked for it, so this is where it is refused:
+//! before anything spawns, with [`SWAP_PENDING`](crate::bin::swap::SWAP_PENDING).
+//! The item settles as `error` and stays retryable, and a failed row restores
+//! as `queued`, so the restart that lets recovery finish also resumes it.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -92,20 +102,38 @@ pub struct YtDlpDownloader {
     processes: std::sync::Arc<dyn ProcessRunner>,
     yt_dlp_path: PathBuf,
     ffmpeg: FfmpegAvailability,
+    /// The first binary of each swap that must not be pending.
+    swap_guards: Vec<PathBuf>,
 }
 
 impl YtDlpDownloader {
     /// A runner for `yt_dlp_path`, with whatever ffmpeg is available.
+    ///
+    /// `swap_guards` names the first binary of every swap a download depends
+    /// on (yt-dlp, and ffmpeg for the ffmpeg and ffprobe pair), the same paths
+    /// [`crate::bin::Tools::has_pending_swap`] asks about. See the module docs.
     pub fn new(
         processes: std::sync::Arc<dyn ProcessRunner>,
         yt_dlp_path: PathBuf,
         ffmpeg: FfmpegAvailability,
+        swap_guards: Vec<PathBuf>,
     ) -> Self {
         Self {
             processes,
             yt_dlp_path,
             ffmpeg,
+            swap_guards,
         }
+    }
+
+    /// Whether any guarded swap is still pending.
+    async fn swap_pending(&self) -> bool {
+        for first in &self.swap_guards {
+            if crate::bin::swap::is_pending(std::slice::from_ref(first)).await {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -163,6 +191,18 @@ impl DownloadRunner for YtDlpDownloader {
         progress: &dyn DownloadProgressSink,
         cancel: &CancellationToken,
     ) -> Result<PathBuf, DownloadFailure> {
+        if self.swap_pending().await {
+            tracing::warn!(
+                url = request.url,
+                "a tool swap is still pending; not downloading"
+            );
+            let message = crate::bin::swap::SWAP_PENDING;
+            fail(progress, &request.url, message);
+            return Err(DownloadFailure::Failed(DownloaderError::InstallFailed {
+                message: message.to_owned(),
+            }));
+        }
+
         let output_template = request.download_dir.join("%(title)s.%(ext)s");
         let print_to =
             std::env::temp_dir().join(format!("shiranami-ytdlp-{}.txt", uuid::Uuid::new_v4()));
@@ -363,5 +403,96 @@ mod tests {
             .await
             .expect("write the print file");
         assert_eq!(resolve_written_path(&empty).await, None);
+    }
+
+    /// Counts spawns and fails each one, so a test can see whether yt-dlp ran.
+    #[derive(Default)]
+    struct Counting(std::sync::atomic::AtomicUsize);
+
+    #[async_trait::async_trait]
+    impl ProcessRunner for Counting {
+        async fn run(
+            &self,
+            spec: ProcessSpec,
+            _lines: Option<&(dyn LineSink + '_)>,
+            _cancel: &CancellationToken,
+        ) -> Result<crate::spawn::ProcessOutput, ProcessError> {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Err(ProcessError::Spawn {
+                program: spec.program,
+                source: std::io::Error::other("not a real yt-dlp"),
+            })
+        }
+    }
+
+    struct Silent;
+
+    impl DownloadProgressSink for Silent {
+        fn progress(&self, _event: DownloadProgress) {}
+    }
+
+    #[tokio::test]
+    async fn a_pending_swap_of_either_tool_refuses_the_download_before_spawning() {
+        let temp = tempfile::tempdir().expect("a temporary directory");
+        let yt_dlp = temp.path().join("yt-dlp");
+        let ffmpeg = temp.path().join("ffmpeg");
+        let request = DownloadRequest {
+            url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ".to_owned(),
+            download_dir: temp.path().to_path_buf(),
+        };
+
+        for pending in [&yt_dlp, &ffmpeg] {
+            let marker = crate::bin::swap::marker_path(pending);
+            tokio::fs::write(&marker, "11")
+                .await
+                .expect("write the marker");
+
+            let processes = std::sync::Arc::new(Counting::default());
+            let runner = YtDlpDownloader::new(
+                std::sync::Arc::clone(&processes) as std::sync::Arc<dyn ProcessRunner>,
+                yt_dlp.clone(),
+                FfmpegAvailability::Managed(temp.path().to_path_buf()),
+                vec![yt_dlp.clone(), ffmpeg.clone()],
+            );
+
+            let outcome = runner
+                .download(&request, &Silent, &CancellationToken::new())
+                .await;
+            let Err(DownloadFailure::Failed(DownloaderError::InstallFailed { message })) = outcome
+            else {
+                panic!("expected the swap refusal, got {outcome:?}");
+            };
+            assert_eq!(message, crate::bin::swap::SWAP_PENDING);
+            assert!(
+                !classify::failure_kind(&message).suggests_outdated_yt_dlp(),
+                "a refusal must not make the updater retry it as a stale yt-dlp"
+            );
+            assert_eq!(
+                processes.0.load(std::sync::atomic::Ordering::SeqCst),
+                0,
+                "{} pending: nothing may spawn",
+                pending.display()
+            );
+
+            tokio::fs::remove_file(&marker)
+                .await
+                .expect("remove the marker");
+        }
+
+        let processes = std::sync::Arc::new(Counting::default());
+        let runner = YtDlpDownloader::new(
+            std::sync::Arc::clone(&processes) as std::sync::Arc<dyn ProcessRunner>,
+            yt_dlp.clone(),
+            FfmpegAvailability::Managed(temp.path().to_path_buf()),
+            vec![yt_dlp, ffmpeg],
+        );
+        let _ = runner
+            .download(&request, &Silent, &CancellationToken::new())
+            .await;
+        assert_eq!(
+            processes.0.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "with no swap pending the download runs"
+        );
     }
 }
