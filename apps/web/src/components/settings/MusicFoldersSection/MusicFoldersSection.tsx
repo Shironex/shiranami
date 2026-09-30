@@ -1,5 +1,6 @@
-import { FolderOpen, X, Plus, Loader2 } from 'lucide-react';
-import { SettingsCard } from '@/components/settings/SettingsCard';
+import { Eye, EyeOff, FolderOpen, X, Plus, Loader2 } from 'lucide-react';
+import { SettingsCard, SettingsToggleRow } from '@/components/settings/SettingsCard';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { SubfolderPlaylistDialog } from '@/components/settings/SubfolderPlaylistDialog';
@@ -19,6 +20,10 @@ export default function MusicFoldersSection() {
     existingPlaylistNames,
     onAddFolder,
     onRemoveFolder,
+    watchEnabled,
+    watchDisabled,
+    onSetWatchEnabled,
+    onSetFolderWatched,
     onDialogOpenChange,
     onSubfolderConfirm,
   } = useMusicFoldersSection();
@@ -30,6 +35,21 @@ export default function MusicFoldersSection() {
     >
       <FolderOpen className="w-4 h-4 text-muted-foreground shrink-0" />
       <span className="text-sm text-foreground truncate flex-1 font-mono">{folder.path}</span>
+      {watchEnabled && (
+        <IconButton
+          onClick={() => onSetFolderWatched(folder.id, !folder.watched)}
+          disabled={watchDisabled}
+          aria-pressed={folder.watched}
+          aria-label={t('folders.watchThisFolder')}
+          title={folder.watched ? t('folders.watching') : t('folders.notWatching')}
+          className={cn(
+            'transition-all focus-visible:opacity-100',
+            folder.watched ? 'opacity-0 group-hover:opacity-100' : 'text-muted-foreground/50'
+          )}
+        >
+          {folder.watched ? <Eye /> : <EyeOff />}
+        </IconButton>
+      )}
       <IconButton
         onClick={() => onRemoveFolder(folder.id)}
         className="opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive/10 hover:text-destructive"
@@ -70,6 +90,15 @@ export default function MusicFoldersSection() {
             </Button>
 
             <ScanProgressCard />
+
+            <SettingsToggleRow
+              divider
+              label={t('folders.watchTitle')}
+              description={t('folders.watchDesc')}
+              checked={watchEnabled}
+              onCheckedChange={onSetWatchEnabled}
+              disabled={watchDisabled}
+            />
           </div>
         )}
       </SettingsCard>

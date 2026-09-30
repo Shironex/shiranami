@@ -89,6 +89,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import { useDownloadQueueImporter, hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
+import { useFolderWatch } from '@/hooks/useFolderWatch';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -234,6 +235,8 @@ function App() {
   }, []);
 
   useDownloadQueueImporter();
+  // Rescan the folders the shell's watcher reports as changed.
+  useFolderWatch();
 
   useEffect(() => {
     if (!IS_ELECTRON) return;

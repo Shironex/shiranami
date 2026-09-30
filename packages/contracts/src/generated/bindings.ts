@@ -1497,6 +1497,7 @@ export const events = {
 	downloaderInstallProgress: makeEvent<DownloaderInstallProgress>("downloader:install-progress"),
 	downloaderProgress: makeEvent<DownloaderProgress>("downloader:progress"),
 	downloaderQueueState: makeEvent<DownloaderQueueState>("downloader:queue-state"),
+	libraryFoldersChanged: makeEvent<LibraryFoldersChanged>("library:folders-changed"),
 	libraryScanProgress: makeEvent<LibraryScanProgress>("library:scan-progress"),
 	loudnessProgress: makeEvent<LoudnessProgress>("loudness:progress"),
 	lyricsSaveProgress: makeEvent<LyricsSaveProgress>("lyrics:save-progress"),
@@ -2381,6 +2382,12 @@ export type FileFilter = {
 	extensions: string[],
 };
 
+/**  The payload of `library:folders-changed`: which registered folders changed. */
+export type FoldersChanged = {
+	/**  `folders.id` of every folder in the batch. */
+	folderIds: string[],
+};
+
 /**  A resolved place, as returned by the geocoding lookup. */
 export type GeocodeResult = {
 	/**  Latitude in decimal degrees. */
@@ -2468,6 +2475,16 @@ export type LastfmAuthStart = {
 	/**  Present on failure; a short reason key for the UI toast. */
 	error?: string | null,
 };
+
+/**
+ *  Registered music folders changed on disk (v2, F10, no v1 counterpart).
+ * 
+ *  One event per coalesced batch, never one per file: the watcher waits
+ *  for a folder to go quiet and for every new file in it to stop growing,
+ *  then names the folders. The renderer rescans exactly those. See
+ *  `crate::watch`.
+ */
+export type LibraryFoldersChanged = FoldersChanged;
 
 /**
  *  A track on the "Recommended from your library" shelf.

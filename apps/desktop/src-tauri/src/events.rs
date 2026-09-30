@@ -137,6 +137,14 @@ events! {
     /// Progress through a library scan. Throttled at 250 ms by the scanner.
     LibraryScanProgress = "library:scan-progress" => Json;
 
+    /// Registered music folders changed on disk (v2, F10, no v1 counterpart).
+    ///
+    /// One event per coalesced batch, never one per file: the watcher waits
+    /// for a folder to go quiet and for every new file in it to stop growing,
+    /// then names the folders. The renderer rescans exactly those. See
+    /// `crate::watch`.
+    LibraryFoldersChanged = "library:folders-changed" => crate::watch::FoldersChanged;
+
     /// The whole download queue, after any structural change.
     DownloaderQueueState = "downloader:queue-state" => DownloadQueueSnapshot;
 
@@ -246,14 +254,15 @@ mod tests {
     /// so the parity pin below stays a pin: these must NOT appear in v1's
     /// manifest, and everything else must. Today: the one-pass analysis
     /// engine's progress, the Library Doctor's progress (F8), and the
-    /// companion's XP accrual, the lyrics write-back batch, and radio
-    /// now-playing.
+    /// companion's XP accrual, the lyrics write-back batch, radio
+    /// now-playing, and the folder watcher's change batches.
     const V2_EVENT_CHANNELS: &[&str] = &[
         "analysis:progress",
         "doctor:progress",
         "companion:xp",
         "lyrics:save-progress",
         "radio:now-playing",
+        "library:folders-changed",
     ];
 
     #[test]
