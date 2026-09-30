@@ -24,6 +24,8 @@ export interface IMusicFolderRow {
   readonly id: string;
   /** Absolute folder path shown in the row. */
   readonly path: string;
+  /** Whether this folder is watched for changes (false when opted out). */
+  readonly watched: boolean;
 }
 
 export interface IMusicFoldersSectionView {
@@ -47,6 +49,14 @@ export interface IMusicFoldersSectionView {
   readonly onAddFolder: () => void;
   /** Remove a watched folder by id. */
   readonly onRemoveFolder: (id: string) => void;
+  /** Whether folders are watched for changes at all. */
+  readonly watchEnabled: boolean;
+  /** Whether the watch controls are inert (settings not loaded, or no shell). */
+  readonly watchDisabled: boolean;
+  /** Turn watching on or off for every folder. */
+  readonly onSetWatchEnabled: (enabled: boolean) => void;
+  /** Opt one folder in or out of watching. */
+  readonly onSetFolderWatched: (id: string, watched: boolean) => void;
   /** Open/close handler for the subfolder-playlist dialog. */
   readonly onDialogOpenChange: (open: boolean) => void;
   /** Confirm handler that creates playlists for the chosen subfolders. */

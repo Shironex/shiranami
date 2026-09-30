@@ -38,8 +38,7 @@ function updateStatusMessage(
 
 export function useUpdatesSection(): IUpdatesSectionView {
   const { t } = useTranslation('settings');
-  const { status, version, progress, error, isMac, setStatus, setProgress, setError } =
-    useUpdaterEvents();
+  const { status, version, progress, error, setStatus, setProgress, setError } = useUpdaterEvents();
 
   const checkMutation = useCheckForUpdatesMutation();
   const downloadMutation = useStartUpdateDownloadMutation();
@@ -81,7 +80,6 @@ export function useUpdatesSection(): IUpdatesSectionView {
 
   return {
     t,
-    isMac,
     status,
     version,
     progress,

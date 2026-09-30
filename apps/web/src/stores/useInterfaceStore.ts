@@ -35,6 +35,7 @@ interface PersistedInterfaceToggles {
   playerWaveformSeekbar: boolean;
   playerSleepTimer: boolean;
   playerEqualizer: boolean;
+  playerAmbience: boolean;
   playerCompactButton: boolean;
   playerVisualizerButton: boolean;
   playerLyricsButton: boolean;
@@ -65,6 +66,7 @@ const TOGGLE_DEFAULTS: PersistedInterfaceToggles = {
   playerWaveformSeekbar: true,
   playerSleepTimer: true,
   playerEqualizer: true,
+  playerAmbience: true,
   playerCompactButton: true,
   playerVisualizerButton: true,
   playerLyricsButton: true,

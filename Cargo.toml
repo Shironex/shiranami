@@ -264,11 +264,18 @@ regex = { version = "1.11", default-features = false, features = [
 walkdir = "2.5"
 rayon = "1.12"
 
-# `notify` (Appendix B) is deliberately *not* pinned here: v1 has no folder
-# watcher of any kind — no `chokidar`, no `fs.watch`, no polling timer, and
-# `folders.last_scanned` is written but never read — so there is nothing for
-# Phase 10 to port. The §2.1 charter lists scan/validate/storage and no watch.
-# Adding one would be a new feature wearing a port's clothes.
+# `notify` (Appendix B) was deliberately left unpinned by the port: v1 had no
+# folder watcher of any kind, so there was nothing for Phase 10 to port. The v2
+# feature wave adds live folder watching (F10), and this is where it stops being
+# a port. One OS watcher per process (FSEvents on macOS, ReadDirectoryChangesW on
+# Windows) costs a thread and no polling. CC0-1.0.
+#
+# `notify-debouncer-full` is deliberately *not* added beside it. The renderer
+# rescans a whole folder per batch, so the debouncer's rename stitching buys
+# nothing, and on Windows its file-id cache walks every watched tree when the
+# watch starts. `shiranami-library::watch::coalesce` is the small pure
+# replacement, and it is what the size-stability gate hangs off.
+notify = "8.2"
 
 # The disk-usage bar's capacity numbers. v1 read `fs.statfs` and used *three*
 # distinct fields — `blocks`, `bfree` and `bavail` — because free space and used
@@ -400,6 +407,10 @@ tauri-plugin-deep-link = "2.4"
 tauri-plugin-os = "2.3"
 tauri-plugin-global-shortcut = "2.3"
 tauri-plugin-autostart = "2"
+# The crate `tauri-plugin-autostart` writes through (already in the tree via
+# it, so no new crate). Named directly only to delete v1's Windows login item,
+# which the plugin cannot address because it only knows its own entry.
+auto-launch = "0.5"
 
 # Phase 18 ring 3, behind the shell's `e2e` feature and compiled into no other
 # build. An embedded W3C WebDriver server, which §8 records as the *only* way to

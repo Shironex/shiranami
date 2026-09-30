@@ -75,6 +75,9 @@ export const IPC_CHANNELS = {
     validateFiles: 'library:validate-files',
     scanProgress: 'library:scan-progress',
     scanCancel: 'library:scan-cancel',
+    // Registered folders changed on disk (v2-only, F10). One payload per
+    // coalesced batch naming the folder ids; the renderer rescans those.
+    foldersChanged: 'library:folders-changed',
   },
   lyrics: {
     fetch: 'lyrics:fetch',
@@ -375,6 +378,7 @@ export const V2_ONLY_CHANNELS = [
   'lyrics:save-batch',
   'lyrics:save-cancel',
   'lyrics:save-progress',
+  'library:folders-changed',
   'radio:now-playing',
   'radio:log:record',
   'radio:log:get',

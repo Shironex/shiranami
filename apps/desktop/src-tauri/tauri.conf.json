@@ -60,6 +60,11 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["shiranami"]
+      }
+    },
     "updater": {
       "endpoints": ["https://github.com/Shironex/shiranami/releases/latest/download/latest.json"],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYyNDA5OEZFMTQ0M0FERTkKUldUcHJVTVUvcGhBOHFOcGxqT2lmMGNDSzJGYWJOQW1oRksreFVsUkFFOW9HTm8rZ2VXbmNwd24K",

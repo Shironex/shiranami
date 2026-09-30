@@ -6,8 +6,6 @@ type TranslateFn = ReturnType<typeof useTranslation>['t'];
 export interface IUpdatesSectionView {
   /** Bound `settings`-namespace translator (the shell stays free of `useTranslation`). */
   readonly t: TranslateFn;
-  /** Whether this build runs on macOS (manual-download flow instead of auto-update). */
-  readonly isMac: boolean;
   /** Current updater status. */
   readonly status: UpdateStatus;
   /** The available/ready update version, or null. */

@@ -44,6 +44,7 @@ export function usePlayerBar(): IPlayerBarView {
   const showTimeLabels = useInterfaceStore(s => s.playerTimeLabels);
   const showSleepTimer = useInterfaceStore(s => s.playerSleepTimer);
   const showEqualizer = useInterfaceStore(s => s.playerEqualizer);
+  const showAmbience = useInterfaceStore(s => s.playerAmbience);
   const showCompactButton = useInterfaceStore(s => s.playerCompactButton);
   const showVisualizerButton = useInterfaceStore(s => s.playerVisualizerButton);
   const showLyricsButton = useInterfaceStore(s => s.playerLyricsButton);
@@ -52,7 +53,7 @@ export function usePlayerBar(): IPlayerBarView {
   const showWaveformSeekbar = useInterfaceStore(s => s.playerWaveformSeekbar);
 
   const hasUtilityButtons =
-    showSleepTimer || showEqualizer || showCompactButton || showVisualizerButton;
+    showSleepTimer || showEqualizer || showAmbience || showCompactButton || showVisualizerButton;
   const hasButtonCluster = hasUtilityButtons || showLyricsButton || showQueueButton;
 
   const isRadio = Boolean(currentTrack && isRadioTrack(currentTrack.filePath));
@@ -96,6 +97,7 @@ export function usePlayerBar(): IPlayerBarView {
     showTimeLabels,
     showSleepTimer,
     showEqualizer,
+    showAmbience,
     showCompactButton,
     showVisualizerButton,
     showLyricsButton,

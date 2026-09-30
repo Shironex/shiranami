@@ -56,6 +56,9 @@ const progressBase = {
   trackName: z.string(),
 };
 
+/** `library:folders-changed`. */
+export const foldersChanged = predicate(z.object({ folderIds: z.array(z.string()) }));
+
 /** `library:scan-progress`. */
 export const scanProgress = predicate(
   z.object({

@@ -56,6 +56,6 @@ pub mod upstream;
 
 pub use error::ServeError;
 pub use icy::NowPlayingSink;
-pub use server::{ServeHandle, start};
+pub use server::{SHUTDOWN_GRACE, ServeHandle, start};
 pub use state::{ServeConfig, ServeState};
 pub use token::SessionToken;

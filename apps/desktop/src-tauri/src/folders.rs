@@ -320,6 +320,10 @@ impl Folders {
 pub async fn invalidate_after_change(app: &tauri::AppHandle, pool: &SqlitePool) {
     use tauri::Manager as _;
 
+    // The folder watcher follows the same three changes. Before the early
+    // return below, because it does not depend on the cache being managed.
+    crate::watch::spawn_refresh(app);
+
     let Some(folders) = app.try_state::<Arc<Folders>>() else {
         return;
     };

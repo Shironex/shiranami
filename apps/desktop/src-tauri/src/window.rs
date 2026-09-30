@@ -40,6 +40,7 @@
 //! renderer sees an API that accepts every call and does nothing — which is
 //! exactly what `useMediaSession.ts` expects once it becomes an `invoke` shim.
 
+use shiranami_media_controls::system::{CloseAction, MinimizeAction};
 use tauri::{Manager as _, WebviewWindow};
 
 use crate::compact::{Compact, CompactModeState};
@@ -273,8 +274,8 @@ pub fn renderer_seed_script(
 
 /// Install the two hooks that must exist before the user can touch the window.
 ///
-/// Called once, at the end of boot, after `AppState` is managed — the close
-/// handler reads the settings store through it.
+/// Called once, at the end of boot, after `AppState` is managed, because the
+/// close handler reads the settings store through it.
 pub fn configure(window: &WebviewWindow) {
     let base = window.as_ref().window();
 
@@ -286,31 +287,59 @@ pub fn configure(window: &WebviewWindow) {
     restore_compact_mode(window);
 }
 
-/// v1's `mainWindow.on('close', persistCompactBounds)`.
+/// v1's two `close` listeners, plus its `minimize` one.
 ///
-/// Lane 6 made the function `pub` and left it without a caller, naming the
-/// reason: quitting from compact mode — the taskbar, Alt+F4, a system shortcut —
-/// bypasses the explicit exit path and loses the corner the user parked the
-/// mini-player in.
+/// **Compact bounds.** `mainWindow.on('close', persistCompactBounds)`: quitting
+/// from compact mode (the taskbar, Alt+F4, a system shortcut) bypasses the
+/// explicit exit path and would lose the corner the user parked the
+/// mini-player in. Persisted on every close request, including one that ends
+/// up hidden, exactly as v1's listener ran whether or not the other one
+/// prevented the close.
+///
+/// **Close to tray.** `system-behavior.ts`' handler: unless the app is quitting,
+/// a close with `system.closeToTray` on is cancelled and the window hidden, so
+/// the music keeps playing. `crate::system` holds the flag and the settings.
+///
+/// **Minimize to tray.** Tauri has no minimize event, so the titlebar's button
+/// asks `crate::system` itself (`window:minimize`). On Windows a minimize the
+/// OS performed (the taskbar button, Win+Down) is caught here as a resize that
+/// leaves the window minimized. macOS emits no resize for a minimize, so Cmd+M
+/// is not caught there and minimizes to the Dock as usual.
 fn install_close_handler(window: &WebviewWindow) {
     let app = window.app_handle().clone();
     let base = window.as_ref().window();
 
-    base.clone().on_window_event(move |event| {
-        if !matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
-            return;
+    base.clone().on_window_event(move |event| match event {
+        tauri::WindowEvent::CloseRequested { api, .. } => {
+            // Both are managed by the time this can fire, but a `try_state`
+            // keeps a close during a failed boot from panicking on the way out.
+            if let (Some(state), Some(compact)) = (
+                app.try_state::<AppState>(),
+                app.try_state::<CompactModeState>(),
+            ) {
+                crate::commands::window::persist_compact_bounds(
+                    &base,
+                    state.settings(),
+                    compact.get(),
+                );
+            }
+
+            if crate::system::close_action(&app) == CloseAction::HideToTray {
+                api.prevent_close();
+                if let Err(error) = base.hide() {
+                    tracing::warn!(%error, "could not hide the window to the tray");
+                }
+            }
         }
-
-        // Both are managed by the time this can fire, but a `try_state` keeps a
-        // close during a failed boot from panicking on the way out.
-        let (Some(state), Some(compact)) = (
-            app.try_state::<AppState>(),
-            app.try_state::<CompactModeState>(),
-        ) else {
-            return;
-        };
-
-        crate::commands::window::persist_compact_bounds(&base, state.settings(), compact.get());
+        tauri::WindowEvent::Resized(_) => {
+            if base.is_minimized().unwrap_or(false)
+                && crate::system::minimize_action(&app) == MinimizeAction::HideToTray
+                && let Err(error) = base.hide()
+            {
+                tracing::warn!(%error, "could not hide the minimized window to the tray");
+            }
+        }
+        _ => {}
     });
 }
 

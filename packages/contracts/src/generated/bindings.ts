@@ -404,7 +404,13 @@ export const commands = {
 	dbSmartPlaylistsPreview: (definition: SmartPlaylistDefinition) => __TAURI_INVOKE<Track[]>("db_smart_playlists_preview", { definition }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
-	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
+	/**
+	 *  `db:tracks:add` — import one track, idempotently on `file_path`.
+	 * 
+	 *  Records the file's content hash (hashed before the connection is taken)
+	 *  but never follows a move: see the shell's `track_identity` module for why
+	 *  only the rescan does.
+	 */
 	dbTracksAdd: (track: TrackCreateInput) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */
 	id: string,
@@ -466,16 +472,35 @@ export const commands = {
 	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
 	loudnessRange: number | null,
 } | null>("db_tracks_add", { track }),
-	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
-	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
+	/**
+	 *  `db:tracks:add-many` — import a batch, returning the rows that landed and,
+	 *  when following moves, the rows that were re-pointed.
+	 * 
+	 *  `follow_moves` is the rescan's opt-in (absent or `false` everywhere else):
+	 *  a file whose content matches a row whose file has moved away re-points
+	 *  that row instead of inserting a stranger. The wire shape is unchanged, a
+	 *  flat `Track[]`: inserted rows first, then re-pointed ones, which carry ids
+	 *  the renderer's library already holds. Files are hashed, and moved files
+	 *  verified, before the connection is taken for the import.
+	 */
+	dbTracksAddMany: (tracksInput: TrackCreateInput[], followMoves: boolean | null) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput, followMoves }),
 	/**  `db:tracks:remove` — delete one track. */
 	dbTracksRemove: (id: string) => __TAURI_INVOKE<null>("db_tracks_remove", { id }),
 	/**
-	 *  `db:tracks:remove-many` — delete a batch.
+	 *  `db:tracks:remove-many` — delete a batch, returning the ids deleted.
 	 * 
 	 *  The orphaned-art sweep v1 fired afterwards is deferred; see the module docs.
+	 * 
+	 *  `expected_paths`, when given, pairs each id with the path the caller checked
+	 *  on disk, and a row is deleted only if it still holds that path. The
+	 *  rescan's sweep passes it, so a row re-pointed after its check (by an import
+	 *  following a move, from any caller) survives instead of being deleted by id,
+	 *  and the returned ids are exactly the rows that were deleted: the renderer
+	 *  drops those and nothing else. Without it the delete is by id, as v1's was,
+	 *  and the ids given are returned (v1 returned nothing, and every caller of
+	 *  that form ignores the value).
 	 */
-	dbTracksRemoveMany: (ids: string[]) => __TAURI_INVOKE<null>("db_tracks_remove_many", { ids }),
+	dbTracksRemoveMany: (ids: string[], expectedPaths: string[] | null) => __TAURI_INVOKE<string[]>("db_tracks_remove_many", { ids, expectedPaths }),
 	/**  `db:tracks:update` — patch one track. */
 	dbTracksUpdate: (id: string, data: TrackUpdateInput_Deserialize) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */
@@ -1288,6 +1313,23 @@ export const commands = {
 	 *  track skips yt-dlp entirely. Returns nothing, as v1 did.
 	 */
 	shareCacheYoutubeId: (trackId: string, youtubeId: string) => __TAURI_INVOKE<null>("share_cache_youtube_id", { trackId, youtubeId }),
+	/**
+	 *  Hand the renderer the deep link that arrived before it was listening, and
+	 *  switch every later link to the live `share:deep-link` event. Ports no v1
+	 *  channel.
+	 * 
+	 *  v1 dropped cold-start links entirely: its argv scan ran only for a second
+	 *  instance, and a link that launched the app reached a window with nothing
+	 *  subscribed yet. Emitting earlier cannot fix that, because the listener is a
+	 *  React effect that does not exist until the first render, so the renderer
+	 *  has to come and ask. [`crate::deep_link::PendingDeepLink`] explains why a
+	 *  link is held *or* emitted, never both.
+	 * 
+	 *  The bridge shim calls this once per page load. A second call is harmless:
+	 *  the slot is taken, so it answers `None`. `async` for the arch guard, which
+	 *  with borrowed `State` forces the `Result` return; it is always `Ok`.
+	 */
+	shareTakePendingDeepLink: () => __TAURI_INVOKE<string | null>("share_take_pending_deep_link"),
 	/**  `shell:show-in-folder` — reveal a file in the OS file manager. */
 	shellShowInFolder: (filePath: string) => __TAURI_INVOKE<null>("shell_show_in_folder", { filePath }),
 	/**
@@ -1387,7 +1429,15 @@ export const commands = {
 	 *  coordinates.
 	 */
 	weatherGetCurrent: (coords: Coordinates) => __TAURI_INVOKE<WeatherCurrent>("weather_get_current", { coords }),
-	/**  `window:minimize`. */
+	/**
+	 *  `window:minimize`, or a hide when `system.minimizeToTray` is on.
+	 * 
+	 *  v1 did the same from its `minimize` listener. Tauri has no such event, so
+	 *  the titlebar's button is where the setting is honoured. On Windows a
+	 *  minimize the OS performs (the taskbar button, Win+Down) is caught by the
+	 *  resize hook in `crate::window`; macOS sends no resize for a minimize, so
+	 *  Cmd+M there still minimizes to the Dock whatever the setting.
+	 */
 	windowMinimize: () => __TAURI_INVOKE<void>("window_minimize"),
 	/**
 	 *  `window:maximize` — a **toggle**, not a maximize.
@@ -1449,6 +1499,7 @@ export const events = {
 	downloaderInstallProgress: makeEvent<DownloaderInstallProgress>("downloader:install-progress"),
 	downloaderProgress: makeEvent<DownloaderProgress>("downloader:progress"),
 	downloaderQueueState: makeEvent<DownloaderQueueState>("downloader:queue-state"),
+	libraryFoldersChanged: makeEvent<LibraryFoldersChanged>("library:folders-changed"),
 	libraryScanProgress: makeEvent<LibraryScanProgress>("library:scan-progress"),
 	loudnessProgress: makeEvent<LoudnessProgress>("loudness:progress"),
 	lyricsSaveProgress: makeEvent<LyricsSaveProgress>("lyrics:save-progress"),
@@ -2333,6 +2384,12 @@ export type FileFilter = {
 	extensions: string[],
 };
 
+/**  The payload of `library:folders-changed`: which registered folders changed. */
+export type FoldersChanged = {
+	/**  `folders.id` of every folder in the batch. */
+	folderIds: string[],
+};
+
 /**  A resolved place, as returned by the geocoding lookup. */
 export type GeocodeResult = {
 	/**  Latitude in decimal degrees. */
@@ -2420,6 +2477,16 @@ export type LastfmAuthStart = {
 	/**  Present on failure; a short reason key for the UI toast. */
 	error?: string | null,
 };
+
+/**
+ *  Registered music folders changed on disk (v2, F10, no v1 counterpart).
+ * 
+ *  One event per coalesced batch, never one per file: the watcher waits
+ *  for a folder to go quiet and for every new file in it to stop growing,
+ *  then names the folders. The renderer rescans exactly those. See
+ *  `crate::watch`.
+ */
+export type LibraryFoldersChanged = FoldersChanged;
 
 /**
  *  A track on the "Recommended from your library" shelf.

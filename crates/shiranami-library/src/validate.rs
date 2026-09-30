@@ -13,13 +13,21 @@
 //! playlist membership and play history.
 //!
 //! That division of labour is worth stating plainly because of what it costs.
-//! An unmounted external drive makes every track on it "missing", and they are
-//! then permanently removed — no soft delete, no grace period, no per-volume
-//! availability check, even though [`crate::storage`] models exactly that
-//! concept one module over. v1 behaves this way and v2 reproduces it, because
-//! the decision to delete lives in `apps/web`, which is unchanged (architecture
-//! §2.6). If it is ever softened, the fix belongs there or in a v2-native flow —
-//! not in a silent behaviour change here.
+//! v1 treated *any* failed check as missing, so an unreadable volume, a
+//! permissions error or a dead network mount made every track on it "missing",
+//! and they were then permanently removed.
+//!
+//! # v2 changes one thing: only "not found" is missing
+//!
+//! Live folder watching (F10) made that failure automatic rather than something
+//! a user had to click into, so the answer here is now three-valued. A path the
+//! OS reports as not found is missing, as before. A path that cannot be checked
+//! at all (`EACCES`, `EIO`, a timed-out or stale network handle) is *unknown*,
+//! and unknown is not returned: the row stays. A genuinely deleted file is
+//! still reported and still removed, by the manual Rescan and the watcher
+//! alike. The watcher's renderer path adds its own per-folder guards on top
+//! (`apps/web/src/lib/folderScope.ts`), because an unmounted drive *does* read
+//! as not found.
 
 use std::path::{Path, PathBuf};
 
@@ -31,20 +39,22 @@ use rayon::prelude::*;
 /// could not open fifty thousand descriptors at once. Here it is the batch
 /// granularity, and the concurrency ceiling is rayon's pool instead: "128 in
 /// flight" in a threaded runtime means 128 OS threads, which is worse than the
-/// problem the number was chosen to solve. The observable behaviour — input
-/// order, duplicates preserved, any error meaning missing — is unchanged.
+/// problem the number was chosen to solve. Input order and duplicates are
+/// preserved as v1 preserved them.
 pub const VALIDATE_BATCH: usize = 128;
 
 /// Return the paths that are no longer on disk, in input order.
 ///
 /// # Semantics worth not tidying
 ///
-/// - **Any error means missing.** v1 wrapped `fs.access(path, F_OK)` in a bare
-///   `catch` returning the path, so `EACCES`, `EIO`, `ENOTDIR` and a
-///   disconnected network mount are all indistinguishable from `ENOENT` — and
-///   all lead to deletion. [`Path::try_exists`] would let us tell them apart;
-///   using it would change which tracks survive a rescan on a permission-denied
-///   volume, so [`Path::exists`]'s "any failure is a false" is what is used.
+/// - **Only "not found" means missing.** v1 wrapped `fs.access(path, F_OK)` in
+///   a bare `catch`, so `EACCES`, `EIO` and a disconnected network mount all
+///   read as `ENOENT` and all led to deletion. [`Path::try_exists`] tells them
+///   apart, and anything other than a clean "does not exist" keeps the path
+///   out of the result. See the module docs for why this was changed. It is
+///   not a volume check: an unmounted drive or share usually leaves its mount
+///   point behind, so its files read as a clean "not found" and are reported.
+///   The watcher's per-folder guards in the renderer exist for that case.
 /// - **Symlinks are followed**, unlike discovery, which skips them outright. A
 ///   symlinked track already in the database therefore validates fine even
 ///   though a scan could never have discovered it.
@@ -80,9 +90,15 @@ pub fn validate_files(paths: &[PathBuf]) -> Vec<PathBuf> {
     missing
 }
 
-/// v1's `fs.access(path, F_OK)` reduced to its observable answer.
+/// Whether `path` should be kept: it exists, or it could not be checked.
 fn exists(path: &Path) -> bool {
-    path.exists()
+    match path.try_exists() {
+        Ok(found) => found,
+        Err(error) => {
+            tracing::debug!(%error, path = %path.display(), "could not check a track; keeping it");
+            true
+        }
+    }
 }
 
 #[cfg(test)]
@@ -173,6 +189,31 @@ mod tests {
             validate_files(&[link]).is_empty(),
             "validation follows symlinks; discovery skips them"
         );
+    }
+
+    /// The gate's case: every file on a volume answers `EACCES`. None of them
+    /// is reported, so none is deleted. A genuinely deleted file next to them
+    /// still is.
+    #[cfg(unix)]
+    #[test]
+    fn an_unreadable_file_is_not_missing_but_a_deleted_one_is() {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let locked = dir.path().join("locked");
+        std::fs::create_dir(&locked).expect("the fixture writes");
+        let unreadable = write(&locked, "a.mp3");
+        let gone = dir.path().join("gone.mp3");
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000))
+            .expect("the fixture locks");
+
+        let result = validate_files(&[unreadable.clone(), gone.clone()]);
+
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755))
+            .expect("the fixture unlocks");
+        // Under root the bits do not bite and the file simply exists, which
+        // leaves it out of the result all the same.
+        assert_eq!(result, vec![gone]);
     }
 
     #[test]

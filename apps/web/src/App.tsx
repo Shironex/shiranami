@@ -64,6 +64,7 @@ const OnboardingWizard = lazy(
 );
 const NamingCeremony = lazy(() => import('@/components/companion/NamingCeremony/NamingCeremony'));
 import { useAudioEngine } from '@/hooks/useAudioEngine';
+import { useAmbience } from '@/hooks/useAmbience';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useLibrarySync } from '@/hooks/useLibrarySync';
@@ -88,6 +89,7 @@ import { useViewStore } from '@/stores/useViewStore';
 import { useDownloadStore } from '@/stores/useDownloadStore';
 import { useDownloadQueueStore } from '@/stores/useDownloadQueueStore';
 import { useDownloadQueueImporter, hydrateDownloadQueue } from '@/hooks/useDownloadQueueImporter';
+import { useFolderWatch } from '@/hooks/useFolderWatch';
 import { useMetadataEnrichStore } from '@/stores/useMetadataEnrichStore';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useOnboardingStore } from '@/stores/useOnboardingStore';
@@ -125,6 +127,7 @@ function App() {
   const reducedMotion = useReducedMotion();
 
   useAudioEngine();
+  useAmbience();
   useMediaSession();
   usePlayerPreferences();
   const {
@@ -232,6 +235,8 @@ function App() {
   }, []);
 
   useDownloadQueueImporter();
+  // Rescan the folders the shell's watcher reports as changed.
+  useFolderWatch();
 
   useEffect(() => {
     if (!IS_ELECTRON) return;

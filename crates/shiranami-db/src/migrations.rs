@@ -22,7 +22,41 @@ use crate::error::{DbError, Result};
 /// which is why this does not violate the "never `CARGO_MANIFEST_DIR` as a
 /// runtime path" rule (architecture §2.3) — nothing looks for this directory on
 /// the user's machine.
-pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
+///
+/// # It tolerates migrations from a newer build
+///
+/// `ignore_missing` is on, so a ledger naming a version this build does not
+/// know (a newer build ran it, and the user rolled back) opens instead of
+/// failing with `VersionMissing`. v2.0.0 shipped without this, which is why a
+/// database migration `0009` touched cannot be opened by 2.0.0; turning it on
+/// here stops that from recurring for every rollback *to* this build or later.
+///
+/// What the flag switches off is exactly one check, and what stays on is what
+/// protects the data (sqlx 0.9, `Migrator::run_direct`):
+///
+/// - still refused: a **dirty** ledger (a migration that failed partway), and
+///   a **checksum mismatch** on any version this build does know;
+/// - still applied: every version this build knows and the ledger lacks, in
+///   order;
+/// - no longer refused: a version the ledger has and this build lacks.
+///
+/// That last one is safe only because every post-baseline migration is
+/// **additive** (new nullable columns, new tables, new indexes, data repairs
+/// that leave old readers working), which is the rule every file in
+/// `migrations/` states and the reason the `user_version` floor stays 8. A
+/// future migration that renames, drops or retypes something an older build
+/// reads must raise the floor instead ([`crate::compat`]), so the older build
+/// refuses the file by its `user_version` before it ever reaches the migrator.
+///
+/// The fields are set by functional update because `Migrator` has no `Clone`
+/// and `set_ignore_missing` needs a `&mut` a `static` cannot give. They are
+/// `#[doc(hidden)]` and semver-exempt in sqlx, so a sqlx upgrade may break this
+/// line; that is a compile error, and `tests/migration_track_content_hash.rs`
+/// pins the behaviour.
+pub static MIGRATOR: Migrator = Migrator {
+    ignore_missing: true,
+    ..sqlx::migrate!("./migrations")
+};
 
 /// The version of the squashed baseline, from its filename.
 const BASELINE_VERSION: i64 = 1;

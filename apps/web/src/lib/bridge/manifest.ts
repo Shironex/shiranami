@@ -80,6 +80,7 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'library:validate-files': ['library', 'validateFiles'],
   'library:scan-progress': ['library', 'onScanProgress'],
   'library:scan-cancel': ['library', 'cancelScan'],
+  'library:folders-changed': ['library', 'onFoldersChanged'],
 
   // ── lyrics / weather ────────────────────────────────────────────────────
   'lyrics:fetch': ['lyrics', 'fetch'],

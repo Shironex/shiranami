@@ -16,7 +16,7 @@
  * `apps/desktop/src/main/preload/electron-api-contract.test.ts` keeps them honest.
  */
 
-import type { WatchedFolder } from '../domain/folder';
+import type { FoldersChanged, WatchedFolder } from '../domain/folder';
 import type { LyricsResult } from '../domain/lyrics';
 import type { LyricsBatchProgress, LyricsBatchSummary, LyricsBatchTrack } from './lyrics';
 import type { PlaylistExtractResult, SearchResult, TrackMetadata } from '../domain/media';
@@ -137,6 +137,12 @@ export interface LibraryApi {
   validateFiles: (filePaths: string[]) => Promise<string[]>;
   onScanProgress: (callback: (data: ScanProgress) => void) => () => void;
   cancelScan: () => Promise<void>;
+  /**
+   * Registered folders changed on disk, one call per coalesced batch. v2-only:
+   * v1 had no folder watcher, so the Electron preload leaves this undefined and
+   * the renderer feature-detects.
+   */
+  onFoldersChanged?: (callback: (data: FoldersChanged) => void) => () => void;
 }
 
 // ── analysis ──────────────────────────────────────────────────────────────
@@ -276,10 +282,21 @@ export interface DbTracksApi {
   getAll: () => Promise<Track[]>;
   /** Idempotent on `filePath`: an already-imported file returns its existing row. */
   add: (track: TrackCreateInput) => Promise<Track | undefined>;
-  /** Returns only the rows actually inserted — duplicates are skipped, not echoed. */
-  addMany: (tracks: TrackCreateInput[]) => Promise<Track[]>;
+  /**
+   * Returns only the rows actually inserted — duplicates are skipped, not echoed.
+   * With `followMoves` (the rescan only), a file whose content matches a track
+   * whose file has moved away re-points that track instead, and the
+   * re-pointed row is returned too, carrying its existing id.
+   */
+  addMany: (tracks: TrackCreateInput[], options?: { followMoves?: boolean }) => Promise<Track[]>;
   remove: (id: string) => Promise<void>;
-  removeMany: (ids: string[]) => Promise<void>;
+  /**
+   * With `expectedPaths` (one per id), a track is removed only if it still
+   * holds that path, so a sweep never deletes a track re-pointed since its
+   * files were checked, and the resolved ids are exactly the tracks deleted.
+   * Without it the delete is by id and resolves the ids it was given.
+   */
+  removeMany: (ids: string[], expectedPaths?: string[]) => Promise<string[]>;
   update: (id: string, data: TrackUpdateInput) => Promise<Track | undefined>;
   updateMany: (updates: Array<{ id: string; data: TrackUpdateInput }>) => Promise<void>;
   toggleFavorite: (id: string) => Promise<Track | undefined>;

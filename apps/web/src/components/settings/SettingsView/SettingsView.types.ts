@@ -11,6 +11,7 @@ export type ISettingsSection =
   | 'downloads'
   | 'playback'
   | 'equalizer'
+  | 'ambience'
   | 'visualizer'
   | 'lyrics'
   | 'compact'

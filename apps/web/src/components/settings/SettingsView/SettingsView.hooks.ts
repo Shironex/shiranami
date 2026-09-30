@@ -21,6 +21,7 @@ import {
   Radio,
   ShieldCheck,
   CloudSun,
+  CloudRain,
   MonitorCog,
   Keyboard,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ import { MetadataEnrichSection } from '@/components/settings/MetadataEnrichSecti
 import { DownloadsSection } from '@/components/settings/downloads/DownloadsSection';
 import { PlaybackSection } from '@/components/settings/PlaybackSection';
 import { EqualizerSection } from '@/components/settings/EqualizerSection';
+import { AmbienceSection } from '@/components/settings/AmbienceSection';
 import { VisualizerSection } from '@/components/settings/VisualizerSection';
 import { UpdatesSection } from '@/components/settings/UpdatesSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
@@ -104,6 +106,13 @@ const SECTIONS: ISettingsSectionEntry[] = [
     labelKey: 'equalizer',
     subtitleKey: 'subtitles.equalizer',
     Icon: SlidersHorizontal,
+    group: 'playback',
+  },
+  {
+    id: 'ambience',
+    labelKey: 'ambience',
+    subtitleKey: 'subtitles.ambience',
+    Icon: CloudRain,
     group: 'playback',
   },
   {
@@ -221,6 +230,7 @@ const SECTION_PANEL: Record<ISettingsSection, ComponentType> = {
   downloads: DownloadsSection,
   playback: PlaybackSection,
   equalizer: EqualizerSection,
+  ambience: AmbienceSection,
   visualizer: VisualizerSection,
   lyrics: LyricsSection,
   compact: CompactSection,
