@@ -138,6 +138,32 @@ describe('share.onDeepLink', () => {
     expect(seen).toHaveBeenCalledWith('AbC123');
   });
 
+  it('waits for the replacement listener after a StrictMode remount', async () => {
+    // The first registration's round-trip finishing says nothing about the
+    // second one, and taking in between would emit a link to nobody.
+    const firstListen = deferred<void>();
+    const secondListen = deferred<void>();
+    shareTakePendingDeepLink.mockResolvedValue('AbC123');
+    const shareApi = await loadShareApi();
+    const seen = vi.fn();
+
+    live.registered = firstListen.promise;
+    const unsubscribe = shareApi.onDeepLink(seen);
+    unsubscribe();
+    live.registered = secondListen.promise;
+    shareApi.onDeepLink(seen);
+
+    firstListen.resolve();
+    await settle();
+    expect(shareTakePendingDeepLink).not.toHaveBeenCalled();
+
+    secondListen.resolve();
+    await settle();
+    expect(shareTakePendingDeepLink).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledWith('AbC123');
+  });
+
   it('never hands the link to a subscriber that left before the take answered', async () => {
     const take = deferred<string | null>();
     shareTakePendingDeepLink.mockReturnValue(take.promise);

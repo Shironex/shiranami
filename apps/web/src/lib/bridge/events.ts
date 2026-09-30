@@ -96,7 +96,8 @@ function open(channel: string, binding: EventBinding): Registration {
     })
     .catch((error: unknown) => {
       logger.error(`[bridge] failed to listen on ${channel}`, error);
-      registry.delete(channel);
+      // Only this registration: a replacement opened after a remount is live.
+      if (registry.get(channel) === registration) registry.delete(channel);
     });
 
   return registration;
@@ -152,9 +153,20 @@ export function subscribeChannel<T>(
  * accept that; one that must not miss an event, such as the cold-start deep
  * link drain, waits on this first. Resolves at once for a channel nobody has
  * subscribed to.
+ *
+ * A `<StrictMode>` remount closes the first registration and opens another
+ * while the first round-trip is still in flight, so settling one registration
+ * is not enough: this waits until the one it waited on is still the current
+ * one.
  */
-export function whenListening(channel: string): Promise<void> {
-  return registry.get(channel)?.ready ?? Promise.resolve();
+export async function whenListening(channel: string): Promise<void> {
+  let current = registry.get(channel);
+  while (current) {
+    await current.ready;
+    const next = registry.get(channel);
+    if (next === current) return;
+    current = next;
+  }
 }
 
 /**
