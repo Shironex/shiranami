@@ -224,7 +224,7 @@ mod tests {
         assert!(
             ts.contains(r#"LyricsSource = "lrclib" | "local-lrc" | "local-txt" | "embedded";"#)
         );
-        assert!(ts.contains(r#"SystemNoticeSource = "discord" | "album-art";"#));
+        assert!(ts.contains(r#"SystemNoticeSource = "discord" | "album-art" | "downloader";"#));
         assert!(ts.contains(r#"SystemNoticeLevel = "error" | "warn" | "info";"#));
         assert!(ts.contains(r#"SmartPlaylistMatchType = "all" | "any";"#));
         assert!(ts.contains(

@@ -92,9 +92,191 @@ pub fn classify_failure(output: &str) -> String {
     }
 }
 
+/// What kind of failure a yt-dlp run was, for deciding whether a newer yt-dlp
+/// could fix it.
+///
+/// Separate from [`classify_failure`], which answers "what does the user read",
+/// because this answers "what does the app do". Only [`Self::Extractor`] ever
+/// triggers an update check: a network error is not fixed by a new binary, and
+/// a private or removed video is not fixed by anything.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FailureKind {
+    /// The site changed under yt-dlp: an extractor, signature or format
+    /// failure of the kind yt-dlp fixes in a release.
+    Extractor,
+    /// The connection failed before the site had a chance to answer.
+    Network,
+    /// The video itself cannot be had: private, removed, age-restricted,
+    /// region-blocked. A newer yt-dlp changes none of that.
+    Unavailable,
+    /// Nothing recognisable.
+    Other,
+}
+
+impl FailureKind {
+    /// Whether a newer yt-dlp might fix this.
+    pub fn suggests_outdated_yt_dlp(self) -> bool {
+        self == Self::Extractor
+    }
+}
+
+/// Needles for content that is gone or gated. Checked first: yt-dlp wraps
+/// several of these in an extractor error, and "update yt-dlp" is the wrong
+/// answer to a private video however it is phrased.
+const UNAVAILABLE: &[&str] = &[
+    "private video",
+    "video unavailable",
+    "unplayable",
+    "has been removed",
+    "no longer available",
+    "account associated with this video has been terminated",
+    "members-only",
+    "join this channel to get access",
+    "not available in your country",
+    "blocked it in your country",
+    "on copyright grounds",
+    "sign in to confirm your age",
+    "login_required",
+    "age-restricted",
+    "premieres in",
+    "this live event will begin",
+];
+
+/// Needles for a connection that failed. `HTTP Error 429` belongs here too:
+/// being rate limited is a reason to wait, not to update.
+const NETWORK: &[&str] = &[
+    "urlopen error",
+    "getaddrinfo failed",
+    "nodename nor servname",
+    "name or service not known",
+    "temporary failure in name resolution",
+    "connection refused",
+    "connection reset",
+    "connection aborted",
+    "network is unreachable",
+    "no route to host",
+    "timed out",
+    "incompleteread",
+    "http error 429",
+    "ssl: certificate_verify_failed",
+];
+
+/// Needles for yt-dlp's own "the site changed" failures. Several of these are
+/// yt-dlp literally asking to be updated.
+const EXTRACTOR: &[&str] = &[
+    "unable to extract",
+    "signature extraction failed",
+    "nsig extraction failed",
+    "please report this issue on",
+    "confirm you are on the latest version",
+    "requested format is not available",
+    "no video formats found",
+    "failed to parse json",
+    "unable to decode",
+];
+
+/// Decide what kind of failure `text` describes.
+///
+/// `text` is what the queue kept of a failed download: either one of the
+/// frozen `yt_dlp_*` codes [`classify_failure`] produced, or the tail of
+/// yt-dlp's output when nothing matched. Both are handled, which is why the
+/// codes are matched as well as the raw lines.
+///
+/// `yt_dlp_no_audio_format` reads as [`FailureKind::Extractor`]. On YouTube
+/// "requested format is not available" for an audio-only request is almost
+/// always the tail of a signature (`nsig`) failure, the single most common
+/// breakage a yt-dlp release fixes. Checking for an update on it costs one API
+/// request when there is none.
+pub fn failure_kind(text: &str) -> FailureKind {
+    let text = text.to_lowercase();
+    let has = |needles: &[&str]| needles.iter().any(|needle| text.contains(needle));
+
+    if text == yt_dlp::AGE_RESTRICTED || text == yt_dlp::VIDEO_UNAVAILABLE || has(UNAVAILABLE) {
+        return FailureKind::Unavailable;
+    }
+    if text == yt_dlp::NO_AUDIO_FORMAT {
+        return FailureKind::Extractor;
+    }
+    if has(NETWORK) {
+        return FailureKind::Network;
+    }
+    if has(EXTRACTOR) {
+        return FailureKind::Extractor;
+    }
+    FailureKind::Other
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extractor_breakage_suggests_an_outdated_yt_dlp() {
+        // Real lines, from yt-dlp issues filed after YouTube changes.
+        for line in [
+            "ERROR: [youtube] dQw4w9WgXcQ: Unable to extract uploader id; please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U",
+            "WARNING: [youtube] dQw4w9WgXcQ: nsig extraction failed: Some formats may be missing\nERROR: [youtube] dQw4w9WgXcQ: Requested format is not available. Use --list-formats for a list of available formats",
+            "ERROR: [youtube] dQw4w9WgXcQ: Signature extraction failed: Some formats may be missing",
+            "ERROR: [soundcloud] 123456: Unable to extract client id",
+            "yt_dlp_no_audio_format",
+        ] {
+            let kind = failure_kind(line);
+            assert_eq!(kind, FailureKind::Extractor, "{line}");
+            assert!(kind.suggests_outdated_yt_dlp());
+        }
+    }
+
+    #[test]
+    fn a_video_that_is_gone_never_suggests_an_update() {
+        for line in [
+            "ERROR: [youtube] abcdefghijk: Private video. Sign in if you've been granted access to this video",
+            "ERROR: [youtube] abcdefghijk: Video unavailable. This video has been removed by the uploader",
+            "ERROR: [youtube] abcdefghijk: Video unavailable. This video is no longer available because the YouTube account associated with this video has been terminated.",
+            "ERROR: [youtube] abcdefghijk: Join this channel to get access to members-only content like this video, and other exclusive perks.",
+            "ERROR: [youtube] abcdefghijk: Video unavailable. The uploader has not made this video available in your country",
+            "ERROR: [youtube] abcdefghijk: This video is not available in your country",
+            "yt_dlp_video_unavailable",
+            "yt_dlp_age_restricted",
+        ] {
+            let kind = failure_kind(line);
+            assert_eq!(kind, FailureKind::Unavailable, "{line}");
+            assert!(!kind.suggests_outdated_yt_dlp(), "{line}");
+        }
+    }
+
+    #[test]
+    fn a_gone_video_wins_even_when_yt_dlp_asks_to_be_reported() {
+        assert_eq!(
+            failure_kind(
+                "ERROR: [youtube] abcdefghijk: Private video; please report this issue on https://github.com/yt-dlp/yt-dlp/issues"
+            ),
+            FailureKind::Unavailable
+        );
+    }
+
+    #[test]
+    fn a_network_failure_never_suggests_an_update() {
+        for line in [
+            "ERROR: [youtube] abcdefghijk: Unable to download webpage: <urlopen error [Errno 8] nodename nor servname provided, or not known> (caused by URLError(gaierror(8, 'nodename nor servname provided, or not known')))",
+            "ERROR: [youtube] abcdefghijk: Unable to download API page: <urlopen error [Errno 11001] getaddrinfo failed> (caused by TransportError(\"<urlopen error [Errno 11001] getaddrinfo failed>\"))",
+            "ERROR: unable to download video data: HTTP Error 429: Too Many Requests",
+            "ERROR: [download] Got error: The read operation timed out",
+        ] {
+            let kind = failure_kind(line);
+            assert_eq!(kind, FailureKind::Network, "{line}");
+            assert!(!kind.suggests_outdated_yt_dlp(), "{line}");
+        }
+    }
+
+    #[test]
+    fn an_unrecognised_failure_does_not_suggest_an_update() {
+        assert_eq!(failure_kind(NO_OUTPUT), FailureKind::Other);
+        assert_eq!(
+            failure_kind("ERROR: Postprocessing: audio conversion failed"),
+            FailureKind::Other
+        );
+        assert_eq!(failure_kind(""), FailureKind::Other);
+    }
 
     #[test]
     fn returns_the_last_n_non_empty_lines() {

@@ -1,3 +1,5 @@
+import type { IToolAutoUpdatePanelProps } from '@/components/settings/downloads/ToolAutoUpdatePanel';
+
 export interface IDownloadsSectionView {
   // --- Top-level loading / install-one-pass state ---
   /** Whether tool status is still being checked (shows the skeleton). */
@@ -54,6 +56,16 @@ export interface IDownloadsSectionView {
   readonly ffmpegLatestText: string | null;
   /** Hint shown beneath the ffmpeg controls (latest vs install hint). */
   readonly ffmpegHint: string;
+
+  // --- Automatic tool updates ---
+  /** Props for the automatic-update opt-in beside the tool rows. */
+  readonly autoUpdate: IToolAutoUpdatePanelProps;
+  /** Whether an install of yt-dlp not started by this button is running. */
+  readonly ytdlpAutoInstalling: boolean;
+  /** Whether such an install of ffmpeg is running (never on macOS). */
+  readonly ffmpegAutoInstalling: boolean;
+  /** Note shown in place of an update button while such an install runs. */
+  readonly autoInstallingHint: string;
 
   // --- Download location ---
   /** Path displayed in the location panel (custom, default, or "checking"). */

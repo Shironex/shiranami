@@ -853,7 +853,15 @@
     "ffmpegInstalled": "ffmpeg zainstalowany",
     "ffmpegNotInstalled": "ffmpeg nie jest zainstalowany",
     "recommended": "zalecany",
-    "refresh": "Odśwież status narzędzi"
+    "refresh": "Odśwież status narzędzi",
+    "autoUpdate": {
+      "label": "Automatycznie aktualizuj narzędzia do pobierania",
+      "description": "Aktualizuje yt-dlp na każdym systemie, a ffmpeg na Windowsie. Nowa wersja instaluje się tylko wtedy, gdy nic się nie pobiera. yt-dlp jest sprawdzany raz dziennie, a ffmpeg raz w tygodniu. Gdy pobieranie nie powiedzie się, bo strona coś zmieniła, yt-dlp zostaje sprawdzony od razu.",
+      "updatedTo": "Zaktualizowano automatycznie do {{version}}",
+      "checkedAt": "Ostatnie sprawdzenie: {{when}}",
+      "notChecked": "Jeszcze nie sprawdzono",
+      "inProgress": "Trwa aktualizacja. Spróbuj ponownie za chwilę."
+    }
   },
   "upd": {
     "title": "Aktualizacje",

@@ -183,7 +183,7 @@ pub async fn downloader_install_dependencies(
         .await;
 
     // v1 invalidated unconditionally, including on the nothing-to-do path.
-    invalidate(&state);
+    invalidate(state.settings());
 
     Ok(result)
 }
@@ -197,7 +197,7 @@ fn finish_install(
     // install cleared the cache and a failed one did not. Reproduced by
     // invalidating only on success.
     outcome.wire()?;
-    invalidate(state);
+    invalidate(state.settings());
     Ok(())
 }
 
@@ -255,11 +255,11 @@ pub(crate) async fn refresh(app: &AppHandle, state: &AppState) -> CommandResult<
 }
 
 /// Drop the cache, so the next refresh recomputes.
-fn invalidate(state: &AppState) {
-    if let Err(error) = state
-        .settings()
-        .delete_main(MainStoreKey::DownloadsToolStatusCache)
-    {
+///
+/// `pub(crate)` for the automatic updater, which replaces a binary with no
+/// command in flight and has to leave the panel as fresh as an install does.
+pub(crate) fn invalidate(settings: &shiranami_core::store::SettingsStore) {
+    if let Err(error) = settings.delete_main(MainStoreKey::DownloadsToolStatusCache) {
         // Not fatal to the install that just succeeded: a stale cache shows an
         // old version string until the next refresh, which the panel triggers
         // on its own.

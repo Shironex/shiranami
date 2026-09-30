@@ -18,6 +18,7 @@
 //! | ------------- | -------- | ------------------------------------------- |
 //! | [`location`]  | 2        | the settings store and `location`           |
 //! | [`tools`]     | 9        | `bin::Tools`, the two binary managers       |
+//! | [`auto_update`] | 1      | the automatic tool-update record (v2-only)  |
 //! | [`fetch`]     | 4        | `SearchService`, `DownloadRunner`           |
 //! | [`queue`]     | 10       | `queue::DownloadQueue`                      |
 //!
@@ -57,6 +58,7 @@
 // given down to that macro. A `pub use` carries the function and not the macro,
 // so a re-exported path fails to resolve with an error naming a symbol nobody
 // wrote. [`list`] therefore spells the defining module in every path.
+pub mod auto_update;
 pub mod fetch;
 pub mod location;
 pub mod queue;

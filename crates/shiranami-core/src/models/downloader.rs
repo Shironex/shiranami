@@ -66,6 +66,64 @@ pub struct CachedToolStatus {
     pub timestamp: i64,
 }
 
+/// What automatic updating has done for one tool.
+///
+/// Every field defaults, because this is persisted (under the main-only
+/// `downloads.autoUpdate` key) and a record written by an older build, or none
+/// at all, must still read as "never checked".
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolUpdateRecord {
+    /// When an automatic check last reached the upstream, epoch milliseconds.
+    #[serde(default)]
+    #[specta(optional, type = Option<Number>)]
+    pub last_checked_at: Option<i64>,
+    /// When an automatic update last installed a new version, epoch
+    /// milliseconds.
+    #[serde(default)]
+    #[specta(optional, type = Option<Number>)]
+    pub last_updated_at: Option<i64>,
+    /// The version that automatic update installed.
+    #[serde(default)]
+    #[specta(optional)]
+    pub last_updated_version: Option<String>,
+    /// Failed automatic attempts since the last success. A notice is raised
+    /// only once this repeats, so one flaky mirror stays in the log.
+    #[serde(default)]
+    pub consecutive_failures: u32,
+    /// Whether an install of this tool (manual or automatic) is in progress
+    /// right now.
+    ///
+    /// Live, not bookkeeping: `downloader:get-auto-update-status` fills it
+    /// from the tool's install lock on every read, and nothing ever persists
+    /// it as `true`. The settings panel disables its update button meanwhile,
+    /// since a click would only queue behind the running install.
+    #[serde(default)]
+    pub installing: bool,
+}
+
+/// Automatic tool updating's persisted state, which the Downloads settings card
+/// also reads.
+///
+/// Whether automatic updating is *on* is not here: that is the user's choice,
+/// stored in the renderer settings blob, and this record is the app's own
+/// bookkeeping about what it did with that choice.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolAutoUpdateState {
+    /// yt-dlp's record.
+    #[serde(default)]
+    pub ytdlp: ToolUpdateRecord,
+    /// ffmpeg's record.
+    #[serde(default)]
+    pub ffmpeg: ToolUpdateRecord,
+    /// When a failed download last triggered an out-of-schedule yt-dlp check,
+    /// epoch milliseconds. Caps those checks at one an hour.
+    #[serde(default)]
+    #[specta(optional, type = Option<Number>)]
+    pub failure_check_at: Option<i64>,
+}
+
 /// Whether each external tool is present.
 ///
 /// Deliberately not [`ToolStatus`]: this is the cheap check the download view

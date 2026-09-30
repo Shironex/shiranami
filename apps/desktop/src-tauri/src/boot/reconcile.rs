@@ -14,7 +14,7 @@
 //! | Task                     | When                    | v1 source                     |
 //! | ------------------------ | ----------------------- | ----------------------------- |
 //! | queue hydrate and resume | immediately             | IPC registration              |
-//! | tool status              | immediately             | `fetchAndCacheToolStatus()`   |
+//! | tool status              | after swap recovery     | `fetchAndCacheToolStatus()`   |
 //! | art orphan prune         | immediately             | `pruneOrphanedAlbumArt()`     |
 //! | background sweep         | immediately             | v2-born; see `sweep_backgrounds` |
 //! | updater first check      | 5 s, then hourly        | `app/updater.ts`              |
@@ -38,7 +38,6 @@ const RECOMMENDATION_DELAY: Duration = Duration::from_secs(30);
 /// Start everything §2.8 step 6 lists. Returns immediately.
 pub fn spawn(app: &AppHandle, e2e: bool, handles: &Handles) {
     hydrate_download_queue(app);
-    warm_tool_status(app);
     prune_album_art(app);
     sweep_backgrounds(app);
 
@@ -55,21 +54,29 @@ pub fn spawn(app: &AppHandle, e2e: bool, handles: &Handles) {
     }
     schedule_recommendation_refresh(app);
     schedule_update_checks(app);
+    crate::downloads::auto_update::spawn(app);
     crate::track_identity::spawn_backfill(app);
 }
 
 /// v1's `hydrateAndResume`, which reloads the persisted queue and restarts
 /// whatever was downloading.
+///
+/// Any interrupted tool swap is rolled back first, and the tool-status warm-up
+/// starts only after that: its version probes run the binaries, and on Windows
+/// a running binary cannot be renamed back into place.
 fn hydrate_download_queue(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let Some(state) = app.try_state::<AppState>() else {
             return;
         };
+
+        crate::downloads::auto_update::recover_interrupted_swaps(&app, &state).await;
+        warm_tool_status(&app);
+
         let Some(queue) = state.deferred().downloads.clone() else {
             return;
         };
-
         // Never fails: the crate logs a failed read and starts empty, because
         // v1's call sat inside IPC registration where a throw would silently
         // skip every handler registered after it.
@@ -79,6 +86,7 @@ fn hydrate_download_queue(app: &AppHandle) {
 }
 
 /// v1's `fetchAndCacheToolStatus()`, fire-and-forget at IPC registration.
+/// Here it waits for swap recovery; see [`hydrate_download_queue`].
 ///
 /// Two network probes — the yt-dlp and ffmpeg release APIs — so the settings
 /// panel has a warm cache before the user opens it. Not E2E-gated, matching v1,

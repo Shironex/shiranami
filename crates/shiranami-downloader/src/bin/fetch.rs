@@ -171,6 +171,46 @@ pub async fn download_to_file(
     Ok(())
 }
 
+/// The most a text document fetched here (a checksum list) may hold.
+///
+/// yt-dlp's `SHA2-256SUMS` is about 2 KiB and gyan.dev's digest is 64 bytes;
+/// anything near this is not the document asked for.
+pub const MAX_TEXT_BYTES: usize = 64 * 1024;
+
+/// Fetch a small text document, such as a checksum list, over the same
+/// checked redirect loop the binaries use.
+///
+/// Not [`HttpClient::text`]: that follows redirects inside reqwest, where the
+/// https-only rule below cannot be applied to each hop, and a checksum is only
+/// worth what the channel it arrived over is worth.
+///
+/// # Errors
+///
+/// What [`download_to_file`] fails with, and `InstallFailed` for a body over
+/// [`MAX_TEXT_BYTES`].
+pub async fn download_text(client: &HttpClient, url: &str) -> Result<String> {
+    let mut response = follow(client, url).await?;
+    let mut body = Vec::new();
+
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|source| DownloaderError::Http {
+            operation: "read the download body",
+            source,
+        })?
+    {
+        body.extend_from_slice(&chunk);
+        if body.len() > MAX_TEXT_BYTES {
+            return Err(DownloaderError::InstallFailed {
+                message: format!("{url} answered with more than {MAX_TEXT_BYTES} bytes"),
+            });
+        }
+    }
+
+    Ok(String::from_utf8_lossy(&body).into_owned())
+}
+
 /// v1's `Math.min(100, Math.round(downloaded / contentLength * 100))`.
 ///
 /// The clamp matters: a server whose `Content-Length` understates the body — a
@@ -210,6 +250,7 @@ async fn follow(client: &HttpClient, url: &str) -> Result<shiranami_net::Streame
             && let Some(location) = response.location()
         {
             let next = resolve(&current, location)?;
+            check_hop(&current, &next)?;
             tracing::debug!(from = %current, to = %next, "download redirected");
             current = next;
             continue;
@@ -230,6 +271,30 @@ async fn follow(client: &HttpClient, url: &str) -> Result<shiranami_net::Streame
 
     Err(DownloaderError::InstallFailed {
         message: format!("download redirected more than {MAX_REDIRECTS} times"),
+    })
+}
+
+/// Refuse a redirect hop that is not https.
+///
+/// Every upstream this module is pointed at in production is an `https`
+/// constant (`layout`'s tests pin that), so in a shipped build this refuses
+/// every hop that is not https. A plain-`http` origin exists only in tests,
+/// which bind a loopback server that cannot speak TLS; staying on `http` from
+/// there is allowed, and leaving https for http never is.
+fn check_hop(from: &str, to: &str) -> Result<()> {
+    let scheme = |url: &str| url::Url::parse(url).map(|parsed| parsed.scheme().to_owned());
+    let (Ok(from), Ok(to_scheme)) = (scheme(from), scheme(to)) else {
+        return Err(DownloaderError::InstallFailed {
+            message: format!("could not follow the download redirect to {to}"),
+        });
+    };
+
+    if to_scheme == "https" || (to_scheme == "http" && from == "http") {
+        return Ok(());
+    }
+
+    Err(DownloaderError::InstallFailed {
+        message: format!("Refused a download redirect that leaves https: {to}"),
     })
 }
 
@@ -308,6 +373,31 @@ mod tests {
             vec![23, 45, 73, 95],
             "these are the exact values v1's ffmpeg-manager test observed for a \
              download reporting 50 then 100"
+        );
+    }
+
+    #[test]
+    fn a_redirect_may_never_leave_https() {
+        assert!(
+            check_hop(
+                "https://github.com/a",
+                "https://objects.githubusercontent.com/b"
+            )
+            .is_ok()
+        );
+        assert!(
+            check_hop(
+                "https://github.com/a",
+                "http://objects.githubusercontent.com/b"
+            )
+            .is_err(),
+            "a downgrade to plain http is refused"
+        );
+        assert!(check_hop("https://github.com/a", "ftp://mirror.example/b").is_err());
+        assert!(check_hop("https://github.com/a", "file:///etc/passwd").is_err());
+        assert!(
+            check_hop("http://127.0.0.1:1/a", "http://127.0.0.1:1/b").is_ok(),
+            "a plain-http origin is a test's loopback server and may stay on http"
         );
     }
 

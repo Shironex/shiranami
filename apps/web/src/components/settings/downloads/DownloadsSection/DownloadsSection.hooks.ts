@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useDownloadsSettings } from '@/components/settings/downloads/useDownloadsSettings';
+import { useToolAutoUpdate } from '@/components/settings/downloads/useToolAutoUpdate';
 import type { IDownloadsSectionView } from './DownloadsSection.types';
 
 /**
@@ -10,6 +11,8 @@ import type { IDownloadsSectionView } from './DownloadsSection.types';
 export function useDownloadsSection(): IDownloadsSectionView {
   const { t } = useTranslation('settings');
   const s = useDownloadsSettings();
+  // An automatic update while the card is open refreshes the version rows.
+  const autoUpdate = useToolAutoUpdate(s.handleRefresh);
 
   const ytdlpInstalledVersionText = s.ytdlpVersion
     ? `v${s.ytdlpVersion}`
@@ -60,6 +63,21 @@ export function useDownloadsSection(): IDownloadsSectionView {
     ffmpegInstalledVersionText,
     ffmpegLatestText,
     ffmpegHint,
+
+    autoUpdate: {
+      enabled: autoUpdate.enabled,
+      disabled: autoUpdate.disabled,
+      onEnabledChange: autoUpdate.setEnabled,
+      record: autoUpdate.record,
+      ffmpegIncluded: autoUpdate.ffmpegIncluded,
+    },
+    // Another install of the tool is running (an automatic update, or an
+    // install started elsewhere), and a click would only queue behind it, so
+    // the button makes way for a neutral note until it finishes. ffmpeg on
+    // macOS is never updated automatically, so it never gets the note there.
+    ytdlpAutoInstalling: autoUpdate.ytdlpInstalling,
+    ffmpegAutoInstalling: autoUpdate.ffmpegIncluded && autoUpdate.ffmpegInstalling,
+    autoInstallingHint: t('dl.autoUpdate.inProgress'),
 
     locationPathDisplay,
     downloadLocationIsDefault: s.downloadLocationIsDefault,

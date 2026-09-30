@@ -19,12 +19,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use shiranami_core::models::{
     DownloadProgress, DownloadProgressStatus, DownloadQueueSnapshot, EnqueueDownloadInput,
 };
+use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
+use crate::DownloaderError;
 use crate::download::{DownloadFailure, DownloadProgressSink, DownloadRequest, DownloadRunner};
 use crate::queue::broadcast::{SnapshotSink, Throttle};
 use crate::queue::persistence::QueuePersistence;
@@ -47,6 +50,17 @@ pub trait DownloadDirectory: Send + Sync {
     fn resolve(&self) -> crate::Result<PathBuf>;
 }
 
+/// Told when a download settles as failed.
+///
+/// The automatic yt-dlp update listens here: a failure that looks like the site
+/// changed triggers an immediate update check and, when a newer yt-dlp lands, a
+/// retry. Called after the item is already `error`, so a retry from inside the
+/// callback's follow-up work finds it retryable.
+pub trait FailureObserver: Send + Sync {
+    /// Item `id`, downloading `url`, failed with `error`.
+    fn failed(&self, id: &str, url: &str, error: &DownloaderError);
+}
+
 /// The download queue.
 pub struct DownloadQueue {
     state: Mutex<QueueState>,
@@ -57,6 +71,10 @@ pub struct DownloadQueue {
     sink: Arc<dyn SnapshotSink>,
     directory: Arc<dyn DownloadDirectory>,
     throttle: Throttle,
+    /// Woken whenever a download settles, for [`Self::wait_until_idle`].
+    settled: Notify,
+    /// Set once by the composition root, when automatic updates are wired.
+    failures: Mutex<Option<Arc<dyn FailureObserver>>>,
 }
 
 impl DownloadQueue {
@@ -80,7 +98,72 @@ impl DownloadQueue {
             sink,
             directory,
             throttle: Throttle::new(),
+            settled: Notify::new(),
+            failures: Mutex::new(None),
         })
+    }
+
+    /// Report every failed download to `observer`, replacing any earlier one.
+    pub fn observe_failures(&self, observer: Arc<dyn FailureObserver>) {
+        *lock(&self.failures) = Some(observer);
+    }
+
+    /// Stop starting queued downloads, for a binary swap. See
+    /// [`QueueState::hold`].
+    pub fn hold(&self) {
+        lock(&self.state).hold();
+    }
+
+    /// Undo [`Self::hold`] and start what it kept waiting.
+    pub async fn release(self: &Arc<Self>) {
+        let effects = lock(&self.state).release();
+        self.apply(effects).await;
+    }
+
+    /// [`Self::release`] from a synchronous context, such as a guard's `Drop`.
+    ///
+    /// The hold is lifted immediately; starting what it kept waiting needs the
+    /// async runtime, and is spawned onto it when there is one. Without a
+    /// runtime (only at process teardown) nothing is started, and the next
+    /// queue change starts it.
+    pub fn release_detached(self: &Arc<Self>) {
+        let effects = lock(&self.state).release();
+        if effects.is_empty() {
+            return;
+        }
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            let queue = Arc::clone(self);
+            runtime.spawn(async move { queue.apply(effects).await });
+        }
+    }
+
+    /// Whether nothing is downloading.
+    pub fn is_idle(&self) -> bool {
+        lock(&self.state).is_idle()
+    }
+
+    /// Wait until nothing is downloading, for at most `limit`.
+    ///
+    /// Returns whether the queue went idle. Only meaningful under
+    /// [`Self::hold`]: without it, a queued item can start the moment another
+    /// finishes and the queue may never be idle at all.
+    pub async fn wait_until_idle(&self, limit: Duration) -> bool {
+        tokio::time::timeout(limit, async {
+            loop {
+                // Registered before the check, so a download settling between
+                // the check and the await still wakes this.
+                let settled = self.settled.notified();
+                tokio::pin!(settled);
+                settled.as_mut().enable();
+
+                if self.is_idle() {
+                    return;
+                }
+                settled.await;
+            }
+        })
+        .await
+        .is_ok()
     }
 
     /// The queue as the renderer mirrors it.
@@ -256,6 +339,7 @@ impl DownloadQueue {
                 tracing::error!(id, url, %error, "download item failed before starting");
                 let effects = lock(&self.state).finish_error(&id, error.to_string(), now_ms());
                 self.apply(effects).await;
+                self.settled.notify_waiters();
                 return;
             }
         };
@@ -278,6 +362,7 @@ impl DownloadQueue {
 
         lock(&self.tokens).remove(&id);
 
+        let mut failure = None;
         let effects = {
             let mut state = lock(&self.state);
             match outcome {
@@ -285,12 +370,22 @@ impl DownloadQueue {
                 Err(DownloadFailure::Cancelled) => state.finish_cancelled(&id, now_ms()),
                 Err(DownloadFailure::Failed(error)) => {
                     tracing::error!(id, url, %error, "download item failed");
-                    state.finish_error(&id, error.to_string(), now_ms())
+                    let effects = state.finish_error(&id, error.to_string(), now_ms());
+                    failure = Some(error);
+                    effects
                 }
             }
         };
 
         self.apply(effects).await;
+        self.settled.notify_waiters();
+
+        if let Some(error) = failure {
+            let observer = lock(&self.failures).clone();
+            if let Some(observer) = observer {
+                observer.failed(&id, &url, &error);
+            }
+        }
     }
 }
 

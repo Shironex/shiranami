@@ -25,6 +25,8 @@ macro_rules! commands {
                 crate::commands::downloader::tools::downloader_install_ytdlp,
                 crate::commands::downloader::tools::downloader_install_ffmpeg,
                 crate::commands::downloader::tools::downloader_install_dependencies,
+                // ── automatic tool updates (v2-only) ─────────────────────
+                crate::commands::downloader::auto_update::downloader_get_auto_update_status,
                 // ── location ─────────────────────────────────────────────
                 crate::commands::downloader::location::downloader_get_download_location,
                 crate::commands::downloader::location::downloader_set_download_location,

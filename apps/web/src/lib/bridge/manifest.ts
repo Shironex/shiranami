@@ -164,6 +164,7 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'downloader:check-ffmpeg': ['downloader', 'checkFfmpeg'],
   'downloader:install-ffmpeg': ['downloader', 'installFfmpeg'],
   'downloader:install-dependencies': ['downloader', 'installDependencies'],
+  'downloader:get-auto-update-status': ['downloader', 'getToolAutoUpdateStatus'],
   'downloader:queue-enqueue': ['downloader', 'enqueueDownload'],
   'downloader:queue-cancel': ['downloader', 'cancelDownload'],
   'downloader:queue-cancel-all': ['downloader', 'cancelAllDownloads'],

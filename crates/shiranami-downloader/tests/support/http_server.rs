@@ -8,6 +8,8 @@
 //! Deliberately not a real HTTP implementation: it reads one request, replies
 //! with whatever the test queued, and closes.
 
+#![allow(dead_code, reason = "each test file uses a different subset")]
+
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 

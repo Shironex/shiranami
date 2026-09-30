@@ -433,6 +433,27 @@ export interface CachedToolStatus {
   timestamp: number;
 }
 
+/** What automatic updating has done for one tool (v2-only). */
+export interface ToolUpdateRecord {
+  /** When an automatic check last reached the upstream, epoch ms. */
+  lastCheckedAt?: number | null;
+  /** When an automatic update last installed a new version, epoch ms. */
+  lastUpdatedAt?: number | null;
+  /** The version that automatic update installed. */
+  lastUpdatedVersion?: string | null;
+  /** Failed automatic attempts since the last success. */
+  consecutiveFailures?: number;
+  /** Whether an install of this tool (manual or automatic) is running now. */
+  installing?: boolean;
+}
+
+/** Automatic tool updating's persisted record (v2-only). */
+export interface ToolAutoUpdateState {
+  ytdlp?: ToolUpdateRecord;
+  ffmpeg?: ToolUpdateRecord;
+  failureCheckAt?: number | null;
+}
+
 /** Progress event for the legacy single-URL download path. */
 export interface DownloadProgress {
   url: string;
@@ -483,6 +504,9 @@ export interface DownloaderApi {
   installFfmpeg: () => Promise<void>;
   onFfmpegInstallProgress: (callback: (progress: { percent: number }) => void) => () => void;
   installDependencies: () => Promise<InstallDependenciesResult>;
+  // Optional for the same reason as retry above: only the Tauri runtime keeps
+  // an automatic-update record.
+  getToolAutoUpdateStatus?: () => Promise<ToolAutoUpdateState>;
   onDependencyInstallProgress: (
     callback: (progress: DependencyInstallProgress) => void
   ) => () => void;

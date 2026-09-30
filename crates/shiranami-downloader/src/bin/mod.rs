@@ -7,16 +7,21 @@
 //! and the install-everything-missing run.
 
 pub mod archive;
+pub mod checksum;
 pub mod fetch;
 pub mod ffmpeg;
 mod ffmpeg_install;
 pub mod install;
 pub mod layout;
+pub mod lock;
 pub mod status;
+pub mod swap;
 pub mod ytdlp;
 
 pub use fetch::ProgressSink;
 pub use ffmpeg::FfmpegManager;
+pub use ffmpeg_install::StagedFfmpeg;
 pub use layout::{Platform, bin_dir};
+pub use lock::{InstallGuard, InstallLock};
 pub use status::{InstallProgressSink, Tools};
-pub use ytdlp::YtDlpManager;
+pub use ytdlp::{StagedYtDlp, YtDlpManager};

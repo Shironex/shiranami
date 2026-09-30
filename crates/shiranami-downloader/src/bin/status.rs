@@ -43,6 +43,28 @@ impl Tools {
         Self { ytdlp, ffmpeg }
     }
 
+    /// Roll back any swap a crash left pending, for both tools, waiting for
+    /// installs in progress rather than skipping. Answers whether both are
+    /// consistent afterwards.
+    pub async fn recover_interrupted(&self) -> bool {
+        let (ytdlp, ffmpeg) = tokio::join!(
+            self.ytdlp.recover_interrupted(),
+            self.ffmpeg.recover_interrupted()
+        );
+        ytdlp && ffmpeg
+    }
+
+    /// Whether either tool still has a swap pending (see `bin::swap`), which
+    /// blocks installs of that tool until a rollback succeeds.
+    pub async fn has_pending_swap(&self) -> bool {
+        crate::bin::swap::is_pending(&[self.ytdlp.path()]).await
+            || crate::bin::swap::is_pending(&[
+                self.ffmpeg.ffmpeg_path(),
+                self.ffmpeg.ffprobe_path(),
+            ])
+            .await
+    }
+
     /// The cheap presence check, with no version probe and no network call.
     pub async fn check(&self) -> DependencyCheck {
         let (ytdlp_installed, ffmpeg_installed) =

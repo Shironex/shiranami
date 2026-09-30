@@ -174,6 +174,8 @@ export const IPC_CHANNELS = {
     checkFfmpeg: 'downloader:check-ffmpeg',
     installFfmpeg: 'downloader:install-ffmpeg',
     installDependencies: 'downloader:install-dependencies',
+    // Automatic yt-dlp and ffmpeg updates (v2-only): the persisted record.
+    getAutoUpdateStatus: 'downloader:get-auto-update-status',
     // Download-queue manager (persisted main-process queue with concurrency).
     enqueue: 'downloader:queue-enqueue',
     cancel: 'downloader:queue-cancel',

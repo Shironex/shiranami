@@ -897,6 +897,8 @@ export const commands = {
 	 *  because the renderer reads `results.length === 0` as "already set up".
 	 */
 	downloaderInstallDependencies: () => __TAURI_INVOKE<InstallDependenciesResult>("downloader_install_dependencies"),
+	/**  `downloader:get-auto-update-status`: the persisted automatic-update record. */
+	downloaderGetAutoUpdateStatus: () => __TAURI_INVOKE<ToolAutoUpdateState>("downloader_get_auto_update_status"),
 	/**
 	 *  `downloader:get-download-location` — where downloads land, and whether that
 	 *  is still the default.
@@ -3931,7 +3933,9 @@ export type SystemNoticeSource =
 /**  Discord Rich Presence. */
 "discord" | 
 /**  The album-art cache. */
-"album-art";
+"album-art" | 
+/**  The managed yt-dlp and ffmpeg: automatic updates. */
+"downloader";
 
 /**  An external binary the downloader depends on. */
 export type Tool = 
@@ -3939,6 +3943,26 @@ export type Tool =
 "ytdlp" | 
 /**  ffmpeg, the muxer and transcoder. */
 "ffmpeg";
+
+/**
+ *  Automatic tool updating's persisted state, which the Downloads settings card
+ *  also reads.
+ * 
+ *  Whether automatic updating is *on* is not here: that is the user's choice,
+ *  stored in the renderer settings blob, and this record is the app's own
+ *  bookkeeping about what it did with that choice.
+ */
+export type ToolAutoUpdateState = {
+	/**  yt-dlp's record. */
+	ytdlp?: ToolUpdateRecord,
+	/**  ffmpeg's record. */
+	ffmpeg?: ToolUpdateRecord,
+	/**
+	 *  When a failed download last triggered an out-of-schedule yt-dlp check,
+	 *  epoch milliseconds. Caps those checks at one an hour.
+	 */
+	failureCheckAt?: number | null,
+};
 
 /**  Result of installing one external tool. */
 export type ToolInstallResult = {
@@ -3966,6 +3990,40 @@ export type ToolStatus = {
 	latestVersion?: string | null,
 	/**  Whether an update is available. Absent when the tool is not installed. */
 	updateAvailable?: boolean | null,
+};
+
+/**
+ *  What automatic updating has done for one tool.
+ * 
+ *  Every field defaults, because this is persisted (under the main-only
+ *  `downloads.autoUpdate` key) and a record written by an older build, or none
+ *  at all, must still read as "never checked".
+ */
+export type ToolUpdateRecord = {
+	/**  When an automatic check last reached the upstream, epoch milliseconds. */
+	lastCheckedAt?: number | null,
+	/**
+	 *  When an automatic update last installed a new version, epoch
+	 *  milliseconds.
+	 */
+	lastUpdatedAt?: number | null,
+	/**  The version that automatic update installed. */
+	lastUpdatedVersion?: string | null,
+	/**
+	 *  Failed automatic attempts since the last success. A notice is raised
+	 *  only once this repeats, so one flaky mirror stays in the log.
+	 */
+	consecutiveFailures?: number,
+	/**
+	 *  Whether an install of this tool (manual or automatic) is in progress
+	 *  right now.
+	 * 
+	 *  Live, not bookkeeping: `downloader:get-auto-update-status` fills it
+	 *  from the tool's install lock on every read, and nothing ever persists
+	 *  it as `true`. The settings panel disables its update button meanwhile,
+	 *  since a click would only queue behind the running install.
+	 */
+	installing?: boolean,
 };
 
 /**  A library track, exactly as the `tracks` table stores it. */

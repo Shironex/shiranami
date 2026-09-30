@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 161;
+pub const COMMAND_COUNT: usize = 162;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -122,10 +122,14 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 ///   was no import to have a channel for. `background_add` opens its own
 ///   dialog rather than taking a path, which is why it is not simply a caller
 ///   of `dialog_open_file`. See [`crate::commands::background`].
+/// - `downloader_get_auto_update_status`: opt-in automatic yt-dlp and ffmpeg
+///   updates. v1 only ever offered the manual update button, so there was no
+///   automatic-update record to have a channel for. See
+///   [`crate::commands::downloader::auto_update`].
 /// - `share_take_pending_deep_link`: the cold-start half of `share:deep-link`.
 ///   v1 dropped a link that launched the app, so there was no drain to port.
 ///   See [`crate::commands::share`].
-pub const NON_V1_COMMANDS: usize = 26;
+pub const NON_V1_COMMANDS: usize = 27;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///

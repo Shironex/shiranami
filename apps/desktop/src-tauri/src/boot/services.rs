@@ -163,10 +163,15 @@ fn build_queue(
         Arc::clone(&paused) as Arc<dyn shiranami_downloader::queue::PausedFlag>,
     ));
 
+    let yt_dlp_path = shiranami_downloader::bin::layout::yt_dlp_path(bin, Platform::HOST);
     let runner = Arc::new(shiranami_downloader::download::YtDlpDownloader::new(
         Arc::clone(processes) as Arc<dyn shiranami_downloader::spawn::ProcessRunner>,
-        shiranami_downloader::bin::layout::yt_dlp_path(bin, Platform::HOST),
+        yt_dlp_path.clone(),
         shiranami_downloader::spawn::FfmpegAvailability::Managed(bin.to_path_buf()),
+        vec![
+            yt_dlp_path,
+            shiranami_downloader::bin::layout::ffmpeg_path(bin, Platform::HOST),
+        ],
     ));
 
     let directory = Arc::new(SettingsDownloadDirectory::new(

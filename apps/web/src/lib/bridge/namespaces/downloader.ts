@@ -7,6 +7,7 @@ import {
   type CachedToolStatus,
   type InstallDependenciesResult,
   type SearchResult,
+  type ToolAutoUpdateState,
   type ToolStatus,
 } from '@shiranami/contracts';
 import { events } from '@shiranami/contracts/bindings';
@@ -103,6 +104,8 @@ export const downloaderApi: DownloaderApi = {
     ),
   installDependencies: () =>
     asContract<InstallDependenciesResult>(commands.downloaderInstallDependencies()),
+  getToolAutoUpdateStatus: () =>
+    asContract<ToolAutoUpdateState>(commands.downloaderGetAutoUpdateStatus()),
   onDependencyInstallProgress: callback =>
     subscribeChannel<DependencyInstallProgress>(
       C.dependencyInstallProgress,
