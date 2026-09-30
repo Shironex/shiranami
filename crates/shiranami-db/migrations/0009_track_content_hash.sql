@@ -1,0 +1,51 @@
+-- Content identity on the track row, so a moved or renamed file keeps its row.
+--
+-- Until now a track was its absolute path and nothing else. A file moved
+-- between two rescans was inserted as a stranger at the new path and its old
+-- row hard-deleted at the old one, and that delete cascaded away the play
+-- count, the favourite flag, playlist membership, play history and every
+-- analysis value keyed on the old id. `content_hash` is the stable key that
+-- lets the import re-point the existing row instead
+-- (`repo::track_identity::import_many`).
+--
+-- Additive, like every post-baseline migration: one nullable column and one
+-- index, nothing altered, so the compatibility floor stays 8. Rolling back is
+-- NOT symmetric, though:
+--
+--   - v1 (drizzle) opens the file: it ignores the extra column, and the rows
+--     it inserts carry NULL until the next v2 boot backfills them.
+--   - v2.0.0 does NOT open it. Its sqlx migrator refuses a ledger naming a
+--     version it does not know (`VersionMissing` for 9), and its backup
+--     import checks only `user_version`, so importing such a file swaps it in
+--     and then fails to open. This build turns `ignore_missing` on
+--     (`migrations.rs`) so that rollbacks to it and to later builds do not
+--     repeat this, but 2.0.0 is already shipped. The release notes must say
+--     so: a database this build has touched cannot be opened by 2.0.0.
+--
+-- Column notes:
+--
+--   1. The value is `"<scheme>:<hex sha256>"`, computed by
+--      `shiranami_library::identity` over sampled windows of the file's
+--      *audio payload*, with tag blocks skipped, so the in-app tag editor does
+--      not change it. The scheme prefix means a future change to the sampling
+--      makes old and new values unequal by construction instead of silently
+--      comparable.
+--   2. NULL means "not hashed yet" (a row from before this migration, or one
+--      whose file could not be read when it was hashed). Such a row cannot be
+--      matched, which is exactly today's behaviour, and the boot backfill
+--      keeps the set small.
+--   3. It is deliberately NOT unique. Two copies of one file are two rows with
+--      one hash, and the import only re-points a row whose own file is gone
+--      from disk, so a copy is inserted normally.
+--   4. Acoustic fingerprints (a duplicate finder across formats and bitrates)
+--      are a different primitive with a fuzzy comparison, not an equality one,
+--      and will want a column of their own rather than a second meaning for
+--      this one.
+
+ALTER TABLE `tracks` ADD `content_hash` text;
+
+-- The import looks rows up by hash, once per batch of incoming files, and the
+-- backfill looks for the rows still NULL. Partial, because the lookup never
+-- asks for NULL and an index full of NULLs would only slow the backfill's own
+-- writes.
+CREATE INDEX IF NOT EXISTS `idx_tracks_content_hash` ON `tracks`(`content_hash`) WHERE `content_hash` IS NOT NULL;

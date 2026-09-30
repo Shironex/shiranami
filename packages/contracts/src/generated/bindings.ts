@@ -404,7 +404,13 @@ export const commands = {
 	dbSmartPlaylistsPreview: (definition: SmartPlaylistDefinition) => __TAURI_INVOKE<Track[]>("db_smart_playlists_preview", { definition }),
 	/**  `db:tracks:get-all` — the whole library, newest first. */
 	dbTracksGetAll: () => __TAURI_INVOKE<Track[]>("db_tracks_get_all"),
-	/**  `db:tracks:add` — import one track, idempotently on `file_path`. */
+	/**
+	 *  `db:tracks:add` — import one track, idempotently on `file_path`.
+	 * 
+	 *  Records the file's content hash (hashed before the connection is taken)
+	 *  but never follows a move: see the shell's `track_identity` module for why
+	 *  only the rescan does.
+	 */
 	dbTracksAdd: (track: TrackCreateInput) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */
 	id: string,
@@ -466,16 +472,35 @@ export const commands = {
 	/**  Loudness range (EBU Tech 3342, LU); `None` = unanalysed. */
 	loudnessRange: number | null,
 } | null>("db_tracks_add", { track }),
-	/**  `db:tracks:add-many` — import a batch, returning only the rows that landed. */
-	dbTracksAddMany: (tracksInput: TrackCreateInput[]) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput }),
+	/**
+	 *  `db:tracks:add-many` — import a batch, returning the rows that landed and,
+	 *  when following moves, the rows that were re-pointed.
+	 * 
+	 *  `follow_moves` is the rescan's opt-in (absent or `false` everywhere else):
+	 *  a file whose content matches a row whose file has moved away re-points
+	 *  that row instead of inserting a stranger. The wire shape is unchanged, a
+	 *  flat `Track[]`: inserted rows first, then re-pointed ones, which carry ids
+	 *  the renderer's library already holds. Files are hashed, and moved files
+	 *  verified, before the connection is taken for the import.
+	 */
+	dbTracksAddMany: (tracksInput: TrackCreateInput[], followMoves: boolean | null) => __TAURI_INVOKE<Track[]>("db_tracks_add_many", { tracksInput, followMoves }),
 	/**  `db:tracks:remove` — delete one track. */
 	dbTracksRemove: (id: string) => __TAURI_INVOKE<null>("db_tracks_remove", { id }),
 	/**
-	 *  `db:tracks:remove-many` — delete a batch.
+	 *  `db:tracks:remove-many` — delete a batch, returning the ids deleted.
 	 * 
 	 *  The orphaned-art sweep v1 fired afterwards is deferred; see the module docs.
+	 * 
+	 *  `expected_paths`, when given, pairs each id with the path the caller checked
+	 *  on disk, and a row is deleted only if it still holds that path. The
+	 *  rescan's sweep passes it, so a row re-pointed after its check (by an import
+	 *  following a move, from any caller) survives instead of being deleted by id,
+	 *  and the returned ids are exactly the rows that were deleted: the renderer
+	 *  drops those and nothing else. Without it the delete is by id, as v1's was,
+	 *  and the ids given are returned (v1 returned nothing, and every caller of
+	 *  that form ignores the value).
 	 */
-	dbTracksRemoveMany: (ids: string[]) => __TAURI_INVOKE<null>("db_tracks_remove_many", { ids }),
+	dbTracksRemoveMany: (ids: string[], expectedPaths: string[] | null) => __TAURI_INVOKE<string[]>("db_tracks_remove_many", { ids, expectedPaths }),
 	/**  `db:tracks:update` — patch one track. */
 	dbTracksUpdate: (id: string, data: TrackUpdateInput_Deserialize) => __TAURI_INVOKE<{
 	/**  Primary key (UUID v4, generated at insert). */

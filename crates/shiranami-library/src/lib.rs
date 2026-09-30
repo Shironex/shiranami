@@ -45,16 +45,21 @@
 //! Two absences are load-bearing enough to name, because both look like gaps in
 //! the port rather than in the thing ported:
 //!
-//! - **There is no changed-file or moved-file detection.** File identity is the
-//!   absolute path string and nothing else — no mtime, no size, no content hash.
-//!   A file whose tags are edited on disk is invisible to every future rescan. A
-//!   file moved between folders is an insert at the new path plus a delete at
-//!   the old one, which resets `play_count`, `is_favorite` and `loudness_lufs`,
-//!   mints a new id, and orphans every playlist entry and history row keyed on
-//!   the old one. There is no `UPDATE tracks SET file_path` anywhere in v1.
-//!   Identity-preserving move detection is a real feature needing a real design
-//!   — a stable key the database does not currently store — and it is not a
-//!   port. It is recorded here as the most valuable thing this subsystem lacks.
+//! - **There is no changed-file detection.** A known path is never re-read, so
+//!   a file whose tags are edited on disk outside the app stays stale in the
+//!   library. **Moved files are followed** since migration `0009`: a new path
+//!   is hashed ([`identity`], the audio payload with tag blocks skipped), and
+//!   during a rescan `db:tracks:add-many` re-points a row whose file has moved
+//!   away ([`moved_away`]: definitely not found, with its volume, music folder
+//!   and nearest existing parent folder definitely present and holding real
+//!   entries) instead of inserting a stranger, so id, plays, favourite,
+//!   playlists and history survive a move or rename that passes that guard.
+//!   Some moves deliberately do not (files moved out of a folder left empty,
+//!   among others): the residuals are listed in `identity/gone.rs`. v1 had no
+//!   `UPDATE tracks SET file_path` at all.
+//!   The hash lives here because it is filesystem work; the matching lives in
+//!   `shiranami-db` and the composition root, so this crate still holds no
+//!   database.
 //! - **There is no folder watching.** No `chokidar`, no `fs.watch`, no polling
 //!   timer, no rescan on startup or focus; `folders.last_scanned` is written and
 //!   never read. Every scan is user-triggered from one of three buttons.
@@ -89,12 +94,14 @@
 #![warn(missing_docs)]
 
 pub mod error;
+pub mod identity;
 pub mod iso8601;
 pub mod scan;
 pub mod storage;
 pub mod validate;
 
 pub use error::{LibraryError, Result};
+pub use identity::{content_hash, content_hashes, moved_away, moved_away_all};
 pub use scan::{
     AUDIO_EXTENSIONS, GroupedScanResult, PARSE_CONCURRENCY, SCAN_MAX_DEPTH, ScanProgress,
     ScannedFile, SubfolderScan, empty_on_cancel, scan_folder, scan_folder_grouped,

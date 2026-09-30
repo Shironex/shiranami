@@ -7,7 +7,7 @@ import { IS_ELECTRON } from '@/lib/platform';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { usePlaybackStore } from '@/stores/usePlaybackStore';
 import { acquireScanLock, releaseScanLock } from '@/lib/scanLock';
-import { scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
+import { removeMissingTracks, scanAndPersistFolder, type SubfolderGroup } from '@/lib/scanHelpers';
 import { folderKeys } from '@/hooks/queries/useFolders';
 import { libraryKeys } from '@/hooks/queries/useLibrary';
 import { diskUsageKeys } from '@/hooks/queries/useDiskUsage';
@@ -27,11 +27,22 @@ export interface UseLibraryRescanResult {
   clearDetectedSubfolders: () => void;
 }
 
+/**
+ * The rescan toast when some files were followed to a new path, e.g.
+ * "Library updated: 3 moved, 2 new, 1 removed". Only the non-zero parts are
+ * listed. Without moves the rescan keeps its original wording.
+ */
+function rescanSummaryWithMoves(added: number, moved: number, removed: number): string {
+  const parts = [i18n.t('rescanPartMoved', { ns: 'toast', count: moved })];
+  if (added > 0) parts.push(i18n.t('rescanPartNew', { ns: 'toast', count: added }));
+  if (removed > 0) parts.push(i18n.t('rescanPartRemoved', { ns: 'toast', count: removed }));
+  return i18n.t('rescanSummaryWithMoves', { ns: 'toast', parts: parts.join(', ') });
+}
+
 export function useLibraryRescan(): UseLibraryRescanResult {
   const queryClient = useQueryClient();
   const { data: playlists = [] } = usePlaylistsQuery();
   const clearQueue = usePlaybackStore(s => s.clearQueue);
-  const removeFromLibrary = useLibraryStore(s => s.removeFromLibrary);
   const scanState = useLibraryStore(s => s.scanState);
   const setScanState = useLibraryStore(s => s.setScanState);
   const resetScanProgress = useLibraryStore(s => s.resetScanProgress);
@@ -68,18 +79,20 @@ export function useLibraryRescan(): UseLibraryRescanResult {
 
     setScanState('scanning');
     let totalAdded = 0;
+    const movedIds = new Set<string>();
     const allDetectedSubfolders: SubfolderGroup[] = [];
 
     try {
       for (const folder of folders) {
         try {
-          const result = await scanAndPersistFolder(folder.path);
+          const result = await scanAndPersistFolder(folder.path, { followMoves: true });
 
           if (result.subfolders.length > 0) {
             allDetectedSubfolders.push(...result.subfolders);
           }
 
           totalAdded += result.addedCount;
+          for (const id of result.movedIds) movedIds.add(id);
 
           // Update last scanned timestamp (matches original behavior).
           await window.electronAPI.db.folders.updateScanned(folder.id);
@@ -88,29 +101,22 @@ export function useLibraryRescan(): UseLibraryRescanResult {
         }
       }
 
-      // Validate existing tracks — remove any whose files are missing from disk
-      let totalRemoved = 0;
+      // Remove tracks whose files are gone. Read the library only now, after
+      // every folder has persisted: moved files were re-pointed (same id, new
+      // path) during persistence, so this snapshot already holds their new
+      // paths, and movedIds keeps them out of the check regardless.
       const currentLibrary = useLibraryStore.getState().library;
-      if (currentLibrary.length > 0) {
-        const allPaths = currentLibrary.map(t => t.filePath);
-        const missingPaths = await window.electronAPI.library.validateFiles(allPaths);
-        if (missingPaths.length > 0) {
-          const missingSet = new Set(missingPaths);
-          const staleIds = currentLibrary.filter(t => missingSet.has(t.filePath)).map(t => t.id);
-          if (staleIds.length > 0) {
-            await window.electronAPI.db.tracks.removeMany(staleIds);
-            removeFromLibrary(staleIds);
-            totalRemoved = staleIds.length;
-          }
-        }
-      }
+      const totalRemoved = (await removeMissingTracks(currentLibrary, movedIds)).length;
+      const totalMoved = movedIds.size;
 
       queryClient.invalidateQueries({ queryKey: libraryKeys.all });
       queryClient.invalidateQueries({ queryKey: folderKeys.all });
       // Files were added/removed on disk — recompute disk usage.
       queryClient.invalidateQueries({ queryKey: diskUsageKeys.all });
 
-      if (totalAdded > 0 && totalRemoved > 0) {
+      if (totalMoved > 0) {
+        toast.success(rescanSummaryWithMoves(totalAdded, totalMoved, totalRemoved));
+      } else if (totalAdded > 0 && totalRemoved > 0) {
         toast.success(
           i18n.t('rescanSummary', { ns: 'toast', added: totalAdded, removed: totalRemoved })
         );
@@ -138,7 +144,7 @@ export function useLibraryRescan(): UseLibraryRescanResult {
       resetScanProgress();
       releaseScanLock();
     }
-  }, [queryClient, playlists, removeFromLibrary, setScanState, resetScanProgress]);
+  }, [queryClient, playlists, setScanState, resetScanProgress]);
 
   const clearLibrary = useCallback(async () => {
     if (!IS_ELECTRON) return;
