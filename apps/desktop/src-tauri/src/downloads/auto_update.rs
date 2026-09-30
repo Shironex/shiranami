@@ -31,8 +31,8 @@
 //!   checksum, so it is only ever replaced by the user's own click there.
 //! - **A failed download** that `failure_kind` reads as a site change checks
 //!   yt-dlp immediately, ignoring its 24 h window, at most once an hour. If a
-//!   newer yt-dlp lands, the downloads that failed that way are retried, each
-//!   at most once.
+//!   newer yt-dlp lands, by this check or a scheduled one, the downloads that
+//!   failed that way are retried, each at most once.
 //!
 //! A `tokio::sync::Mutex` serialises the two, so a failure arriving while the
 //! scheduler is mid-swap waits for it instead of staging the same release
@@ -245,6 +245,12 @@ impl AutoUpdater {
             }
             let outcome = self.update(tool).await;
             self.record(tool, &outcome);
+
+            // A failure within the hour of the last failure-triggered check is
+            // left in `suspects`; a scheduled update is its retry.
+            if tool == Tool::Ytdlp && matches!(outcome, UpdateOutcome::Updated { .. }) {
+                self.retry_suspects().await;
+            }
         }
     }
 
