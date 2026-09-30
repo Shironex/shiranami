@@ -29,6 +29,14 @@
 //! released), write the page (held for one transaction). A row whose file
 //! cannot be read is skipped by the keyset cursor and retried next launch.
 //!
+//! Before a page is hashed, each row's volume root and registered music
+//! folder are asked whether they answer (`MovedAway::roots_present`), and a
+//! row on a root that does not is skipped the same way, unread. The verdicts
+//! are carried from page to page, so a share that is offline or hung after
+//! sleep costs one probe per launch rather than one file timeout per row on
+//! the shared rayon pool. A file that hangs by itself under a healthy root
+//! still costs its own timeout, as in [`verified_gone`].
+//!
 //! # Following a move is opt-in, and decided with the connection released
 //!
 //! Only the rescan follows moves (`db:tracks:add-many` with `followMoves`).
@@ -45,7 +53,7 @@
 //! timeout on an offline network path, ever runs while the pool's only
 //! connection is held.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::time::Duration;
 
 use shiranami_core::models::TrackCreateInput;
@@ -172,13 +180,20 @@ pub fn spawn_backfill(app: &AppHandle) {
 pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranami_db::DbError> {
     let mut after = 0;
     let mut hashed = 0;
+    let mut verdicts = HashMap::new();
 
     loop {
-        let page = {
+        let (page, roots) = {
             let Ok(mut conn) = state.conn().await else {
                 return Ok(hashed);
             };
-            tracks::unhashed(&mut conn, after, PAGE).await?
+            let page = tracks::unhashed(&mut conn, after, PAGE).await?;
+            let roots: Vec<String> = folders::get_all(&mut conn)
+                .await?
+                .into_iter()
+                .map(|folder| folder.path)
+                .collect();
+            (page, roots)
         };
         let Some(last) = page.last() else {
             return Ok(hashed);
@@ -186,10 +201,12 @@ pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranam
         after = last.rowid;
 
         let paths: Vec<String> = page.iter().map(|row| row.file_path.clone()).collect();
-        let hashes =
-            tauri::async_runtime::spawn_blocking(move || shiranami_library::content_hashes(&paths))
-                .await
-                .unwrap_or_default();
+        let (hashes, carried) = tauri::async_runtime::spawn_blocking(move || {
+            hash_where_roots_answer(&paths, &roots, verdicts)
+        })
+        .await
+        .unwrap_or_default();
+        verdicts = carried;
 
         let measured: Vec<(String, String)> = page
             .into_iter()
@@ -206,6 +223,40 @@ pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranam
 
         tokio::time::sleep(pause).await;
     }
+}
+
+/// [`shiranami_library::content_hashes`] for the paths whose volume root and
+/// registered music folder answer, in input order, with `None` for the rest.
+/// Takes and returns the root verdicts so the backfill can carry them from
+/// page to page.
+fn hash_where_roots_answer(
+    paths: &[String],
+    roots: &[String],
+    verdicts: HashMap<String, bool>,
+) -> (Vec<Option<String>>, HashMap<String, bool>) {
+    let mut checker = shiranami_library::identity::MovedAway::new(roots).with_verdicts(verdicts);
+    let answering: Vec<bool> = paths
+        .iter()
+        .map(|path| checker.roots_present(path))
+        .collect();
+    let readable: Vec<&String> = paths
+        .iter()
+        .zip(&answering)
+        .filter_map(|(path, &answers)| answers.then_some(path))
+        .collect();
+
+    let mut measured = shiranami_library::content_hashes(&readable).into_iter();
+    let hashes = answering
+        .into_iter()
+        .map(|answers| {
+            if answers {
+                measured.next().flatten()
+            } else {
+                None
+            }
+        })
+        .collect();
+    (hashes, checker.into_verdicts())
 }
 
 #[cfg(test)]
@@ -335,5 +386,37 @@ mod tests {
         let left = tracks::unhashed(&mut conn, 0, 10).await.expect("read");
         assert_eq!(left.len(), 1, "the missing file is left for a later launch");
         assert_eq!(left[0].file_path, "/gone/b.mp3");
+    }
+
+    /// A readable file on a root that did not answer is left unhashed, and so
+    /// unread, while its neighbours on healthy roots keep their place.
+    #[test]
+    fn only_files_whose_roots_answer_are_hashed() {
+        let dir = tempfile::tempdir().expect("a temp dir");
+        let music = dir.path().join("music");
+        let share = dir.path().join("share");
+        for folder in [&music, &share] {
+            std::fs::create_dir_all(folder).expect("the fixture writes");
+            std::fs::write(folder.join("a.mp3"), b"not really audio").expect("the fixture writes");
+        }
+        let music_root = music.to_string_lossy().into_owned();
+        let share_root = share.to_string_lossy().into_owned();
+        let paths = [
+            share.join("a.mp3").to_string_lossy().into_owned(),
+            music.join("a.mp3").to_string_lossy().into_owned(),
+        ];
+        // The share is readable here; the verdict stands in for a hung mount.
+        let verdicts = HashMap::from([(share_root.clone(), false)]);
+
+        let (hashes, carried) =
+            hash_where_roots_answer(&paths, &[music_root.clone(), share_root.clone()], verdicts);
+
+        assert!(
+            hashes[0].is_none(),
+            "the file on the failed root is skipped"
+        );
+        assert!(hashes[1].is_some(), "input order is kept");
+        assert_eq!(carried.get(&share_root), Some(&false));
+        assert_eq!(carried.get(&music_root), Some(&true));
     }
 }
