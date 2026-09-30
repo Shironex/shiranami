@@ -12,17 +12,27 @@
 
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use axum::Router;
 use axum::routing::get;
 use tokio::net::TcpListener;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 use crate::error::ServeError;
 use crate::routes::{art, audio, background, radio};
 use crate::state::{ServeConfig, ServeState};
 use crate::token::SessionToken;
+
+/// How long [`ServeHandle::shutdown`] lets open responses finish before it
+/// stops waiting for them.
+///
+/// Quitting runs this on the main thread with the webview still alive, so an
+/// unbounded wait is a frozen app. Two seconds is long for a loopback response
+/// to wind down and short enough that a quit still feels like a quit.
+pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(2);
 
 /// Why the server could not be started.
 #[derive(Debug, thiserror::Error)]
@@ -54,6 +64,7 @@ pub struct ServeHandle {
     token: SessionToken,
     shutdown: Mutex<Option<oneshot::Sender<()>>>,
     task: Mutex<Option<JoinHandle<()>>>,
+    streams: CancellationToken,
 }
 
 impl ServeHandle {
@@ -91,21 +102,42 @@ impl ServeHandle {
         &self.token
     }
 
-    /// Stop accepting, let in-flight responses finish, and wait for the task.
+    /// Stop accepting, let in-flight responses finish, and wait for the task,
+    /// for at most [`SHUTDOWN_GRACE`].
     ///
-    /// Called from `ExitRequested`, through a shared reference — see the type's
-    /// own docs for why that is not negotiable. Idempotent by construction: both
-    /// halves are *taken*, so a second call finds nothing to send and no task to
-    /// await and returns immediately.
+    /// Called from the shell's exit path, through a shared reference (the
+    /// type's own docs say why that is not negotiable). Idempotent by
+    /// construction: both halves are *taken*, so a second call finds nothing to
+    /// send and no task to await and returns immediately.
+    ///
+    /// # Why the wait is bounded
+    ///
+    /// axum's graceful shutdown waits for every open connection, and two can
+    /// stay open forever: a radio stream, which never ends, and any response
+    /// whose client stopped reading (a paused `<audio>` holding a file range),
+    /// which hyper never polls again. The first is ended by the shutdown signal
+    /// the radio route watches. The second cannot be, because a body that is
+    /// never polled cannot observe anything, so after the grace period the
+    /// server task is aborted. The process is exiting either way; what the
+    /// bound buys is that it exits instead of hanging.
     pub async fn shutdown(&self) {
+        self.streams.cancel();
         // Both guards are released before the await below. Holding a
         // `std::sync::MutexGuard` across an await point would make this future
         // `!Send`, and `block_on` from the exit handler needs it to be `Send`.
         if let Some(shutdown) = take(&self.shutdown) {
             let _ = shutdown.send(());
         }
-        if let Some(task) = take(&self.task) {
-            let _ = task.await;
+        if let Some(mut task) = take(&self.task)
+            && tokio::time::timeout(SHUTDOWN_GRACE, &mut task)
+                .await
+                .is_err()
+        {
+            tracing::warn!(
+                grace_ms = SHUTDOWN_GRACE.as_millis(),
+                "open responses outlived the shutdown grace; stopping the server anyway"
+            );
+            task.abort();
         }
     }
 }
@@ -133,6 +165,7 @@ fn take<T>(slot: &Mutex<Option<T>>) -> Option<T> {
 pub async fn start(config: ServeConfig) -> Result<ServeHandle, StartError> {
     let token = SessionToken::generate();
     let state = ServeState::new(config, token.clone());
+    let streams = state.shutdown_signal().clone();
 
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
     let address = listener.local_addr()?;
@@ -158,6 +191,7 @@ pub async fn start(config: ServeConfig) -> Result<ServeHandle, StartError> {
         token,
         shutdown: Mutex::new(Some(sender)),
         task: Mutex::new(Some(task)),
+        streams,
     })
 }
 

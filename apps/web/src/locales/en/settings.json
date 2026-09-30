@@ -828,10 +828,7 @@
   },
   "upd": {
     "title": "Updates",
-    "subtitleMac": "Download updates from GitHub",
-    "subtitleWin": "Check for new versions",
-    "macNotice": "Auto-updates are not available on macOS because the app is unsigned. Download new versions manually from GitHub Releases.",
-    "openGithub": "Open GitHub Releases",
+    "subtitle": "Check for new versions",
     "check": "Check for updates",
     "downloadVersion": "Download {{version}}",
     "installRestart": "Install and restart",

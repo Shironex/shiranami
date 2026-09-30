@@ -18,9 +18,11 @@
 //!
 //! The tray and the taskbar bar are both pure functions of the same
 //! [`MediaState`] (`shiranami_media_controls::tray` and `::progress` model them
-//! exactly that way), so they are the seam implementation's business in Phase
-//! 16 rather than a second and third call from this layer. There is one value
-//! and it goes to one place.
+//! exactly that way), so they are the seam implementation's business rather
+//! than a second and third call from this layer: `crate::adapters::MediaFanOut`
+//! is the implementation, and it draws the OS surface, the tray and (on
+//! Windows) the taskbar bar from each push. There is one value and it goes to
+//! one place.
 //!
 //! Discord cannot be folded in the same way, and that is worth stating plainly
 //! because it is the one thing about this namespace that would be silently lost

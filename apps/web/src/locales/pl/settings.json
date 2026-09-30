@@ -852,10 +852,7 @@
   },
   "upd": {
     "title": "Aktualizacje",
-    "subtitleMac": "Pobierz aktualizacje z GitHub",
-    "subtitleWin": "Sprawdź nowe wersje",
-    "macNotice": "Automatyczne aktualizacje nie są dostępne na macOS, ponieważ aplikacja nie jest podpisana. Pobierz nowe wersje ręcznie z GitHub Releases.",
-    "openGithub": "Otwórz GitHub Releases",
+    "subtitle": "Sprawdź nowe wersje",
     "check": "Sprawdź aktualizacje",
     "downloadVersion": "Pobierz {{version}}",
     "installRestart": "Zainstaluj i uruchom ponownie",

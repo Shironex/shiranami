@@ -400,6 +400,10 @@ tauri-plugin-deep-link = "2.4"
 tauri-plugin-os = "2.3"
 tauri-plugin-global-shortcut = "2.3"
 tauri-plugin-autostart = "2"
+# The crate `tauri-plugin-autostart` writes through (already in the tree via
+# it, so no new crate). Named directly only to delete v1's Windows login item,
+# which the plugin cannot address because it only knows its own entry.
+auto-launch = "0.5"
 
 # Phase 18 ring 3, behind the shell's `e2e` feature and compiled into no other
 # build. An embedded W3C WebDriver server, which §8 records as the *only* way to
