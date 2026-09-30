@@ -244,15 +244,28 @@ pub async fn unhashed(
         .collect())
 }
 
+/// A hash the backfill measured, with the path it read to get it.
+pub struct MeasuredHash {
+    /// The track.
+    pub id: String,
+    /// The file that was hashed.
+    pub file_path: String,
+    /// Its content hash.
+    pub hash: String,
+}
+
 /// Record measured hashes, returning how many rows took one.
 ///
-/// Only a row still `NULL` is written: a hash the import stored in the
-/// meantime (for a row re-pointed between the backfill's read and this write)
-/// describes the file the row now names and must win. Like every measurement,
-/// it does not touch `updated_at`.
+/// Only a row still `NULL` and still naming the path that was hashed is
+/// written. A hash the import stored in the meantime (for a row re-pointed
+/// between the backfill's read and this write) describes the file the row now
+/// names and must win, and a row whose path was edited in that gap would
+/// otherwise take the old file's hash, which a later move-following import
+/// could match to the wrong row. Either is left for a later backfill. Like
+/// every measurement, it does not touch `updated_at`.
 pub async fn set_content_hashes(
     conn: &mut SqliteConnection,
-    hashes: &[(String, String)],
+    hashes: &[MeasuredHash],
 ) -> Result<u64> {
     if hashes.is_empty() {
         return Ok(0);
@@ -264,12 +277,13 @@ pub async fn set_content_hashes(
         .map_err(failed("begin recording the content hashes"))?;
 
     let mut written = 0;
-    for (id, hash) in hashes {
+    for measured in hashes {
         written += sqlx::query(
-            "UPDATE tracks SET content_hash = ?1 WHERE id = ?2 AND content_hash IS NULL",
+            "UPDATE tracks SET content_hash = ?1              WHERE id = ?2 AND file_path = ?3 AND content_hash IS NULL",
         )
-        .bind(hash)
-        .bind(id)
+        .bind(&measured.hash)
+        .bind(&measured.id)
+        .bind(&measured.file_path)
         .execute(&mut *tx)
         .await
         .map_err(failed("record a content hash"))?

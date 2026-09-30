@@ -321,8 +321,8 @@ async fn the_backfill_pages_past_rows_it_could_not_hash_and_never_overwrites() {
     let written = tracks::set_content_hashes(
         library.conn(),
         &[
-            (b.clone(), "a1:b".to_owned()),
-            (hashed.clone(), "a1:stale".to_owned()),
+            measured(&b, "/music/b.mp3", "a1:b"),
+            measured(&hashed, "/music/c.mp3", "a1:stale"),
         ],
     )
     .await
@@ -336,6 +336,32 @@ async fn the_backfill_pages_past_rows_it_could_not_hash_and_never_overwrites() {
         stored_hash(library.conn(), &hashed).await.as_deref(),
         Some("a1:c")
     );
+}
+
+/// A row whose path changed between the backfill's read and its write keeps
+/// its `NULL`: the hash describes the old file, not the one the row names now.
+#[tokio::test]
+async fn the_backfill_skips_a_row_whose_path_changed_since_it_was_hashed() {
+    let mut library = fresh().await;
+    let moved = library::add_track(library.conn(), "/music/new.mp3", "Moved").await;
+
+    let written = tracks::set_content_hashes(
+        library.conn(),
+        &[measured(&moved, "/music/old.mp3", "a1:old")],
+    )
+    .await
+    .expect("write");
+
+    assert_eq!(written, 0);
+    assert_eq!(stored_hash(library.conn(), &moved).await, None);
+}
+
+fn measured(id: &str, file_path: &str, hash: &str) -> tracks::MeasuredHash {
+    tracks::MeasuredHash {
+        id: id.to_owned(),
+        file_path: file_path.to_owned(),
+        hash: hash.to_owned(),
+    }
 }
 
 /// The add-folder, download and share imports pass no verified set: a file

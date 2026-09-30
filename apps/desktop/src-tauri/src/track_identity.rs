@@ -212,10 +212,16 @@ pub async fn backfill(state: &AppState, pause: Duration) -> Result<u64, shiranam
         .unwrap_or_default();
         verdicts = carried;
 
-        let measured: Vec<(String, String)> = page
+        let measured: Vec<tracks::MeasuredHash> = page
             .into_iter()
             .zip(hashes)
-            .filter_map(|(row, hash)| hash.map(|hash| (row.id, hash)))
+            .filter_map(|(row, hash)| {
+                hash.map(|hash| tracks::MeasuredHash {
+                    id: row.id,
+                    file_path: row.file_path,
+                    hash,
+                })
+            })
             .collect();
 
         if !measured.is_empty() {
