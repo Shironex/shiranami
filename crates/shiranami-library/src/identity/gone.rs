@@ -160,21 +160,35 @@ impl<'a, S: AsRef<str>, P: Probe> MovedAway<'a, S, P> {
         }
     }
 
+    /// Start from the root verdicts an earlier batch cached
+    /// ([`Self::into_verdicts`]), so work split into several batches asks
+    /// each root once across all of them.
+    #[must_use]
+    pub fn with_verdicts(mut self, verdicts: HashMap<String, bool>) -> Self {
+        self.roots_present = verdicts;
+        self
+    }
+
+    /// The root verdicts this batch has cached, to seed the next one.
+    pub fn into_verdicts(self) -> HashMap<String, bool> {
+        self.roots_present
+    }
+
+    /// Whether every root `path` lies on (rules 1 and 2: its volume root and
+    /// its registered music folder) is present, from the batch's cached
+    /// verdicts. Says nothing about the file itself, which is never statted.
+    ///
+    /// File I/O: never call it while the database's only connection is held.
+    pub fn roots_present(&mut self, path: &str) -> bool {
+        let (roots, _) = self.roots_in_play(path);
+        roots.iter().all(|root| self.root_present_cached(root))
+    }
+
     /// Whether `old_path` has moved away (see module docs).
     ///
     /// File I/O: never call it while the database's only connection is held.
     pub fn check(&mut self, old_path: &str) -> bool {
-        let containing = self
-            .music_roots
-            .iter()
-            .map(AsRef::as_ref)
-            .filter(|root| lies_under(old_path, root))
-            .max_by_key(|root| root.len())
-            .map(str::to_owned);
-        let volume = volume_root(old_path);
-        // The walk up from the file stops at the innermost root in play.
-        let stop = containing.clone().or_else(|| volume.clone());
-        let roots: Vec<String> = volume.into_iter().chain(containing).collect();
+        let (roots, stop) = self.roots_in_play(old_path);
 
         if !roots.iter().all(|root| self.root_present_cached(root)) {
             return false;
@@ -206,6 +220,23 @@ impl<'a, S: AsRef<str>, P: Probe> MovedAway<'a, S, P> {
                 false
             }
         }
+    }
+
+    /// The roots `path` lies on (its volume root, then the registered folder
+    /// containing it) and the innermost of them, where the walk up from the
+    /// file stops.
+    fn roots_in_play(&self, path: &str) -> (Vec<String>, Option<String>) {
+        let containing = self
+            .music_roots
+            .iter()
+            .map(AsRef::as_ref)
+            .filter(|root| lies_under(path, root))
+            .max_by_key(|root| root.len())
+            .map(str::to_owned);
+        let volume = volume_root(path);
+        let stop = containing.clone().or_else(|| volume.clone());
+        let roots = volume.into_iter().chain(containing).collect();
+        (roots, stop)
     }
 
     /// Rule 4: walk up to the nearest directory that exists and ask whether

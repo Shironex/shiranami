@@ -226,6 +226,31 @@ fn a_failing_root_is_checked_once_and_its_files_are_never_statted() {
     assert_eq!(probe.asked.get(), 1);
 }
 
+/// Asking only whether a path's roots answer never stats the file, and a
+/// failing root is asked once even across batches that carry the verdicts
+/// forward, so work done page by page pays for a hung mount only once.
+#[test]
+fn roots_present_asks_each_root_once_across_batches_and_never_the_file() {
+    let roots = ["/share/music", "/home/me/Music"];
+    let probe = Scripted {
+        errors: HashMap::from([("/share/music".to_owned(), io::ErrorKind::TimedOut)]),
+        ..Scripted::default()
+    };
+
+    let mut first = MovedAway::with_probe(&roots, &probe);
+    assert!(!first.roots_present("/share/music/0.mp3"));
+    assert!(first.roots_present("/home/me/Music/a.mp3"));
+    let verdicts = first.into_verdicts();
+    assert_eq!(probe.asked.get(), 2, "each root once, no file");
+
+    let mut second = MovedAway::with_probe(&roots, &probe).with_verdicts(verdicts);
+    for index in 1..50 {
+        assert!(!second.roots_present(&format!("/share/music/{index}.mp3")));
+    }
+    assert!(second.roots_present("/home/me/Music/b.mp3"));
+    assert_eq!(probe.asked.get(), 2, "the carried verdicts are reused");
+}
+
 /// A mount that hangs after its root answered: the first file's stat times
 /// out, and that marks the root failed, so no other file under it is asked.
 #[test]
