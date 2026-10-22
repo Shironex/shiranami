@@ -592,13 +592,19 @@ function ShelfBlockout() {
   );
 }
 
+/** The library stop's reading light: soft moonlight from the window side, up to this intensity. */
+const SHELF_LIGHT = 1.25;
+
 export function Shelf(group: GroupProps) {
   const root = useRef<Group>(null);
   const sleeve = useRef<Group>(null);
+  const light = useRef<PointLight>(null);
 
   useFrame(() => {
     const w = near(1, 0.8);
     const g = root.current;
+    // The bake leaves the shelf deep in shadow; at its stop a cool light finds the spines and the sleeve.
+    if (light.current) light.current.intensity = SHELF_LIGHT * w;
     // Neighbours lean a few degrees into the gap while the sleeve is out.
     const l = part(g, 'spine_left');
     const r = part(g, 'spine_right');
@@ -620,6 +626,14 @@ export function Shelf(group: GroupProps) {
       <Prop name="shelf">
         <ShelfBlockout />
       </Prop>
+      <pointLight
+        ref={light}
+        position={[-0.4, 1.5, 0.62]}
+        color="#aab2ff"
+        intensity={0}
+        distance={1.5}
+        decay={2}
+      />
       <group ref={sleeve}>
         <Prop name="sleeve" onModel={litSleeveFront}>
           <mesh position={[0, 0.1575, 0]} material={m('#3a2d57')}>
