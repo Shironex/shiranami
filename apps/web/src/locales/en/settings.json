@@ -366,11 +366,19 @@
       "fontSizeDesc": "Reading size for synced lyrics. The active line scales up automatically.",
       "presentationTitle": "Presentation",
       "presentationDesc": "List shows every line; Focus stages the current line large in the display serif, neighbours receding, with breathing dots through instrumental stretches.",
-      "focusHint": "The focus stage appears in the Now Playing view, which is currently turned off. Enable it under Visual effects and lyrics will take the stage there."
+      "focusHint": "The focus stage appears in the Now Playing view, which is currently turned off. Enable it under Visual effects and lyrics will take the stage there.",
+      "animationTitle": "Lyric animation",
+      "animationDesc": "How the current line lights up as it is sung. Lyrics carry timing per line only, so words are paced evenly across the line. Turned off when your system asks for reduced motion."
     },
     "presentation": {
       "list": "List",
       "focus": "Focus"
+    },
+    "animation": {
+      "off": "Off",
+      "fill": "Fill",
+      "word": "Word by word",
+      "glow": "Glow"
     },
     "size": {
       "sm": "Small",
