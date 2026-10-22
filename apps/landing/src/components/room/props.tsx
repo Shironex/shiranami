@@ -6,6 +6,7 @@ import {
   DoubleSide,
   type Group,
   type InstancedMesh,
+  type Mesh,
   MathUtils,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -49,6 +50,15 @@ const glow = (color: string, intensity: number) =>
 function part(root: Object3D | null, name: string): Object3D | undefined {
   // ponytail: tree walk each frame; the props have a few dozen nodes at most.
   return root?.getObjectByName(name) ?? undefined;
+}
+
+/** Sets the glow on a named part's materials, blockout or GLB alike. */
+function setGlow(node: Object3D | undefined, intensity: number) {
+  // ponytail: traverses per frame; the parts are one or two meshes.
+  node?.traverse(child => {
+    const material = (child as Mesh).material;
+    if (material instanceof MeshStandardMaterial) material.emissiveIntensity = intensity;
+  });
 }
 
 // ---------------------------------------------------------------- turntable
@@ -168,7 +178,7 @@ export function Radio(group: GroupProps) {
     if (needle) needle.rotation.z = 0.9 - sweep * 1.8;
     const knob = part(g, 'knob_right');
     if (knob) knob.rotation.z = -sweep * Math.PI * 2;
-    dial.emissiveIntensity = 0.6 + near(2) * 1.6;
+    setGlow(part(g, 'dial'), 0.6 + near(2) * 1.6);
   });
 
   return (
@@ -257,7 +267,7 @@ export function Lamp(group: GroupProps) {
   useFrame(() => {
     // The room lights go down for the last stop.
     const dim = 1 - near(5, 0.9) * 0.55;
-    shade.emissiveIntensity = 1.4 * dim;
+    setGlow(part(root.current, 'shade'), 1.4 * dim);
     if (light.current) light.current.intensity = 3 * dim;
   });
 
