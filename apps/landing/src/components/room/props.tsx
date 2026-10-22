@@ -66,6 +66,26 @@ function setGlow(node: Object3D | undefined, intensity: number) {
 // ---------------------------------------------------------------- turntable
 
 const TONEARM_PLAY = -0.56; // radians around Y from rest (arm along +Z) onto the record
+/** Platter top centre of turntable.glb, where the record's bottom face sits. */
+const RECORD_AT = [-0.0301, 0.13, 0.0061] as const;
+const LABEL_B = new Color('#dfca7d');
+
+/** Glossier vinyl than the GLB's 0.45, so the lamp catches the grooves. */
+const vinylSheen: OnModel = model => {
+  const disc = model.getObjectByName('disc') as Mesh | undefined;
+  if (disc?.material instanceof MeshStandardMaterial) disc.material.roughness = 0.35;
+};
+
+/** Deck B's record gets its own cream label; the GLB's label is lavender. */
+const creamLabel: OnModel = (model, actions) => {
+  vinylSheen(model, actions);
+  const label = model.getObjectByName('label') as Mesh | undefined;
+  if (label?.material instanceof MeshStandardMaterial) {
+    const tinted = label.material.clone();
+    tinted.color.copy(LABEL_B);
+    label.material = tinted;
+  }
+};
 
 function TurntableBlockout() {
   return (
@@ -83,9 +103,9 @@ function TurntableBlockout() {
           </mesh>
         ))
       )}
-      <group name="platter" position={[-0.05, 0.1, 0]}>
-        <mesh position={[0, 0.0075, 0]} material={mat.black}>
-          <cylinderGeometry args={[0.15, 0.15, 0.015, 48]} />
+      <group name="platter" position={[RECORD_AT[0], 0.1, RECORD_AT[2]]}>
+        <mesh position={[0, 0.015, 0]} material={mat.black}>
+          <cylinderGeometry args={[0.15, 0.15, 0.03, 48]} />
         </mesh>
       </group>
       <group name="tonearm" position={[0.17, 0.1, -0.11]}>
@@ -157,8 +177,8 @@ export function Turntable({ deck, ...group }: GroupProps & { deck: 'A' | 'B' }) 
       <Prop name="turntable">
         <TurntableBlockout />
       </Prop>
-      <group ref={record} position={[-0.05, 0.115, 0]}>
-        <Prop name="record">
+      <group ref={record} position={RECORD_AT}>
+        <Prop name="record" onModel={deck === 'B' ? creamLabel : vinylSheen}>
           <RecordBlockout label={deck === 'A' ? '#b9a3e3' : '#efe2c2'} />
         </Prop>
       </group>
@@ -261,6 +281,14 @@ export function Speaker(group: GroupProps) {
 
 // --------------------------------------------------------------------- lamp
 
+/** lamp.glb's shade glows its own cream texture; tint that toward C0's amber. */
+const warmShade: OnModel = model => {
+  model.getObjectByName('shade')?.traverse(child => {
+    const material = (child as Mesh).material;
+    if (material instanceof MeshStandardMaterial) material.emissive.set('#ffc477');
+  });
+};
+
 export function Lamp(group: GroupProps) {
   const root = useRef<Group>(null);
   const light = useRef<PointLight>(null);
@@ -275,7 +303,7 @@ export function Lamp(group: GroupProps) {
 
   return (
     <group ref={root} {...group}>
-      <Prop name="lamp">
+      <Prop name="lamp" onModel={warmShade}>
         <mesh position={[0, 0.01, 0]} material={mat.cream}>
           <cylinderGeometry args={[0.07, 0.075, 0.02, 32]} />
         </mesh>
@@ -289,7 +317,7 @@ export function Lamp(group: GroupProps) {
       {/* The light is code, not model: under the shade, warm, short reach. */}
       <pointLight
         ref={light}
-        position={[0, 0.22, 0.02]}
+        position={[0, 0.2, 0.02]}
         color="#ffbf7a"
         intensity={3}
         distance={4}
@@ -391,10 +419,10 @@ export function Stool(group: GroupProps) {
 // -------------------------------------------------------- shelf and sleeve
 
 const SPINE_COLORS = ['#3a2d57', '#efe2c2', '#3f8f8c', '#232027', '#6c55a3', '#b9a3e3', '#2d2440'];
-const SHELF_BOARDS = [0.08, 0.52, 0.98, 1.44]; // board heights, the spines stand on the first three
+const SHELF_BOARDS = [0.085, 0.568, 1.052, 1.44]; // board heights, the spines stand on the first three
 const SPINE_PITCH = 0.0145;
 const GAP_ROW = 2; // the upper row, where the sleeve comes out
-const GAP_X = 0; // centre of the gap, shelf space
+const GAP_X = 0.03; // centre of the gap, shelf space (shelf.glb's sleeve_slot)
 
 function rand(i: number) {
   const x = Math.sin(i * 91.7) * 43758.5;
