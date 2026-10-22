@@ -548,7 +548,7 @@ export function Shelf(group: GroupProps) {
     const s = sleeve.current;
     if (s) {
       s.position.set(GAP_X - 0.12 * turn, SHELF_BOARDS[GAP_ROW] + 0.015 + 0.03 * turn, 0.36 * out);
-      s.rotation.y = (Math.PI / 2) * (1 - turn) - 0.35 * turn;
+      s.rotation.y = (Math.PI / 2) * (1 - turn) - 0.6 * turn;
     }
   });
 
@@ -558,7 +558,7 @@ export function Shelf(group: GroupProps) {
         <ShelfBlockout />
       </Prop>
       <group ref={sleeve}>
-        <Prop name="sleeve">
+        <Prop name="sleeve" onModel={litSleeveFront}>
           <mesh position={[0, 0.1575, 0]} material={m('#3a2d57')}>
             <boxGeometry args={[0.315, 0.315, 0.003]} />
           </mesh>
@@ -572,6 +572,24 @@ export function Shelf(group: GroupProps) {
   );
 }
 
+/**
+ * The sleeve front glows its own card texture a little, so the screenshot's
+ * frame reads at the library stop even though the shelf sits in shadow.
+ */
+const litSleeveFront: OnModel = model => {
+  model.traverse(child => {
+    const material = (child as Mesh).material;
+    if (material instanceof MeshStandardMaterial && material.name === 'sleeve_front') {
+      material.emissive.set('#ffffff');
+      material.emissiveMap = material.map;
+      material.emissiveIntensity = 0.55;
+    }
+  });
+};
+
+/** The capture is a dark UI; lift it so it reads at sleeve size in a dark room. */
+const SCREEN_GAIN = 1.7;
+
 function SleeveScreen() {
   const map = useTexture('/room/textures/library-sleeve.jpg', t => {
     t.colorSpace = SRGBColorSpace;
@@ -580,6 +598,7 @@ function SleeveScreen() {
     () =>
       new MeshBasicMaterial({
         map,
+        color: new Color(SCREEN_GAIN, SCREEN_GAIN, SCREEN_GAIN),
         transparent: true,
         opacity: 0,
         toneMapped: false,
