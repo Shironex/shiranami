@@ -3,6 +3,13 @@ import { createPersistedStore, acceptStoreHmr } from '@/lib/createPersistedStore
 export type LyricsFontSize = 'sm' | 'base' | 'lg' | 'xl';
 /** How synced lyrics are presented: the classic list, or the depth-of-field focus stage. */
 export type LyricsPresentation = 'list' | 'focus';
+/**
+ * How the active synced line animates across its time slot: not at all, a
+ * left-to-right gradient wipe, words lighting up one by one, or a glow that
+ * sweeps word to word.
+ */
+export type LyricsAnimation = 'off' | 'fill' | 'word' | 'glow';
+export const LYRICS_ANIMATIONS: readonly LyricsAnimation[] = ['off', 'fill', 'word', 'glow'];
 
 export const LYRICS_PLAIN_OPACITY_MIN = 0.5;
 export const LYRICS_PLAIN_OPACITY_MAX = 1.0;
@@ -16,6 +23,7 @@ export const LYRICS_SYNCED_DIM_OPACITY_STEP = 0.05;
 export const LYRICS_SYNCED_DIM_OPACITY_DEFAULT = 0.45;
 export const LYRICS_SYNCED_FONT_SIZE_DEFAULT: LyricsFontSize = 'base';
 export const LYRICS_PRESENTATION_DEFAULT: LyricsPresentation = 'list';
+export const LYRICS_ANIMATION_DEFAULT: LyricsAnimation = 'fill';
 
 /**
  * Original synced view used past=0.25 / idle=0.45. We preserve that ratio
@@ -83,6 +91,11 @@ function coerceLyricsSyncedFontSize(v: unknown): LyricsFontSize {
 function coerceLyricsPresentation(v: unknown): LyricsPresentation {
   return v === 'list' || v === 'focus' ? v : LYRICS_PRESENTATION_DEFAULT;
 }
+function coerceLyricsAnimation(v: unknown): LyricsAnimation {
+  return LYRICS_ANIMATIONS.includes(v as LyricsAnimation)
+    ? (v as LyricsAnimation)
+    : LYRICS_ANIMATION_DEFAULT;
+}
 
 interface PersistedLyricsAppearanceState {
   lyricsPlainOpacity: number;
@@ -90,6 +103,7 @@ interface PersistedLyricsAppearanceState {
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
   lyricsPresentation: LyricsPresentation;
+  lyricsAnimation: LyricsAnimation;
 }
 
 function sanitize(
@@ -107,6 +121,8 @@ function sanitize(
     out.lyricsSyncedFontSize = coerceLyricsSyncedFontSize(persisted.lyricsSyncedFontSize);
   if (persisted.lyricsPresentation !== undefined)
     out.lyricsPresentation = coerceLyricsPresentation(persisted.lyricsPresentation);
+  if (persisted.lyricsAnimation !== undefined)
+    out.lyricsAnimation = coerceLyricsAnimation(persisted.lyricsAnimation);
   return out;
 }
 
@@ -143,6 +159,7 @@ interface LyricsAppearanceState {
   lyricsSyncedDimOpacity: number;
   lyricsSyncedFontSize: LyricsFontSize;
   lyricsPresentation: LyricsPresentation;
+  lyricsAnimation: LyricsAnimation;
 }
 
 interface LyricsAppearanceActions {
@@ -152,6 +169,7 @@ interface LyricsAppearanceActions {
   setLyricsSyncedDimOpacity: (value: number) => void;
   setLyricsSyncedFontSize: (size: LyricsFontSize) => void;
   setLyricsPresentation: (presentation: LyricsPresentation) => void;
+  setLyricsAnimation: (animation: LyricsAnimation) => void;
   resetLyricsAppearance: () => void;
 }
 
@@ -164,6 +182,7 @@ export const useLyricsAppearanceStore = createPersistedStore<
     lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
     lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
     lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
+    lyricsAnimation: LYRICS_ANIMATION_DEFAULT,
 
     setLyricsPlainOpacity: value => {
       set({ lyricsPlainOpacity: coerceLyricsPlainOpacity(value) });
@@ -186,6 +205,9 @@ export const useLyricsAppearanceStore = createPersistedStore<
     setLyricsPresentation: presentation => {
       set({ lyricsPresentation: coerceLyricsPresentation(presentation) });
     },
+    setLyricsAnimation: animation => {
+      set({ lyricsAnimation: coerceLyricsAnimation(animation) });
+    },
     resetLyricsAppearance: () => {
       set({
         lyricsPlainOpacity: LYRICS_PLAIN_OPACITY_DEFAULT,
@@ -193,6 +215,7 @@ export const useLyricsAppearanceStore = createPersistedStore<
         lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
         lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
         lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
+        lyricsAnimation: LYRICS_ANIMATION_DEFAULT,
       });
     },
   }),
@@ -205,6 +228,7 @@ export const useLyricsAppearanceStore = createPersistedStore<
       lyricsSyncedDimOpacity: s.lyricsSyncedDimOpacity,
       lyricsSyncedFontSize: s.lyricsSyncedFontSize,
       lyricsPresentation: s.lyricsPresentation,
+      lyricsAnimation: s.lyricsAnimation,
     }),
     sanitize: (persisted, current) => ({
       ...current,
