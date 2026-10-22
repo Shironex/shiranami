@@ -15,9 +15,11 @@ import {
   type PointLight,
   type SkinnedMesh,
   SRGBColorSpace,
+  Vector3,
 } from 'three';
 import { BlobShadow } from './Dressing';
 import { music } from './music';
+import { DeckLevel, StationReadout } from './Overlays';
 import { type OnModel, Prop } from './Prop';
 import { near, ramp, room } from './progress';
 
@@ -181,6 +183,7 @@ export function Turntable({ deck, ...group }: GroupProps & { deck: 'A' | 'B' }) 
       </Prop>
       {/* Deck B comes and goes, so it is not in the desk's bake: a blob grounds it instead. */}
       {deck === 'B' && <BlobShadow size={[0.6, 0.48]} opacity={0.45} position={[0, 0.003, 0]} />}
+      <DeckLevel deck={deck} level={() => spin.current} position={[0.2, 0.05, 0.25]} />
       <group ref={record} position={RECORD_AT}>
         <Prop name="record" onModel={deck === 'B' ? creamLabel : vinylSheen}>
           <RecordBlockout label={deck === 'A' ? '#b9a3e3' : '#efe2c2'} />
@@ -192,16 +195,30 @@ export function Turntable({ deck, ...group }: GroupProps & { deck: 'A' | 'B' }) 
 
 // -------------------------------------------------------------------- radio
 
+/** The needle's rotation (radians around Z) per MHz: +135 degrees is 87, -135 degrees is 107. */
+const NEEDLE_PER_MHZ = (Math.PI * 0.75) / 10;
+const tip = new Vector3();
+
 export function Radio(group: GroupProps) {
   const root = useRef<Group>(null);
+  const readout = useRef<Group>(null);
+  const mhz = useRef(97);
   const dial = useMemo(() => glow('#f4d9a0', 0.6), []);
 
   useFrame(() => {
     const g = root.current;
-    // Scrubbed by scroll on the way into the radio stop, across four stations.
-    const sweep = ramp(1.5, 2.6);
+    // Scrubbed by scroll on the way into the radio stop, across four stations,
+    // landing on the last as the camera arrives.
+    const sweep = ramp(1.3, 2.0);
     const needle = part(g, 'needle');
-    if (needle) needle.rotation.z = 0.9 - sweep * 1.8;
+    const angle = 0.9 - sweep * 1.8;
+    mhz.current = 97 - angle / NEEDLE_PER_MHZ;
+    if (needle) needle.rotation.z = angle;
+    // The readout rides above the needle tip, just over the radio's top.
+    if (needle && g && readout.current) {
+      g.worldToLocal(needle.localToWorld(tip.set(0, 0.028, 0)));
+      readout.current.position.set(tip.x, tip.y + 0.045, tip.z);
+    }
     const knob = part(g, 'knob_right');
     if (knob) knob.rotation.z = -sweep * Math.PI * 2;
     setGlow(part(g, 'dial'), 0.6 + near(2) * 1.6);
@@ -243,6 +260,9 @@ export function Radio(group: GroupProps) {
           </group>
         ))}
       </Prop>
+      <group ref={readout}>
+        <StationReadout read={() => mhz.current} />
+      </group>
     </group>
   );
 }

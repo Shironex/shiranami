@@ -11,6 +11,7 @@ import {
 import { Dust, Moonbeam } from './Atmosphere';
 import { bakedSurface } from './baked';
 import { BlobShadow, Books, Mug, Plant, Poster, StringLights } from './Dressing';
+import { GlassLyrics } from './Overlays';
 import {
   Desk,
   Lamp,
@@ -95,6 +96,8 @@ export function RoomScene() {
       </mesh>
       <WindowFrame position={[WINDOW.x, WINDOW.bottom, 0]} />
       <StringLights from={LIGHTS_FROM} to={LIGHTS_TO} />
+      {/* In the left pane: the moon sits in the right one at the lyrics stop. */}
+      <GlassLyrics position={[WINDOW.x - 0.3, WINDOW.bottom + 0.6, 0.02]} />
       {/* Fills the empty upper wall left of the window in the hero, clear of the headline. */}
       <Poster position={[-0.8, 1.95, 0]} />
 

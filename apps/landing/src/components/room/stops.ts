@@ -83,7 +83,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'lyrics',
     label: { en: 'Lyrics', pl: 'Teksty' },
-    camera: { position: [-0.15, 1.35, 2.3], target: [0.15, 1.35, 0.0], fov: 40 },
+    camera: { position: [0.15, 1.38, 2.9], target: [0.4, 1.3, 0.0], fov: 40 },
     panel: {
       eyebrow: { en: 'Side C · Synced lyrics', pl: 'Strona C · Zsynchronizowane teksty' },
       lead: { en: 'Lyrics that', pl: 'Teksty, które' },
