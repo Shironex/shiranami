@@ -612,19 +612,6 @@ export function Desk(group: GroupProps) {
   );
 }
 
-export function Books(group: GroupProps) {
-  const covers = ['#3a2d57', '#efe2c2', '#3f8f8c'];
-  return (
-    <Prop {...group} name="books">
-      {covers.map((c, i) => (
-        <mesh key={c} position={[0, 0.11 + 0, -0.05 + i * 0.045]} material={m(c)}>
-          <boxGeometry args={[0.22, 0.22 + i * 0.01, 0.035]} />
-        </mesh>
-      ))}
-    </Prop>
-  );
-}
-
 export function WindowFrame(group: GroupProps) {
   // Opening 1.20 x 1.00 m inside a 1.40 x 1.15 m frame, bottom on the sill.
   return (

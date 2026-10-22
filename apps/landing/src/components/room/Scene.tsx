@@ -1,6 +1,5 @@
 import { AdditiveBlending, MeshBasicMaterial } from 'three';
 import {
-  Books,
   Desk,
   Lamp,
   Mascot,
@@ -57,7 +56,6 @@ export function RoomScene() {
 
       {/* desk.glb is 2.30 x 0.62 m: its back edge 2 cm off the wall. */}
       <Desk position={[0, 0, 0.33]} />
-      <Books position={[-1.0, DESK_TOP, 0.3]} rotation={[0, 0.15, 0]} />
       <Speaker position={[-0.74, DESK_TOP, 0.3]} rotation={[0, 0.12, 0]} />
       <Lamp position={[-0.47, DESK_TOP, 0.47]} />
       <Radio position={[-0.13, DESK_TOP, 0.33]} />

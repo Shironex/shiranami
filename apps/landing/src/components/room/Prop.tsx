@@ -27,8 +27,7 @@ export type PropName =
   | 'mascot'
   | 'window'
   | 'lamp'
-  | 'stool'
-  | 'books';
+  | 'stool';
 
 /** Called once the GLB is in the scene, with its copy and its clips by name. */
 export type OnModel = (model: Object3D, actions: Record<string, AnimationAction | null>) => void;
