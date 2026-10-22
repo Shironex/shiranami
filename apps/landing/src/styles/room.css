@@ -1,5 +1,4 @@
-/* The listening room (/room). Imported by that page only, so the index CSS
-   stays as it is. */
+/* The listening room, the homepage. Imported by that page only. */
 /* The build may inline this ahead of global.css; state Tailwind's layer order
    first so this file cannot reorder the layers (and let preflight win). */
 @layer theme, base, components, utilities;

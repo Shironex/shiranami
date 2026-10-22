@@ -6,22 +6,13 @@ const shortVersion = LANDING_VERSION.split('.').slice(0, 2).join('.');
 // The build emits directory-style URLs (/download/), so drop the trailing slash
 // before comparing against the slash-less hrefs below.
 const currentPath = Astro.url.pathname.replace(/\/+$/, '') || '/';
-const isLanding = currentPath === '/';
+const navItems = [
+  { href: '/', label: 'Home', i18nKey: 'nav.home' },
+  { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
+  { href: '/download', label: 'Download', i18nKey: 'nav.download' },
+];
 
-const navItems = isLanding
-  ? [
-      { href: '#features', label: 'Features', i18nKey: 'nav.features' },
-      { href: '#preview', label: 'The app', i18nKey: 'nav.preview' },
-      { href: '#philosophy', label: 'Philosophy', i18nKey: 'nav.philosophy' },
-      { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
-    ]
-  : [
-      { href: '/', label: 'Home', i18nKey: 'nav.home' },
-      { href: '/changelog', label: 'Changelog', i18nKey: 'nav.changelog' },
-      { href: '/download', label: 'Download', i18nKey: 'nav.download' },
-    ];
-
-const ctaHref = isLanding ? '#download' : '/download';
+const ctaHref = '/download';
 ---
 
 <nav class="top" aria-label="Primary navigation" data-i18n-aria-label="nav.primary">
