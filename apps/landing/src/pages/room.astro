@@ -152,6 +152,44 @@ const models = fs.existsSync(modelsDir)
         })
       }
     </div>
+
+    {/* Progress through the stops; each dot jumps to its stop. */}
+    <nav class="room-dots" aria-label="Stops in the room" data-i18n-aria-label="room.stops" data-room-dots>
+      {
+        ROOM_STOPS.map((stop, index) => (
+          <a
+            href={`#room-${stop.id}`}
+            class="room-dot"
+            data-room-dot={index}
+            aria-current={index === 0 ? 'step' : undefined}
+          >
+            <span class="sr-only" data-i18n-en={stop.label.en} data-i18n-pl={stop.label.pl}>
+              {stop.label.en}
+            </span>
+          </a>
+        ))
+      }
+    </nav>
+
+    <button
+      type="button"
+      class="room-music"
+      aria-pressed="false"
+      aria-label="Background music"
+      data-i18n-aria-label="room.music"
+      data-room-music
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18V5l11-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="17" cy="16" r="3" />
+      </svg>
+      <span class="room-music-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
   </main>
+  <script>
+    import { initRoomControls } from '../components/room/controls';
+    document.addEventListener('astro:page-load', initRoomControls);
+  </script>
   <Footer />
 </BaseLayout>

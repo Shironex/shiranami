@@ -18,6 +18,10 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'nav.toggleMenu': 'Toggle menu',
     'nav.switchLanguage': 'Switch language',
 
+    // Listening room (/room)
+    'room.music': 'Background music',
+    'room.stops': 'Stops in the room',
+
     // Hero
     'hero.eyebrow': 'Vol. I  ·  A desktop player · Local-first',
     'hero.headline.lead': 'A quieter place to listen, far from',
@@ -243,6 +247,10 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'nav.getTheApp': 'Pobierz aplikację',
     'nav.toggleMenu': 'Przełącz menu',
     'nav.switchLanguage': 'Zmień język',
+
+    // Listening room (/room)
+    'room.music': 'Muzyka w tle',
+    'room.stops': 'Przystanki w pokoju',
 
     // Hero
     'hero.eyebrow': 'Vol. I  ·  Odtwarzacz desktopowy · Lokalnie',
