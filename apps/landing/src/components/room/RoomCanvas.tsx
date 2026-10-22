@@ -2,9 +2,12 @@ import { useProgress } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { AgXToneMapping, MathUtils, PerspectiveCamera, Vector3 } from 'three';
+import { Effects } from './Effects';
+import { motion } from './motion';
 import { ModelsContext, settledModels } from './Prop';
 import { RoomScene } from './Scene';
 import { room } from './progress';
+import { scrollProgress, stopSections } from './scroll';
 import { ROOM_STOPS } from './stops';
 
 interface Props {
@@ -38,12 +41,13 @@ export default function RoomCanvas({ models, onProgress, onReady }: Props) {
       gl={{ antialias: true, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.toneMapping = AgXToneMapping;
-        gl.toneMappingExposure = 1.15;
+        gl.toneMappingExposure = 1.3;
       }}
     >
       <ModelsContext.Provider value={new Set(models)}>
         <CameraRig />
         <RoomScene />
+        <Effects />
         <LoadGate models={models} onProgress={onProgress} onReady={onReady} />
       </ModelsContext.Provider>
     </Canvas>
@@ -55,6 +59,13 @@ const target = new Vector3();
 const look = new Vector3();
 const a = new Vector3();
 const b = new Vector3();
+const side = new Vector3();
+const up = new Vector3();
+
+/** The pointer, -1 to 1 across the window, and its smoothed follower. */
+const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+/** How far the pointer swings the camera around its target, in radians. */
+const PARALLAX = { yaw: 0.045, pitch: 0.03 };
 
 /** Reads the scroll position each frame and eases the camera toward it. */
 function CameraRig() {
@@ -63,7 +74,15 @@ function CameraRig() {
   const started = useRef(false);
 
   useEffect(() => {
-    sections.current = [...document.querySelectorAll<HTMLElement>('[data-room-stop]')];
+    sections.current = stopSections();
+    // Desktop only: the stops sit over the canvas, so listen on the window.
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      pointer.x = (e.clientX / innerWidth) * 2 - 1;
+      pointer.y = (e.clientY / innerHeight) * 2 - 1;
+    };
+    addEventListener('pointermove', onMove, { passive: true });
+    return () => removeEventListener('pointermove', onMove);
   }, []);
 
   useFrame((state, delta) => {
@@ -83,6 +102,18 @@ function CameraRig() {
     // A slow 2 degree drift so the room never looks frozen.
     const drift = Math.sin(room.t * 0.25) * 0.035;
     target.x += drift * pos.distanceTo(target);
+
+    // Mouse parallax: a few degrees around the target, eased, never on touch
+    // or under reduced motion.
+    const on = motion.finePointer && !motion.reduced;
+    const p = 1 - Math.exp(-delta * 2.5);
+    pointer.sx += ((on ? pointer.x : 0) - pointer.sx) * p;
+    pointer.sy += ((on ? pointer.y : 0) - pointer.sy) * p;
+    const dist = pos.distanceTo(target);
+    side.subVectors(target, pos).cross(camera.up).normalize();
+    up.crossVectors(side, a.subVectors(target, pos)).normalize();
+    pos.addScaledVector(side, pointer.sx * PARALLAX.yaw * dist);
+    pos.addScaledVector(up, -pointer.sy * PARALLAX.pitch * dist);
 
     const k = started.current ? 1 - Math.exp(-delta * 5) : 1;
     started.current = true;
@@ -110,19 +141,6 @@ function lockedFov(fov: number, aspect: number): number {
   if (aspect <= FRAME_ASPECT) return fov;
   const half = Math.tan(MathUtils.degToRad(fov / 2)) * (FRAME_ASPECT / aspect);
   return MathUtils.radToDeg(2 * Math.atan(half));
-}
-
-/** 0 at the first stop, 1 at the second, and so on, from the sections' layout. */
-function scrollProgress(sections: HTMLElement[]): number {
-  if (sections.length < 2) return 0;
-  const tops = sections.map(s => s.getBoundingClientRect().top);
-  for (let i = tops.length - 1; i >= 0; i--) {
-    if (tops[i] <= 0) {
-      const next = tops[i + 1] ?? tops[i] + sections[i].offsetHeight;
-      return Math.min(i + -tops[i] / (next - tops[i]), tops.length - 1);
-    }
-  }
-  return 0;
 }
 
 /**

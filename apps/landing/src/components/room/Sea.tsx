@@ -20,6 +20,7 @@ const vertex = /* glsl */ `
 const fragment = /* glsl */ `
   uniform float uTime;
   uniform vec3 uMoonDir;
+  uniform float uExposure;
   varying vec3 vWorld;
 
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -89,7 +90,8 @@ const fragment = /* glsl */ `
       col += vec3(0.32, 0.31, 0.5) * exp(-ang * 26.0) * 0.7;
       col += vec3(0.12, 0.12, 0.26) * exp(-ang * 6.0) * 0.5;
       float disc = smoothstep(0.0215, 0.0195, ang);
-      vec3 moon = vec3(1.0, 0.95, 0.82) * (0.92 + 0.08 * noise(dir.xy * 400.0));
+      // Past white, so the moon blooms (the composer tone maps it back).
+      vec3 moon = vec3(1.4, 1.33, 1.15) * (0.92 + 0.08 * noise(dir.xy * 400.0));
       col = mix(col, moon, disc);
     } else {
       // Sea. The distance to the water grows as 1/angle below the horizon,
@@ -133,7 +135,10 @@ const fragment = /* glsl */ `
       col = mix(col, vec3(0.8, 0.85, 1.0), spray * 0.45);
     }
 
-    gl_FragColor = vec4(col, 1.0);
+    // The colours above are display values. The composer works in linear light
+    // and encodes to sRGB at the end, so decode them here, and undo the
+    // exposure the tone mapping adds.
+    gl_FragColor = vec4(pow(col, vec3(2.2)) / uExposure, 1.0);
   }
 `;
 
@@ -146,13 +151,15 @@ export function Sea(props: { position: [number, number, number]; size: [number, 
         uniforms: {
           uTime: { value: 0 },
           uMoonDir: { value: new Vector3(1.0, 0.45, -4.6).normalize() },
+          uExposure: { value: 1 },
         },
       }),
     []
   );
 
-  useFrame((_, delta) => {
+  useFrame(({ gl }, delta) => {
     material.uniforms.uTime.value += delta;
+    material.uniforms.uExposure.value = gl.toneMappingExposure;
   });
 
   return (
