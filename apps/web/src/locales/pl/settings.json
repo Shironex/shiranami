@@ -388,11 +388,19 @@
       "fontSizeDesc": "Rozmiar czytania zsynchronizowanego tekstu. Aktywna linia powiększa się automatycznie.",
       "presentationTitle": "Prezentacja",
       "presentationDesc": "Lista pokazuje wszystkie wersy; Fokus wyświetla bieżący wers dużą czcionką szeryfową, sąsiednie wersy się oddalają, a w partiach instrumentalnych oddychają kropki.",
-      "focusHint": "Tryb Fokus pojawia się w widoku Teraz odtwarzane, który jest obecnie wyłączony. Włącz go w ustawieniach efektów wizualnych, a tekst zajmie tam scenę."
+      "focusHint": "Tryb Fokus pojawia się w widoku Teraz odtwarzane, który jest obecnie wyłączony. Włącz go w ustawieniach efektów wizualnych, a tekst zajmie tam scenę.",
+      "animationTitle": "Animacja tekstu",
+      "animationDesc": "Jak rozświetla się bieżący wers podczas śpiewu. Tekst ma czas tylko dla całych wersów, więc słowa rozkładają się równomiernie w obrębie wersu. Wyłączona, gdy system prosi o ograniczenie ruchu."
     },
     "presentation": {
       "list": "Lista",
       "focus": "Fokus"
+    },
+    "animation": {
+      "off": "Wyłączona",
+      "fill": "Wypełnienie",
+      "word": "Słowo po słowie",
+      "glow": "Poświata"
     },
     "size": {
       "sm": "Mały",

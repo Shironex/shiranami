@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { findActiveLine, isInstrumentalGap } from './lyrics';
+import {
+  findActiveLine,
+  isInstrumentalGap,
+  KARAOKE_MAX_LINE_SECONDS,
+  KARAOKE_MIN_LINE_SECONDS,
+  karaokeElapsed,
+  karaokeLineDuration,
+  karaokeTokens,
+} from './lyrics';
 
 const LINES = [{ time: 0 }, { time: 8 }, { time: 16 }, { time: 40 }, { time: 48 }];
 
@@ -44,5 +52,69 @@ describe('isInstrumentalGap', () => {
 
   it('never reads the unknowable outro as a gap', () => {
     expect(isInstrumentalGap(LINES, 4, 60)).toBe(false);
+  });
+});
+
+describe('karaokeLineDuration', () => {
+  const line = (time: number, text = 'la la la') => ({ time, text });
+
+  it('runs over the gap to the next line', () => {
+    expect(karaokeLineDuration([line(0), line(4.5)], 0)).toBe(4.5);
+    expect(karaokeLineDuration([line(10), line(18)], 0)).toBe(8);
+  });
+
+  it('caps a long instrumental gap with a text-length estimate', () => {
+    // 20 chars * 0.12s = 2.4s, well short of the 30s gap.
+    expect(karaokeLineDuration([line(0, 'a'.repeat(20)), line(30)], 0)).toBeCloseTo(2.4);
+    // Very long text still never exceeds the cap.
+    expect(karaokeLineDuration([line(0, 'a'.repeat(200)), line(30)], 0)).toBe(
+      KARAOKE_MAX_LINE_SECONDS
+    );
+  });
+
+  it('gives the last line a text-length estimate with a floor', () => {
+    expect(karaokeLineDuration([line(0, 'hi')], 0)).toBe(KARAOKE_MIN_LINE_SECONDS);
+    expect(karaokeLineDuration([line(0), line(5, 'a'.repeat(30))], 1)).toBeCloseTo(3.6);
+  });
+
+  it('never exceeds a gap just over the cap, and floors duplicate timestamps', () => {
+    expect(karaokeLineDuration([line(0, 'a'.repeat(200)), line(8.5)], 0)).toBe(8);
+    expect(karaokeLineDuration([line(3), line(3)], 0)).toBeGreaterThan(0);
+  });
+});
+
+describe('karaokeElapsed', () => {
+  it('measures playback into the line, clamped to the animation span', () => {
+    expect(karaokeElapsed(12, 10, 4)).toBe(2);
+    expect(karaokeElapsed(9, 10, 4)).toBe(0);
+    expect(karaokeElapsed(20, 10, 4)).toBe(4);
+  });
+});
+
+describe('karaokeTokens', () => {
+  it('spreads words across the line by character length', () => {
+    const tokens = karaokeTokens('ab cdef gh', 8);
+    const words = tokens.filter(t => t.isWord);
+
+    expect(words.map(w => w.text)).toEqual(['ab', 'cdef', 'gh']);
+    expect(words[0].start).toBe(0);
+    expect(words[1].start).toBeCloseTo(2);
+    expect(words[1].duration).toBeCloseTo(4);
+    expect(words[2].start).toBeCloseTo(6);
+    expect(words[2].start + words[2].duration).toBeCloseTo(8);
+  });
+
+  it('keeps the whitespace so the tokens join back into the original text', () => {
+    const text = '  Hello,   world  again ';
+    expect(
+      karaokeTokens(text, 3)
+        .map(t => t.text)
+        .join('')
+    ).toBe(text);
+  });
+
+  it('returns no words for blank text', () => {
+    expect(karaokeTokens('', 3)).toEqual([]);
+    expect(karaokeTokens('   ', 3).some(t => t.isWord)).toBe(false);
   });
 });

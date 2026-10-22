@@ -1,5 +1,5 @@
 import { useUIStore } from '@/stores/useUIStore';
-import { useInstrumentalGap } from '@/lib/lyrics';
+import { karaokeLineDuration, useInstrumentalGap } from '@/lib/lyrics';
 import type { IFocusLine, ILyricsFocusProps, ILyricsFocusView } from './LyricsFocus.types';
 
 const DEFAULT_WINDOW = 2;
@@ -25,6 +25,7 @@ export function useLyricsFocus({
       time: synced[index].time,
       isActive: index === activeLine,
       isPast: index < activeLine,
+      duration: index === activeLine ? karaokeLineDuration(synced, index) : undefined,
       distance: Math.abs(index - center),
     });
   }

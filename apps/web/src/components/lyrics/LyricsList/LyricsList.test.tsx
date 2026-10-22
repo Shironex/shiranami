@@ -36,6 +36,17 @@ describe('LyricsList', () => {
     expect(screen.getByRole('button', { name: 'Third line' })).toHaveClass('lyric-idle');
   });
 
+  it('animates only the active line, over the gap to the next line', () => {
+    const { container } = render(
+      <LyricsList lines={makeLines()} activeIndex={1} onLineClick={vi.fn()} {...CLASSES} />
+    );
+
+    const words = container.querySelectorAll<HTMLSpanElement>('.lyric-word');
+    expect(Array.from(words, w => w.textContent)).toEqual(['Second', 'line']);
+    // "Second" is 6 of 10 word chars across the 5s gap.
+    expect(words[0].style.animationDuration).toBe('3s');
+  });
+
   it('calls onLineClick with the line timestamp when a line is clicked', () => {
     const onLineClick = vi.fn();
     render(

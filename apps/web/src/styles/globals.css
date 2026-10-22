@@ -569,6 +569,76 @@
   }
 }
 
+/* Karaoke lyrics: the word spans of the active synced line (LyricLineButton).
+   Delay, duration and play state come inline per word; these rules only pick
+   the look. Unsung words sit at the idle-line dimness (`--lyrics-idle-opacity`
+   from LyricsBody, or the default in Focus). Reduced motion never renders the
+   spans at all (useKaraokeText falls back to plain text). */
+.lyric-word {
+  --lyric-dim: var(--lyrics-idle-opacity, 0.45);
+  animation-fill-mode: both;
+}
+/* fill: a soft-edged wipe through each word in turn. The gradient is 220% of
+   the word, bright then dim; sliding it left reveals the bright half. The text
+   fill goes transparent (not `color`) so `currentColor` still names the line
+   color. Italic serif overhangs its box, so pad the clip and pull it back. */
+.lyric-word-fill {
+  background-image: linear-gradient(
+    to right,
+    currentColor 46%,
+    color-mix(in oklab, currentColor calc(var(--lyric-dim) * 100%), transparent) 54%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding-inline-end: 0.1em;
+  margin-inline-end: -0.1em;
+  animation-name: lyricFill;
+  animation-timing-function: linear;
+}
+/* word: each word lights up on its own start time. */
+.lyric-word-word {
+  animation-name: lyricWordOn;
+  animation-timing-function: ease-out;
+}
+/* glow: each word lights up with a bloom in the accent color that settles. */
+.lyric-word-glow {
+  animation-name: lyricGlow;
+  animation-timing-function: ease-out;
+}
+@keyframes lyricFill {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes lyricWordOn {
+  from {
+    opacity: var(--lyric-dim);
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lyricGlow {
+  0% {
+    opacity: var(--lyric-dim);
+    text-shadow: 0 0 0 transparent;
+  }
+  35% {
+    opacity: 1;
+    text-shadow: 0 0 0.45em color-mix(in oklab, var(--color-primary) 75%, transparent);
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
 /* App-wide reduced-motion gate (a11y + a free CPU win when the OS asks for it).
    Neutralizes the decorative / looping steady-state animations only — the
    equalizer bars, the always-pulsing status badges, the floating mascot, the

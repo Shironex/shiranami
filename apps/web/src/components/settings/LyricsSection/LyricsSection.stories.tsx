@@ -153,6 +153,7 @@ export const Customized: Story = {
         lyricsPlainFontSize: 'lg',
         lyricsSyncedDimOpacity: 0.3,
         lyricsSyncedFontSize: 'xl',
+        lyricsAnimation: 'glow',
       });
       return <Story />;
     },
@@ -162,6 +163,11 @@ export const Customized: Story = {
 
     const [plainSizeGroup] = canvas.getAllByRole('radiogroup', { name: 'Font size' });
     await expect(within(plainSizeGroup).getByRole('radio', { name: 'Large' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+    const animationGroup = canvas.getByRole('radiogroup', { name: 'Lyric animation' });
+    await expect(within(animationGroup).getByRole('radio', { name: 'Glow' })).toHaveAttribute(
       'aria-checked',
       'true'
     );

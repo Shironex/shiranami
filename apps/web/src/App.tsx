@@ -321,7 +321,7 @@ function App() {
         <AmbientColorProvider>
           <div
             className={cn(
-              'h-screen w-screen bg-background text-foreground overflow-hidden relative',
+              'h-full w-full bg-background text-foreground overflow-hidden relative',
               !compactMode && 'flex',
               IS_ELECTRON && 'rounded-t-[10px]'
             )}

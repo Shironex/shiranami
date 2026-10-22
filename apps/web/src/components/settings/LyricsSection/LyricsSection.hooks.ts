@@ -23,6 +23,7 @@ import {
   LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
   LYRICS_PRESENTATION_DEFAULT,
+  LYRICS_ANIMATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
 import { useUIStore } from '@/stores/useUIStore';
 import type { LyricsBatchSummary } from '@shiranami/contracts';
@@ -54,6 +55,8 @@ export function useLyricsSection(): ILyricsSectionView {
   const setLyricsSyncedFontSize = useLyricsAppearanceStore(s => s.setLyricsSyncedFontSize);
   const lyricsPresentation = useLyricsAppearanceStore(s => s.lyricsPresentation);
   const setLyricsPresentation = useLyricsAppearanceStore(s => s.setLyricsPresentation);
+  const lyricsAnimation = useLyricsAppearanceStore(s => s.lyricsAnimation);
+  const setLyricsAnimation = useLyricsAppearanceStore(s => s.setLyricsAnimation);
 
   const resetLyricsAppearance = useLyricsAppearanceStore(s => s.resetLyricsAppearance);
   const nowPlayingViewEnabled = useUIStore(s => s.nowPlayingViewEnabled);
@@ -65,7 +68,8 @@ export function useLyricsSection(): ILyricsSectionView {
     lyricsPlainFontSize !== LYRICS_PLAIN_FONT_SIZE_DEFAULT ||
     lyricsSyncedDimOpacity !== LYRICS_SYNCED_DIM_OPACITY_DEFAULT ||
     lyricsSyncedFontSize !== LYRICS_SYNCED_FONT_SIZE_DEFAULT ||
-    lyricsPresentation !== LYRICS_PRESENTATION_DEFAULT;
+    lyricsPresentation !== LYRICS_PRESENTATION_DEFAULT ||
+    lyricsAnimation !== LYRICS_ANIMATION_DEFAULT;
 
   return {
     t,
@@ -123,6 +127,8 @@ export function useLyricsSection(): ILyricsSectionView {
     // visible. An observation with the pointer, not a nag.
     presentationHint:
       lyricsPresentation === 'focus' && !nowPlayingViewEnabled ? t('lyr.synced.focusHint') : null,
+    lyricsAnimation,
+    onSetAnimation: setLyricsAnimation,
 
     isModified,
     onReset: resetLyricsAppearance,

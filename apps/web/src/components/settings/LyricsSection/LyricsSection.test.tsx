@@ -9,6 +9,7 @@ import {
   LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
   LYRICS_PRESENTATION_DEFAULT,
+  LYRICS_ANIMATION_DEFAULT,
 } from '@/stores/useLyricsAppearanceStore';
 import { useUIStore } from '@/stores/useUIStore';
 
@@ -31,6 +32,7 @@ function reset(): void {
     lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
     lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
     lyricsPresentation: LYRICS_PRESENTATION_DEFAULT,
+    lyricsAnimation: LYRICS_ANIMATION_DEFAULT,
   });
   useUIStore.setState({ nowPlayingViewEnabled: true });
   vi.clearAllMocks();
@@ -76,6 +78,23 @@ describe('LyricsSection', () => {
     await user.click(plainSizeButtons[2]);
 
     expect(setLyricsPlainFontSize).toHaveBeenCalledWith('lg');
+  });
+
+  it('picks the lyric animation style, with fill selected by default', async () => {
+    const user = userEvent.setup();
+    renderSection();
+
+    const group = screen.getByRole('radiogroup', { name: 'Lyric animation' });
+    expect(within(group).getByRole('radio', { name: 'Fill' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+
+    await user.click(within(group).getByRole('radio', { name: 'Word by word' }));
+
+    expect(useLyricsAppearanceStore.getState().lyricsAnimation).toBe('word');
+    // A non-default style counts as a modification, so the reset link shows.
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
   });
 
   it('points Focus at the Now Playing view when that view is disabled', () => {
