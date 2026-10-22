@@ -18,6 +18,7 @@ import { Sea } from './Sea';
 // room extends toward +Z. Desk top at 0.75.
 
 const DESK_TOP = 0.75;
+const MASCOT_AT = [1.27, 0, 0.5] as const;
 const WINDOW = { x: 0.45, bottom: 0.95, width: 1.4, height: 1.15 };
 const ROOM = { left: -3.2, right: 2.4, height: 2.7, depth: 6 };
 
@@ -54,16 +55,18 @@ export function RoomScene() {
       </mesh>
       <WindowFrame position={[WINDOW.x, WINDOW.bottom, 0]} />
 
-      <Desk position={[0, 0, 0.4]} />
-      <Books position={[-1.08, DESK_TOP, 0.3]} rotation={[0, 0.15, 0]} />
-      <Speaker position={[-0.8, DESK_TOP, 0.36]} rotation={[0, 0.12, 0]} />
-      <Lamp position={[-0.52, DESK_TOP, 0.56]} />
-      <Radio position={[-0.1, DESK_TOP, 0.4]} />
-      <Turntable deck="A" position={[0.42, DESK_TOP, 0.4]} />
-      <Turntable deck="B" position={[0.92, DESK_TOP, 0.4]} />
+      {/* desk.glb is 2.30 x 0.62 m: its back edge 2 cm off the wall. */}
+      <Desk position={[0, 0, 0.33]} />
+      <Books position={[-1.0, DESK_TOP, 0.3]} rotation={[0, 0.15, 0]} />
+      <Speaker position={[-0.74, DESK_TOP, 0.3]} rotation={[0, 0.12, 0]} />
+      <Lamp position={[-0.47, DESK_TOP, 0.47]} />
+      <Radio position={[-0.13, DESK_TOP, 0.33]} />
+      <Turntable deck="A" position={[0.3, DESK_TOP, 0.34]} />
+      <Turntable deck="B" position={[0.82, DESK_TOP, 0.34]} />
 
-      <Stool position={[1.38, 0, 0.95]} />
-      <Mascot position={[1.38, 0, 0.95]} rotation={[0, -0.9, 0]} />
+      {/* Her right elbow rests on the desk's right end (seat 0.533, elbow at 0.75). */}
+      <Stool position={MASCOT_AT} />
+      <Mascot position={MASCOT_AT} rotation={[0, -0.3, 0]} />
       <Shelf position={[1.97, 0, 0.3]} />
 
       {/* Rug and the moonlight falling through the window onto the floor. */}
