@@ -34,6 +34,7 @@ function resetStore() {
     crossfadeEnabled: false,
     crossfadeDuration: 5,
     _seekTarget: null,
+    _seekCount: 0,
   });
 }
 
@@ -277,6 +278,7 @@ describe('usePlaybackStore', () => {
       usePlaybackStore.getState()._onTrackEnd();
       expect(usePlaybackStore.getState().currentTime).toBe(0);
       expect(usePlaybackStore.getState().queueIndex).toBe(1);
+      expect(usePlaybackStore.getState()._seekCount).toBe(1);
     });
 
     it('calls next otherwise', () => {

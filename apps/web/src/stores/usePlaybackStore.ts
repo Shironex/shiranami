@@ -462,8 +462,9 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     _onTrackEnd: () => {
       const { repeatMode } = get();
       if (repeatMode === 'one') {
-        // Keep isPlaying true; the audio hook will restart playback
-        set({ currentTime: 0 });
+        // Keep isPlaying true; the audio hook will restart playback. Counts as
+        // a seek so time-synced UI (karaoke lyrics) restarts with it.
+        set(s => ({ currentTime: 0, _seekCount: s._seekCount + 1 }));
       } else {
         get().next();
       }
