@@ -19,6 +19,8 @@ let fade: GainNode | null = null;
 let duck: GainNode | null = null;
 let buffer: Promise<AudioBuffer> | null = null;
 let source: AudioBufferSourceNode | null = null;
+/** The loop still fading out after stop(); start() cuts it so two never overlap. */
+let fading: AudioBufferSourceNode | null = null;
 let startedAt = 0;
 let away = false;
 /** What the viewer last asked for; a stop while the file loads wins. */
@@ -74,6 +76,8 @@ export const music = {
     if (audio.state === 'suspended') await audio.resume();
     const data = await load(audio);
     if (source || !fade || !wanted) return;
+    fading?.stop();
+    fading = null;
     source = audio.createBufferSource();
     source.buffer = data;
     source.loop = true;
@@ -95,6 +99,7 @@ export const music = {
     fade.gain.setValueAtTime(fade.gain.value, now);
     fade.gain.linearRampToValueAtTime(0, now + FADE);
     source.stop(now + FADE);
+    fading = source;
     source = null;
   },
 
