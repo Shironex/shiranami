@@ -94,4 +94,11 @@
   .btn-ghost:hover .arr {
     transform: translateX(4px);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-primary:hover,
+    .btn-ghost:hover .arr {
+      transform: none;
+    }
+  }
 }

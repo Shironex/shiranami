@@ -108,7 +108,7 @@ const models = fs.existsSync(modelsDir)
               class="room-stop"
               id={`room-${stop.id}`}
               data-room-stop={stop.id}
-              aria-label={stop.label.en}
+              aria-labelledby={`room-${stop.id}-title`}
             >
               <div class="room-panel">
                 <div
@@ -118,7 +118,7 @@ const models = fs.existsSync(modelsDir)
                 >
                   {panel.eyebrow.en}
                 </div>
-                <Heading class="room-heading">
+                <Heading class="room-heading" id={`room-${stop.id}-title`}>
                   <span data-i18n-en={panel.lead.en} data-i18n-pl={panel.lead.pl}>
                     {panel.lead.en}
                   </span>{' '}
