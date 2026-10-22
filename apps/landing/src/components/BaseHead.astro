@@ -24,8 +24,9 @@ const siteOrigin = Astro.site ?? new URL(Astro.url.origin);
 // sitemap output (e.g. /download/, /changelog/).
 const canonicalURL = new URL(Astro.url.pathname, siteOrigin);
 
-const ogImage = new URL('/og-default.png', siteOrigin);
-const ogImageAlt = 'Shiranami — a calm dark-lavender desktop music player';
+const ogImage = new URL('/og-room.jpg', siteOrigin);
+const ogImageAlt =
+  'The Shiranami listening room at night: a desk with a turntable, radio and lamp under a moonlit sea window, the mascot listening on a stool';
 
 const orgJsonLd = {
   '@context': 'https://schema.org',
