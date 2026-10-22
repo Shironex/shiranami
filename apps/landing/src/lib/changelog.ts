@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '2.1.0': '響', // "resonance": ambience under the music, lyrics that ring out
   '2.0.0': '二', // "two" — Shiranami 2, the Rust/Tauri rewrite
   '1.0.0': '一', // "one" — the 1.0 milestone; the 0.x series graduates
   '0.24.0': '探', // "search / seek / find" — local-first lyrics resolution
@@ -138,6 +139,117 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '2.1.0',
+    date: '2026-10-22',
+    title: l(
+      'Ambience, karaoke lyrics and a library that keeps up',
+      'Dźwięki tła, tekst w stylu karaoke i biblioteka, która nadąża'
+    ),
+    description: l(
+      'The first feature release on the new Rust and Tauri core. A cozy ambience mixer plays rain, vinyl crackle or a fireplace under your music, synced lyrics now fill in word by word, your music folders are watched for new files, and a moved or renamed track keeps its history. Downloads can keep yt-dlp and ffmpeg up to date on their own. The tray, close to tray and launch at startup settings now actually work, and macOS gets in-app updates: download 2.1 from the site once, and later versions arrive inside the app.',
+      'Pierwsze wydanie z nowymi funkcjami na nowym rdzeniu w Rust i Tauri. Przytulny mikser dźwięków tła gra deszcz, trzaski winylu albo kominek pod muzyką, zsynchronizowany tekst rozświetla się słowo po słowie, foldery z muzyką są obserwowane pod kątem nowych plików, a przeniesiony lub przemianowany utwór zachowuje swoją historię. Pobieranie może samo aktualizować yt-dlp i ffmpeg. Ustawienia zasobnika, zamykania do zasobnika i uruchamiania przy starcie wreszcie działają, a macOS dostaje aktualizacje w aplikacji: wersję 2.1 trzeba raz pobrać ze strony, kolejne pojawią się już w aplikacji.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Ambience: a mixer with rain, vinyl crackle, warm noise, fireplace and café layers under your music, each with its own slider. Open it from the player bar or Settings > Ambience. It follows play and pause, the player volume and the sleep timer, and can turn the rain up when it is really raining outside.',
+            'Dźwięki tła: mikser z warstwami deszczu, trzasków winylu, ciepłego szumu, kominka i kawiarni pod muzyką, każda z własnym suwakiem. Otworzysz go z paska odtwarzacza albo w Ustawieniach > Dźwięki tła. Rusza i zatrzymuje się razem z muzyką, podąża za głośnością odtwarzacza i wyłącznikiem czasowym, a deszcz może przybierać na sile, gdy naprawdę pada za oknem.'
+          ),
+          l(
+            'Karaoke-style synced lyrics: a new Lyric animation setting under Settings > Lyrics with Fill (the default, a soft left-to-right wipe), Word by word, Glow or Off. Word timing is estimated from line-level lyrics, pauses with playback and resyncs when you seek.',
+            'Tekst w stylu karaoke: nowe ustawienie Animacja tekstu w Ustawieniach > Tekst piosenki z opcjami Wypełnienie (domyślnie, łagodne przejście od lewej do prawej), Słowo po słowie, Poświata lub Wyłączona. Czas słów jest szacowany na podstawie czasu całych wersów, animacja zatrzymuje się razem z odtwarzaniem i synchronizuje się ponownie po przewinięciu.'
+          ),
+          l(
+            'Watch folders for changes (on by default): music added to or deleted from your folders shows up within seconds, no rescan needed. Single folders can be opted out.',
+            'Obserwuj zmiany w folderach (domyślnie włączone): muzyka dodana do folderów lub z nich usunięta pojawia się w bibliotece w ciągu kilku sekund, bez ponownego skanowania. Wybrane foldery można wyłączyć z obserwowania.'
+          ),
+          l(
+            'Moved or renamed files keep their history: on rescan, the track follows its file and keeps its play count, favourite, playlists, loudness, BPM and key. The rescan summary tells you how many tracks moved.',
+            'Przeniesione lub przemianowane pliki zachowują historię: przy ponownym skanowaniu utwór podąża za swoim plikiem i zachowuje liczbę odtworzeń, ulubione, playlisty, głośność, BPM i tonację. Podsumowanie skanowania pokazuje, ile utworów zostało przeniesionych.'
+          ),
+          l(
+            'Keep download tools up to date automatically (opt-in): yt-dlp is checked daily and ffmpeg on Windows weekly, and a download that fails because a site changed triggers an immediate check and a retry. Every install is verified against its checksum and rolled back if it does not work.',
+            'Automatyczna aktualizacja narzędzi do pobierania (do włączenia w ustawieniach): yt-dlp jest sprawdzany codziennie, a ffmpeg na Windowsie co tydzień, a nieudane pobranie spowodowane zmianą na stronie od razu uruchamia sprawdzenie i ponowną próbę. Każda instalacja jest weryfikowana sumą kontrolną i wycofywana, jeśli nie działa.'
+          ),
+          l(
+            'Close to tray, minimize to tray and launch at startup now work, with music playing on while the window is hidden. The tray shows the current track, and the Windows taskbar button shows track progress.',
+            'Zamykanie i minimalizowanie do zasobnika oraz uruchamianie przy starcie wreszcie działają, a muzyka gra dalej, gdy okno jest ukryte. Zasobnik pokazuje bieżący utwór, a przycisk na pasku zadań Windows pokazuje postęp utworu.'
+          ),
+          l(
+            'In-app updates on macOS: from 2.1 on, the Updates page checks, downloads and installs new versions on macOS too.',
+            'Aktualizacje w aplikacji na macOS: od wersji 2.1 strona Aktualizacje sprawdza, pobiera i instaluje nowe wersje także na macOS.'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'Quitting no longer hangs while a radio station is playing.',
+            'Aplikacja nie zawiesza się już przy zamykaniu, gdy gra stacja radiowa.'
+          ),
+          l(
+            'Share links now open the app on macOS, and a link that starts the app is no longer lost.',
+            'Linki do udostępniania otwierają teraz aplikację na macOS, a link, który uruchamia aplikację, nie ginie już po drodze.'
+          ),
+          l(
+            'Random scrollbars no longer appear on both sides of the window at fractional display scaling on Windows.',
+            'Przypadkowe paski przewijania nie pojawiają się już po obu stronach okna przy ułamkowym skalowaniu ekranu w Windows.'
+          ),
+          l(
+            'Rescan no longer removes tracks because of a permission or read error, and re-checks missing files right before removing them.',
+            'Ponowne skanowanie nie usuwa już utworów z powodu błędu uprawnień lub odczytu i sprawdza brakujące pliki jeszcze raz tuż przed ich usunięciem.'
+          ),
+          l(
+            'If you opted into crash reports, errors from the interface now actually get sent; in 2.0 they were silently dropped.',
+            'Jeśli zgoda na raporty o awariach jest włączona, błędy interfejsu są teraz naprawdę wysyłane; w wersji 2.0 cicho przepadały.'
+          ),
+        ],
+      },
+      {
+        label: l('Accessibility', 'Dostępność'),
+        entries: [
+          l(
+            'Lyric animation turns itself off when your system asks for reduced motion.',
+            'Animacja tekstu wyłącza się sama, gdy system prosi o ograniczenie ruchu.'
+          ),
+          l(
+            'Update status changes are announced to screen readers.',
+            'Zmiany stanu aktualizacji są odczytywane przez czytniki ekranu.'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'Dependency updates that clear known security advisories.',
+            'Aktualizacje zależności usuwające znane zgłoszenia bezpieczeństwa.'
+          ),
+        ],
+      },
+      {
+        label: l('Notes', 'Uwagi'),
+        entries: [
+          l(
+            'On macOS, 2.0 cannot update itself, so download 2.1 from the site once. Windows gets it inside the app.',
+            'Na macOS wersja 2.0 nie potrafi sama się zaktualizować, więc wersję 2.1 trzeba raz pobrać ze strony. Windows otrzyma ją w aplikacji.'
+          ),
+          l(
+            'A library opened by 2.1 can no longer be opened by 2.0.0. To roll back, restore a backup taken before updating. Later versions no longer have this limit.',
+            'Biblioteki otwartej w wersji 2.1 nie da się już otworzyć w wersji 2.0.0. Aby wrócić do starszej wersji, przywróć kopię zapasową sprzed aktualizacji. Kolejne wersje nie mają już tego ograniczenia.'
+          ),
+          l(
+            'Coming from 1.x on macOS? Remove the old Shiranami entry from System Settings > General > Login Items once; 2.x manages its own.',
+            'Przechodzisz z 1.x na macOS? Usuń raz stary wpis Shiranami w Ustawieniach systemowych > Ogólne > Rzeczy otwierane podczas logowania; 2.x zarządza własnym wpisem.'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '2.0.0',
     date: '2026-09-22',
