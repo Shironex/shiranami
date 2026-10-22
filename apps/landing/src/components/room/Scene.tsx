@@ -8,7 +8,7 @@ import {
   TextureLoader,
   Vector3,
 } from 'three';
-import { Dust, Moonbeam } from './Atmosphere';
+import { Dust, Moonbeam, MoonPool } from './Atmosphere';
 import { bakedSurface } from './baked';
 import { BlobShadow, Books, Mug, Plant, Poster, StringLights } from './Dressing';
 import { GlassLyrics } from './Overlays';
@@ -70,13 +70,6 @@ const glass = new MeshBasicMaterial({
   blending: AdditiveBlending,
   depthWrite: false,
 });
-const moonPatch = new MeshBasicMaterial({
-  color: '#7f86ff',
-  transparent: true,
-  opacity: 0.07,
-  blending: AdditiveBlending,
-  depthWrite: false,
-});
 
 export function RoomScene() {
   return (
@@ -127,9 +120,11 @@ export function RoomScene() {
       <mesh position={[0, 0.01, 2.4]} material={mat.rug}>
         <cylinderGeometry args={[1.25, 1.25, 0.02, 64]} />
       </mesh>
-      <mesh position={[0.9, 0.022, 1.7]} rotation={[-Math.PI / 2, 0, -0.25]} material={moonPatch}>
-        <planeGeometry args={[1.0, 1.3]} />
-      </mesh>
+      <MoonPool
+        position={[0.9, 0.022, 1.7]}
+        rotation={[-Math.PI / 2, 0, -0.25]}
+        size={[1.1, 1.4]}
+      />
       <Moonbeam top={BEAM.top} bottom={BEAM.bottom} />
       <Dust lamp={DUST.lamp} beam={DUST.beam} />
     </>

@@ -1,4 +1,4 @@
-import { useFrame } from '@react-three/fiber';
+import { useFrame, type ThreeElements } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import {
   AdditiveBlending,
@@ -65,6 +65,52 @@ export function Moonbeam({ top, bottom }: { top: readonly [V3, V3]; bottom: read
   });
 
   return <mesh geometry={geometry} material={material} renderOrder={2} />;
+}
+
+/**
+ * The moonlight on the floor: the window's two panes cast as one soft pool,
+ * split by the mullion's shadow and feathered out at every edge, so it reads
+ * as light on the boards rather than a shape laid on them. Additive; it fades
+ * toward the room, away from the window.
+ */
+export function MoonPool({ size, ...mesh }: ThreeElements['mesh'] & { size: [number, number] }) {
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        uniforms: { uStrength: { value: 0.085 } },
+        vertexShader: /* glsl */ `
+          varying vec2 vUv;
+          void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+        `,
+        fragmentShader: /* glsl */ `
+          uniform float uStrength;
+          varying vec2 vUv;
+          // 0 outside [a, b], 1 inside, with a soft ramp of width f at both ends.
+          float band(float x, float a, float b, float f) {
+            return smoothstep(a, a + f, x) * (1.0 - smoothstep(b - f, b, x));
+          }
+          void main() {
+            // Wide feathering: moonlight through glass lands with a soft penumbra.
+            float pool = band(vUv.x, 0.0, 1.0, 0.32) * band(vUv.y, 0.0, 1.0, 0.36);
+            // The mullion's shadow down the middle, itself blurred.
+            float mullion = 1.0 - 0.7 * (1.0 - smoothstep(0.0, 0.06, abs(vUv.x - 0.5)));
+            // Brighter at the window end (v = 1), fading into the room.
+            float fall = mix(0.45, 1.0, vUv.y);
+            float a = pool * mullion * fall;
+            gl_FragColor = vec4(vec3(0.55, 0.6, 1.0) * a * uStrength, 1.0);
+          }
+        `,
+      }),
+    []
+  );
+  return (
+    <mesh {...mesh} material={material} renderOrder={1}>
+      <planeGeometry args={size} />
+    </mesh>
+  );
 }
 
 const MOTES = 56;
