@@ -7,6 +7,7 @@ import {
   type Texture,
   TextureLoader,
 } from 'three';
+import { Dust, Moonbeam } from './Atmosphere';
 import { bakedSurface } from './baked';
 import {
   Desk,
@@ -31,6 +32,30 @@ const DESK_TOP = 0.75;
 const MASCOT_AT = [1.27, 0, 0.5] as const;
 const WINDOW = { x: 0.45, bottom: 0.95, width: 1.4, height: 1.15 };
 const ROOM = { left: -3.2, right: 2.4, height: 2.7, depth: 6 };
+
+/** The moonbeam, from a strip of the upper window down to the moon patch on the floor. */
+const BEAM = {
+  top: [
+    [WINDOW.x - 0.25, WINDOW.bottom + 0.95, 0.02],
+    [WINDOW.x + 0.45, WINDOW.bottom + 0.95, 0.02],
+  ],
+  bottom: [
+    [0.45, 0.03, 1.4],
+    [1.3, 0.03, 1.95],
+  ],
+} as const;
+
+/** Boxes of air the dust drifts in (min and max corners): round the lamp, and in the beam. */
+const DUST = {
+  lamp: [
+    [-0.85, 0.85, 0.3],
+    [-0.1, 1.35, 0.9],
+  ],
+  beam: [
+    [0.3, 0.4, 0.4],
+    [1.2, 1.9, 1.6],
+  ],
+} as const;
 
 const glass = new MeshBasicMaterial({
   color: '#9aa6ff',
@@ -85,6 +110,8 @@ export function RoomScene() {
       <mesh position={[0.9, 0.022, 1.7]} rotation={[-Math.PI / 2, 0, -0.25]} material={moonPatch}>
         <planeGeometry args={[1.0, 1.3]} />
       </mesh>
+      <Moonbeam top={BEAM.top} bottom={BEAM.bottom} />
+      <Dust lamp={DUST.lamp} beam={DUST.beam} />
     </>
   );
 }
