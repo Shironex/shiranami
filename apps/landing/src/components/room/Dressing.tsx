@@ -28,7 +28,7 @@ type GroupProps = ThreeElements['group'];
 
 // -------------------------------------------------------------------- poster
 
-const POSTER = { width: 0.4, height: 0.6, frame: 0.018 };
+const POSTER = { width: 0.34, height: 0.51, frame: 0.016 };
 
 /** The night-sea print in a thin dark frame, hung flat on the wall. */
 export function Poster(group: GroupProps) {

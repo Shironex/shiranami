@@ -99,7 +99,7 @@ export function RoomScene() {
       {/* In the left pane: the moon sits in the right one at the lyrics stop. */}
       <GlassLyrics position={[WINDOW.x - 0.3, WINDOW.bottom + 0.6, 0.02]} />
       {/* Fills the empty upper wall left of the window in the hero, clear of the headline. */}
-      <Poster position={[-0.8, 1.95, 0]} />
+      <Poster position={[-0.62, 2.02, 0]} />
 
       {/* desk.glb is 2.30 x 0.62 m: its back edge 2 cm off the wall. */}
       <Desk position={[0, 0, 0.33]} />
