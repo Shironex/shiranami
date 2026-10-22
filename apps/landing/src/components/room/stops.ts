@@ -38,7 +38,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'hero',
     label: { en: 'The room', pl: 'Pokój' },
-    camera: { position: [-0.1, 1.4, 4.6], target: [-0.32, 1.05, 0.3], fov: 46 },
+    camera: { position: [-0.66, 1.4, 4.6], target: [-0.66, 1.05, 0.3], fov: 46 },
     panel: {
       eyebrow: { en: 'Local-first desktop player', pl: 'Odtwarzacz na komputer, lokalnie' },
       lead: {
@@ -69,7 +69,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'radio',
     label: { en: 'Radio', pl: 'Radio' },
-    camera: { position: [-0.24, 0.92, 1.2], target: [-0.16, 0.86, 0.4], fov: 27 },
+    camera: { position: [-0.36, 0.95, 1.7], target: [-0.3, 0.88, 0.43], fov: 24 },
     panel: {
       eyebrow: { en: 'Side B · Internet radio', pl: 'Strona B · Radio internetowe' },
       lead: { en: 'A radio dial, still', pl: 'Pokrętło radia, wciąż' },
@@ -83,7 +83,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'lyrics',
     label: { en: 'Lyrics', pl: 'Teksty' },
-    camera: { position: [0.25, 1.6, 1.5], target: [0.45, 1.5, 0.0], fov: 46 },
+    camera: { position: [-0.15, 1.35, 2.3], target: [0.15, 1.35, 0.0], fov: 40 },
     panel: {
       eyebrow: { en: 'Side C · Synced lyrics', pl: 'Strona C · Zsynchronizowane teksty' },
       lead: { en: 'Lyrics that', pl: 'Teksty, które' },
