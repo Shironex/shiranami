@@ -1,7 +1,7 @@
 // The room page's own controls: the stop dots and the music button. Plain DOM,
 // no three.js, so it runs in static mode too.
 import { motion } from './motion';
-import { music } from './music';
+import { BEAT, music } from './music';
 import { scrollProgress, stopSections } from './scroll';
 
 const STORE = 'shiranami.room.music';
@@ -64,9 +64,12 @@ export function initRoomControls() {
   });
 
   // ---------------------------------------------------------------- music
+  // The playing bars pulse on the track's beat.
+  button.style.setProperty('--beat', `${BEAT}s`);
   const show = (state: 'off' | 'ready' | 'loading' | 'on') => {
     button.dataset.state = state;
-    button.setAttribute('aria-pressed', String(state !== 'off'));
+    // Ready is still silent: pressed only once it plays or loads.
+    button.setAttribute('aria-pressed', String(state === 'on' || state === 'loading'));
   };
 
   const play = () => {

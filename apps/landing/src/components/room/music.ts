@@ -12,7 +12,7 @@ const SRC = { ogg: '/room/audio/room-music.ogg', m4a: '/room/audio/room-music.m4
 export const BEAT = 0.727;
 const FADE = 1.5;
 /** Gain while the room is scrolled out of view. */
-const AWAY = 0.45;
+const AWAY = 0.6;
 
 let ctx: AudioContext | null = null;
 let fade: GainNode | null = null;
