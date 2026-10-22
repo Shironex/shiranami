@@ -76,12 +76,12 @@ const fragment = /* glsl */ `
       vec2 sp = vec2(az, el);
       // A few stars, kept off the moon and dimmed toward the horizon haze.
       vec2 cell = floor(sp * 140.0);
-      float star = step(0.985, hash(cell)) * smoothstep(0.05, 0.2, el) * smoothstep(0.995, 0.97, moonDot);
+      float star = step(0.985, hash(cell)) * smoothstep(0.05, 0.2, el) * (1.0 - smoothstep(0.97, 0.995, moonDot));
       star *= 0.5 + 0.5 * sin(uTime * 1.3 + hash(cell + 7.0) * 30.0);
-      col += vec3(0.75, 0.78, 1.0) * star * smoothstep(0.35, 0.0, length(fract(sp * 140.0) - 0.5));
+      col += vec3(0.75, 0.78, 1.0) * star * (1.0 - smoothstep(0.0, 0.35, length(fract(sp * 140.0) - 0.5)));
       // Soft clouds in a band above the horizon, their edges lit by the moon.
       float c = fbm(vec2(az * 7.0 + uTime * 0.004, el * 26.0));
-      float band = smoothstep(0.02, 0.08, el) * smoothstep(0.3, 0.12, el);
+      float band = smoothstep(0.02, 0.08, el) * (1.0 - smoothstep(0.12, 0.3, el));
       float cloud = smoothstep(0.56, 0.74, c) * band;
       float lit = smoothstep(0.75, 0.99, moonDot);
       col = mix(col, vec3(0.08, 0.08, 0.22) + vec3(0.28, 0.26, 0.42) * lit * smoothstep(0.55, 0.75, c), cloud * 0.85);
@@ -89,7 +89,7 @@ const fragment = /* glsl */ `
       float ang = acos(clamp(moonDot, -1.0, 1.0));
       col += vec3(0.32, 0.31, 0.5) * exp(-ang * 26.0) * 0.7;
       col += vec3(0.12, 0.12, 0.26) * exp(-ang * 6.0) * 0.5;
-      float disc = smoothstep(0.0215, 0.0195, ang);
+      float disc = 1.0 - smoothstep(0.0195, 0.0215, ang);
       // Past white, so the moon blooms (the composer tone maps it back).
       vec3 moon = vec3(1.4, 1.33, 1.15) * (0.92 + 0.08 * noise(dir.xy * 400.0));
       col = mix(col, moon, disc);
@@ -109,13 +109,13 @@ const fragment = /* glsl */ `
       float phase = ld * 26.0 + uTime * 0.9 + noise(vec2(az * 6.0, ld * 2.0)) * 2.5;
       // Steep views (the crossfade stop looks down through the glass) would
       // blow single rows up into blobs, so the detail fades out there too.
-      float detail = (1.0 - smoothstep(0.9, 2.6, fwidth(phase))) * smoothstep(0.32, 0.16, s);
+      float detail = (1.0 - smoothstep(0.9, 2.6, fwidth(phase))) * (1.0 - smoothstep(0.16, 0.32, s));
       float w = fract(phase / 6.2832);
       float row = floor(phase / 6.2832);
       float along = smoothstep(0.38, 0.66, noise(vec2(az * 38.0 + row * 5.1, row * 1.7)));
       float crest = bump(w, 0.08, 0.05 + 0.03 * near) * along;
-      float face = smoothstep(0.12, 0.22, w) * smoothstep(0.65, 0.22, w);
-      float foam = smoothstep(0.55, 0.8, noise(vec2(az * 90.0, phase * 0.9))) * smoothstep(0.45, 0.12, w) * along;
+      float face = smoothstep(0.12, 0.22, w) * (1.0 - smoothstep(0.22, 0.65, w));
+      float foam = smoothstep(0.55, 0.8, noise(vec2(az * 90.0, phase * 0.9))) * (1.0 - smoothstep(0.12, 0.45, w)) * along;
       float strength = mix(0.4, 1.0, near);
       col += vec3(0.03, 0.13, 0.19) * face * (0.3 + 0.7 * near) * detail;
       col = mix(col, vec3(0.86, 0.9, 1.0), clamp((crest * 0.9 + foam * 0.35) * strength * detail, 0.0, 1.0));
@@ -131,7 +131,7 @@ const fragment = /* glsl */ `
 
       // Spray where the swell meets the rocks.
       float wl = rock.x > rock.y ? waterline : 1.0;
-      float spray = smoothstep(0.005, 0.0, wl - el) * step(el, wl) * smoothstep(0.55, 0.8, noise(vec2(az * 140.0, uTime * 0.9)));
+      float spray = (1.0 - smoothstep(0.0, 0.005, wl - el)) * step(el, wl) * smoothstep(0.55, 0.8, noise(vec2(az * 140.0, uTime * 0.9)));
       col = mix(col, vec3(0.8, 0.85, 1.0), spray * 0.45);
     }
 

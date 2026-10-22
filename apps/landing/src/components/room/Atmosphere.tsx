@@ -47,7 +47,7 @@ export function Moonbeam({ top, bottom }: { top: readonly [V3, V3]; bottom: read
         uniform float uStrength;
         varying vec2 vUv;
         void main() {
-          float across = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
+          float across = smoothstep(0.0, 0.35, vUv.x) * (1.0 - smoothstep(0.65, 1.0, vUv.x));
           // Clamped: pow of a negative is NaN, and one NaN pixel blacks out the whole bloom.
           float v = clamp(vUv.y, 0.0, 1.0);
           float along = pow(1.0 - v, 1.4) * smoothstep(0.0, 0.08, v) + 0.15 * (1.0 - v);
@@ -167,7 +167,7 @@ export function Dust({ lamp, beam }: { lamp: readonly [V3, V3]; beam: readonly [
         varying float vWarm;
         void main() {
           float d = length(gl_PointCoord - 0.5);
-          float a = smoothstep(0.5, 0.0, d);
+          float a = 1.0 - smoothstep(0.0, 0.5, d);
           vec3 col = mix(vec3(0.6, 0.66, 1.0), vec3(1.0, 0.78, 0.5), vWarm);
           gl_FragColor = vec4(col * a * vGlint * 0.55, 1.0);
         }
