@@ -74,6 +74,17 @@ const models = fs.existsSync(modelsDir)
         if (document.querySelector('[data-room][data-static]'))
           document.querySelector('[data-room-blank]').remove();
       </script>
+      <noscript>
+        <style is:inline>
+          .room-loader {
+            display: none;
+          }
+          .room .room-poster {
+            display: block;
+          }
+        </style>
+        <Image src={poster} alt="" class="room-poster" widths={[780, 1280, 1672]} sizes="100vw" />
+      </noscript>
       <div class="room-loader" data-room-loader>
         <svg class="room-loader-record" viewBox="0 0 40 40" aria-hidden="true">
           <circle cx="20" cy="20" r="19" fill="currentColor" opacity="0.18" />
