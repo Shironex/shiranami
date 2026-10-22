@@ -23,6 +23,8 @@ export interface IFocusLine {
   readonly time: number;
   readonly isActive: boolean;
   readonly isPast: boolean;
+  /** Karaoke animation span in seconds, set on the active line only. */
+  readonly duration?: number;
   /** Distance from the focus center (0 = in focus, then 1, 2). */
   readonly distance: number;
 }

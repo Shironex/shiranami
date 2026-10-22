@@ -9,6 +9,17 @@
       html {
         background-color: #110e1a;
       }
+      /* The shell sizes to its parent instead of 100vw/100vh (which count the
+         scrollbar gutter), and the document itself never scrolls: a 1px
+         overflow at fractional WebView2 DPI would otherwise lock in both
+         window scrollbars. Every view scrolls inside its own container. Lives
+         here, not in globals.css, so Storybook pages can still scroll. */
+      html,
+      body,
+      #root {
+        height: 100%;
+        overflow: hidden;
+      }
     </style>
     <!--
       Applies the persisted theme before React mounts so a non-default theme

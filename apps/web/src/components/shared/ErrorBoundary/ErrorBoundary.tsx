@@ -68,8 +68,11 @@ function ErrorBoundaryFallback({
   return (
     <div
       className={cn(
-        'flex items-center justify-center p-8',
-        root ? 'min-h-screen w-screen bg-background' : 'flex-1 min-h-full'
+        'flex justify-center p-8',
+        // `safe` keeps a card taller than a compact window scrollable from its top.
+        root
+          ? 'h-full w-full overflow-y-auto items-center-safe bg-background'
+          : 'flex-1 min-h-full items-center'
       )}
     >
       <div

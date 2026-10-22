@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import {
   LYR_SIZE_CLASS,
   LYRICS_SYNCED_PAST_RATIO,
+  LYRICS_ANIMATIONS,
   nextLyricsFontSize,
   type LyricsFontSize,
   type LyricsPresentation,
@@ -52,6 +53,8 @@ export default function LyricsSection() {
     lyricsPresentation,
     onSetPresentation,
     presentationHint,
+    lyricsAnimation,
+    onSetAnimation,
     syncedDimOpacityMin,
     syncedDimOpacityMax,
     syncedDimOpacityStep,
@@ -132,10 +135,12 @@ export default function LyricsSection() {
             value={lyricsSyncedFontSize}
             onChange={onSetSyncedFontSize}
           />
-          <PresentationControl
+          <ChoiceControl
             title={t('lyr.synced.presentationTitle')}
             description={t('lyr.synced.presentationDesc')}
             value={lyricsPresentation}
+            options={PRESENTATIONS}
+            label={presentation => t(`lyr.presentation.${presentation}`)}
             onChange={onSetPresentation}
           />
           {presentationHint && (
@@ -143,6 +148,14 @@ export default function LyricsSection() {
               <SettingsInfoCallout icon={MonitorPlay}>{presentationHint}</SettingsInfoCallout>
             </div>
           )}
+          <ChoiceControl
+            title={t('lyr.synced.animationTitle')}
+            description={t('lyr.synced.animationDesc')}
+            value={lyricsAnimation}
+            options={LYRICS_ANIMATIONS}
+            label={animation => t(`lyr.animation.${animation}`)}
+            onChange={onSetAnimation}
+          />
           <SettingsPreview title={t('lyr.previewTitle')}>
             <SyncedPreview dimOpacity={lyricsSyncedDimOpacity} fontSize={lyricsSyncedFontSize} />
           </SettingsPreview>
@@ -343,38 +356,46 @@ function FontSizeControl({ title, description, value, onChange }: IFontSizeContr
   );
 }
 
-interface IPresentationControlProps {
+interface IChoiceControlProps<T extends string> {
   title: string;
   description: string;
-  value: LyricsPresentation;
-  onChange: (presentation: LyricsPresentation) => void;
+  value: T;
+  options: readonly T[];
+  label: (option: T) => string;
+  onChange: (option: T) => void;
 }
 
-/** The list/focus picker — same pill radiogroup shape as the font sizes. */
-function PresentationControl({ title, description, value, onChange }: IPresentationControlProps) {
-  const { t } = useTranslation('settings');
-  const buttons = PRESENTATIONS.map(presentation => (
+/** A pill radiogroup for a small enum setting (presentation, animation). */
+function ChoiceControl<T extends string>({
+  title,
+  description,
+  value,
+  options,
+  label,
+  onChange,
+}: IChoiceControlProps<T>) {
+  const buttons = options.map(option => (
     <button
-      key={presentation}
+      key={option}
       type="button"
       role="radio"
-      aria-checked={value === presentation}
-      onClick={() => onChange(presentation)}
+      aria-checked={value === option}
+      onClick={() => onChange(option)}
       className={cn(
         'focus-ring px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-        value === presentation
+        value === option
           ? 'bg-primary/15 text-primary border border-primary/40'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
       )}
     >
-      {t(`lyr.presentation.${presentation}`)}
+      {label(option)}
     </button>
   ));
   return (
     <div className="px-3">
       <p className="text-sm font-medium text-foreground mb-1">{title}</p>
       <p className="text-xs text-muted-foreground mb-3">{description}</p>
-      <div className="flex items-center gap-1.5" role="radiogroup" aria-label={title}>
+      <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={title}>
         {buttons}
       </div>
     </div>

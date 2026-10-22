@@ -1,4 +1,5 @@
 import { createElement, useEffect, useRef } from 'react';
+import { karaokeLineDuration } from '@/lib/lyrics';
 import { LyricLineButton } from './LyricLineButton';
 import type { ILyricsListProps, ILyricsListView } from './LyricsList.types';
 
@@ -28,6 +29,7 @@ export function useLyricsList({
       time: line.time,
       isActive: index === activeIndex,
       isPast: index < activeIndex,
+      duration: index === activeIndex ? karaokeLineDuration(lines, index) : undefined,
       onSelect: onLineClick,
       activeRef: activeLineRef,
       baseClassName,

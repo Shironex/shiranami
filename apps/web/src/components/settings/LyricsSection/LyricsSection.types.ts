@@ -1,5 +1,9 @@
 import type { useTranslation } from 'react-i18next';
-import type { LyricsFontSize, LyricsPresentation } from '@/stores/useLyricsAppearanceStore';
+import type {
+  LyricsAnimation,
+  LyricsFontSize,
+  LyricsPresentation,
+} from '@/stores/useLyricsAppearanceStore';
 
 type TranslateFn = ReturnType<typeof useTranslation>['t'];
 
@@ -79,6 +83,10 @@ export interface ILyricsSectionView {
    * when Focus is selected while that view is disabled; `null` otherwise.
    */
   readonly presentationHint: string | null;
+  /** How the active synced line animates (falls back to off under reduced motion). */
+  readonly lyricsAnimation: LyricsAnimation;
+  /** Set the synced-lyrics animation style. */
+  readonly onSetAnimation: (animation: LyricsAnimation) => void;
 
   // --- Reset ---
   /** Whether any lyrics preference differs from default (shows the reset link). */

@@ -89,7 +89,7 @@ describe('SanctuaryView', () => {
     renderView(<SanctuaryView />);
 
     expect(screen.getByRole('heading', { name: 'Midnight Tapes' })).toBeInTheDocument();
-    expect(screen.getByText('the active line')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'the active line' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Leave Sanctuary' })).toBeInTheDocument();
   });
 
@@ -117,7 +117,7 @@ describe('SanctuaryView', () => {
 
     expect(document.querySelector('[data-slot="vinyl-record"]')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Midnight Tapes' })).toBeInTheDocument();
-    expect(screen.getByText('the active line')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'the active line' })).toBeInTheDocument();
   });
 
   it('exits through the leave button', () => {
@@ -199,7 +199,7 @@ describe('SanctuaryView', () => {
 
     expect(screen.queryByRole('heading', { name: 'Midnight Tapes' })).not.toBeInTheDocument();
     // The lyric focus stage is its own preference and stays.
-    expect(screen.getByText('the active line')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'the active line' })).toBeInTheDocument();
   });
 
   it('follow-the-day picks the stage from the hour and drops the manual toggle', () => {

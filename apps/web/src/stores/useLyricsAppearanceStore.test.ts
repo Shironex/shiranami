@@ -9,6 +9,7 @@ import {
   LYRICS_SYNCED_DIM_OPACITY_MAX,
   LYRICS_SYNCED_DIM_OPACITY_MIN,
   LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+  LYRICS_ANIMATION_DEFAULT,
   nextLyricsFontSize,
 } from './useLyricsAppearanceStore';
 
@@ -29,6 +30,7 @@ describe('useLyricsAppearanceStore', () => {
       lyricsPlainFontSize: LYRICS_PLAIN_FONT_SIZE_DEFAULT,
       lyricsSyncedDimOpacity: LYRICS_SYNCED_DIM_OPACITY_DEFAULT,
       lyricsSyncedFontSize: LYRICS_SYNCED_FONT_SIZE_DEFAULT,
+      lyricsAnimation: LYRICS_ANIMATION_DEFAULT,
     });
   });
 
@@ -130,6 +132,23 @@ describe('useLyricsAppearanceStore', () => {
     expect(useLyricsAppearanceStore.getState().lyricsSyncedFontSize).toBe(
       LYRICS_SYNCED_FONT_SIZE_DEFAULT
     );
+  });
+
+  it('defaults the lyric animation to fill and persists a valid choice', () => {
+    expect(useLyricsAppearanceStore.getState().lyricsAnimation).toBe('fill');
+    useLyricsAppearanceStore.getState().setLyricsAnimation('word');
+    expect(useLyricsAppearanceStore.getState().lyricsAnimation).toBe('word');
+    expect(readPersisted().lyricsAnimation).toBe('word');
+  });
+
+  it('coerces an invalid lyric animation to the default and resets it', () => {
+    // @ts-expect-error runtime guard test
+    useLyricsAppearanceStore.getState().setLyricsAnimation('sparkle');
+    expect(useLyricsAppearanceStore.getState().lyricsAnimation).toBe(LYRICS_ANIMATION_DEFAULT);
+
+    useLyricsAppearanceStore.getState().setLyricsAnimation('off');
+    useLyricsAppearanceStore.getState().resetLyricsAppearance();
+    expect(useLyricsAppearanceStore.getState().lyricsAnimation).toBe(LYRICS_ANIMATION_DEFAULT);
   });
 
   it('nextLyricsFontSize bumps one step and caps at xl', () => {
