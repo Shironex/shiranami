@@ -89,8 +89,8 @@ export function RoomScene() {
       </mesh>
       <WindowFrame position={[WINDOW.x, WINDOW.bottom, 0]} />
       <StringLights from={LIGHTS_FROM} to={LIGHTS_TO} />
-      {/* In the left pane: the moon sits in the right one at the lyrics stop. */}
-      <GlassLyrics position={[WINDOW.x - 0.3, WINDOW.bottom + 0.6, 0.02]} />
+      {/* Across the glass, over the sea: the moon stays clear above them in the right pane. */}
+      <GlassLyrics position={[WINDOW.x, WINDOW.bottom + 0.42, 0.02]} />
       {/* Fills the empty upper wall left of the window in the hero, clear of the headline. */}
       <Poster position={[-0.62, 2.02, 0]} />
 

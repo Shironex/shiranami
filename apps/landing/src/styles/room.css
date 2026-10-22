@@ -236,11 +236,12 @@
 
   /* Lyrics condensing on the window glass: soft light, the active line bright. */
   .room-lyrics {
-    width: min(24vw, 360px);
+    /* Sized to the window at the lyrics stop, which scales with the viewport width. */
+    width: 24vw;
     height: 11.5em;
     overflow: hidden;
     font-family: var(--font-display);
-    font-size: clamp(17px, 1.6vw, 26px);
+    font-size: 1.3vw;
     line-height: 1.35;
     text-align: center;
     color: oklch(0.92 0.04 270);
