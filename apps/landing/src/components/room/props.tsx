@@ -354,9 +354,30 @@ export function Lamp(group: GroupProps) {
 
 // ------------------------------------------------------------------- mascot
 
+/** Cool moonlight from the window behind her, as a rim on her silhouette (hair, hood). */
+const RIM = new Color('#8d9bff').multiplyScalar(0.35);
 /** sit_idle nods once every 0.75 s of clip time, deepest halfway through each. */
 const NOD = 0.75;
 const CLIP = 6;
+
+function moonRim(material: MeshStandardMaterial) {
+  material.onBeforeCompile = shader => {
+    shader.uniforms.uRim = { value: RIM };
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        'void main() {',
+        `uniform vec3 uRim;
+void main() {`
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        `float facing = 1.0 - saturate(dot(normal, normalize(vViewPosition)));
+        outgoingLight += uRim * pow(facing, 3.0) * (0.5 + diffuseColor.rgb);
+        #include <opaque_fragment>`
+      );
+  };
+  material.needsUpdate = true;
+}
 
 export function Mascot(group: GroupProps) {
   const actions = useRef<Record<string, AnimationAction | null>>({});
@@ -364,7 +385,10 @@ export function Mascot(group: GroupProps) {
   const onModel = useCallback<OnModel>((model, clips) => {
     // The skinned mesh keeps its T-pose bounds, which the seated pose leaves.
     model.traverse(child => {
-      if ((child as SkinnedMesh).isSkinnedMesh) child.frustumCulled = false;
+      if (!(child as SkinnedMesh).isSkinnedMesh) return;
+      child.frustumCulled = false;
+      const material = (child as SkinnedMesh).material;
+      if (material instanceof MeshStandardMaterial) moonRim(material);
     });
     clips.sit_idle?.play();
     clips.sit_listen?.play();
