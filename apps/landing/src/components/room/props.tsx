@@ -17,6 +17,7 @@ import {
   SRGBColorSpace,
 } from 'three';
 import { BlobShadow } from './Dressing';
+import { music } from './music';
 import { type OnModel, Prop } from './Prop';
 import { near, ramp, room } from './progress';
 
@@ -253,8 +254,12 @@ export function Speaker(group: GroupProps) {
 
   useFrame(() => {
     const cone = part(root.current, 'woofer');
-    // A soft pulse on the beat (80 bpm): the cone and cap move a few millimetres.
-    if (cone) cone.scale.z = 1 + Math.max(0, Math.sin(room.t * 8.38)) * 0.35;
+    // A soft pulse on the beat: the cone and cap move a few millimetres. With
+    // the music on it kicks on the music's beat, otherwise at 80 bpm.
+    const beats = music.beats();
+    const pulse =
+      beats === null ? Math.max(0, Math.sin(room.t * 8.38)) : Math.exp(-(beats % 1) * 7);
+    if (cone) cone.scale.z = 1 + pulse * 0.35;
   });
 
   return (
@@ -349,6 +354,10 @@ export function Lamp(group: GroupProps) {
 
 // ------------------------------------------------------------------- mascot
 
+/** sit_idle nods once every 0.75 s of clip time, deepest halfway through each. */
+const NOD = 0.75;
+const CLIP = 6;
+
 export function Mascot(group: GroupProps) {
   const actions = useRef<Record<string, AnimationAction | null>>({});
 
@@ -366,8 +375,15 @@ export function Mascot(group: GroupProps) {
     // Both loops are 6 s and in phase, so a weight blend is the crossfade:
     // head on her hand by default, up and listening at the lyrics and the end.
     const listen = Math.max(near(3), near(5));
-    actions.current.sit_idle?.setEffectiveWeight(1 - listen);
-    actions.current.sit_listen?.setEffectiveWeight(listen);
+    const { sit_idle: idle, sit_listen: listening } = actions.current;
+    idle?.setEffectiveWeight(1 - listen);
+    listening?.setEffectiveWeight(listen);
+    // With the music on, the nods follow its beat (music.ts BEAT): the clip time comes
+    // from the audio clock, a nod's deepest point on each beat.
+    const beats = music.beats();
+    if (beats !== null && idle && listening) {
+      idle.time = listening.time = ((beats + 0.5) * NOD) % CLIP;
+    }
   });
 
   // Origin on the floor under her, at the stool's origin.
