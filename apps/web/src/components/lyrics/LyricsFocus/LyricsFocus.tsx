@@ -34,6 +34,7 @@ export default function LyricsFocus(props: ILyricsFocusProps) {
         time={line.time}
         isActive={line.isActive}
         isPast={line.isPast}
+        duration={line.duration}
         onSelect={onLineClick}
         baseClassName={cn(
           'block w-full text-center font-serif leading-snug cursor-pointer rounded-md px-2',

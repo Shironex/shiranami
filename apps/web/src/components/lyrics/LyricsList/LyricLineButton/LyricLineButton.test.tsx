@@ -1,6 +1,11 @@
 import { createRef } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import {
+  LYRICS_ANIMATION_DEFAULT,
+  useLyricsAppearanceStore,
+} from '@/stores/useLyricsAppearanceStore';
 import type { ILyricLineButtonProps } from './LyricLineButton.types';
 
 import LyricLineButton from './LyricLineButton';
@@ -78,5 +83,91 @@ describe('LyricLineButton', () => {
     rerender(<LyricLineButton {...makeProps({ isActive: false, activeRef })} />);
 
     expect(activeRef.current).toBeNull();
+  });
+});
+
+describe('LyricLineButton karaoke animation', () => {
+  afterEach(() => {
+    useLyricsAppearanceStore.setState({ lyricsAnimation: LYRICS_ANIMATION_DEFAULT });
+    usePlaybackStore.setState({ isPlaying: false, currentTime: 0, _seekTarget: null });
+  });
+
+  // 'A quiet morning hum' at 4s over 8s: 16 word chars, half a second each.
+  function renderActive(currentTime: number, isPlaying = true) {
+    usePlaybackStore.setState({ currentTime, isPlaying, _seekTarget: null });
+    const { container } = render(
+      <LyricLineButton {...makeProps({ isActive: true, duration: 8 })} />
+    );
+    return Array.from(container.querySelectorAll<HTMLSpanElement>('.lyric-word'));
+  }
+
+  it('splits the active line into word spans and keeps the accessible name', () => {
+    const words = renderActive(4);
+
+    expect(words.map(w => w.textContent)).toEqual(['A', 'quiet', 'morning', 'hum']);
+    expect(words[0]).toHaveClass('lyric-word-fill');
+    expect(screen.getByRole('button', { name: 'A quiet morning hum' })).toBeInTheDocument();
+  });
+
+  it('starts mid-line with negative delays for words already underway', () => {
+    // 2s into the line: "A" (0s) and "quiet" (0.5s) are underway, "hum" (6.5s) waits.
+    const words = renderActive(6);
+
+    expect(words[0].style.animationDelay).toBe('-2s');
+    expect(words[1].style.animationDelay).toBe('-1.5s');
+    expect(words[3].style.animationDelay).toBe('4.5s');
+    expect(words[1].style.animationDuration).toBe('2.5s');
+  });
+
+  it('pauses the animation while playback is paused', () => {
+    const words = renderActive(4, false);
+    expect(words[0].style.animationPlayState).toBe('paused');
+  });
+
+  it('restarts in sync when a seek lands inside the same line', () => {
+    renderActive(4);
+    act(() => usePlaybackStore.getState().seek(10));
+
+    const first = document.querySelector<HTMLSpanElement>('.lyric-word');
+    expect(first?.style.animationDelay).toBe('-6s');
+  });
+
+  it('uses the chosen style class per word', () => {
+    useLyricsAppearanceStore.setState({ lyricsAnimation: 'glow' });
+    const words = renderActive(4);
+    expect(words[0]).toHaveClass('lyric-word-glow');
+    // A one-letter word still glows for the minimum span.
+    expect(words[0].style.animationDuration).toBe('0.6s');
+  });
+
+  it('renders plain text when the animation is off, or the line is not active', () => {
+    useLyricsAppearanceStore.setState({ lyricsAnimation: 'off' });
+    expect(renderActive(4)).toHaveLength(0);
+
+    useLyricsAppearanceStore.setState({ lyricsAnimation: 'fill' });
+    const { container } = render(<LyricLineButton {...makeProps({ duration: 8 })} />);
+    expect(container.querySelector('.lyric-word')).toBeNull();
+  });
+
+  it('falls back to plain text under prefers-reduced-motion', () => {
+    vi.mocked(window.matchMedia).mockImplementation(
+      (query: string) =>
+        ({
+          matches: true,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList
+    );
+    expect(renderActive(4)).toHaveLength(0);
+    vi.mocked(window.matchMedia).mockImplementation(
+      (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList
+    );
   });
 });

@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useLyricsAppearanceStore, type LyricsAnimation } from '@/stores/useLyricsAppearanceStore';
 
 import LyricLineButton from './LyricLineButton';
 
@@ -89,3 +91,29 @@ export const Idle: Story = {
     await expect(line).not.toHaveClass('text-foreground/50');
   },
 };
+
+/** Sets the chosen style and starts "playback" at the line's own timestamp. */
+function karaokeStory(animation: LyricsAnimation): Story {
+  return {
+    args: { isActive: true, duration: 6 },
+    beforeEach: () => {
+      useLyricsAppearanceStore.setState({ lyricsAnimation: animation });
+      usePlaybackStore.setState({ currentTime: 8, isPlaying: true, _seekTarget: null });
+    },
+    play: async ({ canvasElement }) => {
+      const canvas = within(canvasElement);
+      // The word spans never change the button's accessible name.
+      const line = canvas.getByRole('button', { name: 'Coffee going cold again' });
+      await expect(line.querySelectorAll(`.lyric-word-${animation}`)).toHaveLength(4);
+    },
+  };
+}
+
+/** Karaoke `fill`: a soft-edged wipe runs through the words over the line's 6s. */
+export const KaraokeFill: Story = karaokeStory('fill');
+
+/** Karaoke `word`: each word lights up on its interpolated start time. */
+export const KaraokeWord: Story = karaokeStory('word');
+
+/** Karaoke `glow`: each word lights up with an accent bloom that settles. */
+export const KaraokeGlow: Story = karaokeStory('glow');

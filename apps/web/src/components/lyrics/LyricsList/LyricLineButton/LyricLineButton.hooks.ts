@@ -1,5 +1,21 @@
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import type { ILyricLineButtonProps, ILyricLineButtonView } from './LyricLineButton.types';
+import { karaokeElapsed, karaokeTokens } from '@/lib/lyrics';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { usePlaybackStore } from '@/stores/usePlaybackStore';
+import { useLyricsAppearanceStore } from '@/stores/useLyricsAppearanceStore';
+import type {
+  IKaraokeTextProps,
+  IKaraokeTextView,
+  IKaraokeWord,
+  ILyricLineButtonProps,
+  ILyricLineButtonView,
+} from './LyricLineButton.types';
+
+/** The glow needs a moment to read even on a one-letter word. */
+const GLOW_MIN_SECONDS = 0.6;
+/** `word` lights each word with a short fade rather than a slow sweep. */
+const WORD_FADE_SECONDS = 0.2;
 
 /**
  * One instance renders per lyric line, so this hook stays deliberately bare: a
@@ -12,6 +28,7 @@ export function useLyricLineButton({
   time,
   isActive,
   isPast,
+  duration,
   onSelect,
   activeRef,
   baseClassName,
@@ -27,7 +44,60 @@ export function useLyricLineButton({
       isPast && pastClassName,
       !isActive && !isPast && idleClassName
     ),
+    animated: isActive && duration !== undefined,
     buttonRef: isActive ? activeRef : null,
     onClick: () => onSelect(time),
   };
+}
+
+/**
+ * Drives the karaoke animation of the one active line. Everything moves in CSS:
+ * each word span gets a delay of `word start - elapsed` (negative once the word
+ * is underway) and runs on its own, paused with the player. React only
+ * re-renders this on activation, play/pause, and seeks; never per tick.
+ *
+ * A seek inside the same line leaves the active index alone, so `_seekTarget`
+ * keys the spans: every seek remounts them with a freshly measured elapsed.
+ * Elapsed comes from the seek target itself, or the store's `currentTime`.
+ */
+export function useKaraokeText({ text, time, duration }: IKaraokeTextProps): IKaraokeTextView {
+  const chosen = useLyricsAppearanceStore(s => s.lyricsAnimation);
+  const reducedMotion = useReducedMotion();
+  const isPlaying = usePlaybackStore(s => s.isPlaying);
+  const seekTarget = usePlaybackStore(s => s._seekTarget);
+  const animation = reducedMotion ? 'off' : chosen;
+
+  const timedWords = useMemo(() => {
+    const now = seekTarget ?? usePlaybackStore.getState().currentTime;
+    const elapsed = karaokeElapsed(now, time, duration);
+    return karaokeTokens(text, duration).map(token => ({
+      ...token,
+      delay: token.start - elapsed,
+    }));
+    // `animation` too: switching style remounts the spans, so re-measure then.
+  }, [text, time, duration, seekTarget, animation]);
+
+  const playState = isPlaying ? 'running' : 'paused';
+  const words: IKaraokeWord[] = timedWords.map(word => {
+    if (!word.isWord || animation === 'off') {
+      return { text: word.text, className: null, style: undefined };
+    }
+    const wordDuration =
+      animation === 'word'
+        ? WORD_FADE_SECONDS
+        : animation === 'glow'
+          ? Math.max(word.duration, GLOW_MIN_SECONDS)
+          : word.duration;
+    return {
+      text: word.text,
+      className: `lyric-word lyric-word-${animation}`,
+      style: {
+        animationDelay: `${word.delay}s`,
+        animationDuration: `${wordDuration}s`,
+        animationPlayState: playState,
+      },
+    };
+  });
+
+  return { animation, syncKey: `${time}:${seekTarget ?? 'live'}:${animation}`, words };
 }
