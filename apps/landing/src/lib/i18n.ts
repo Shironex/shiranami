@@ -91,8 +91,8 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'preview.headingTail': 'at three a.m.',
     'preview.metaHeading': 'The room',
     'preview.metaSub': 'Dark lavender · always',
-    'preview.tagNow': 'Now playing — Kuusou Mesorogiwi · LeeandLie',
-    'preview.tagCount': '12 tracks · 41:56',
+    'preview.tagNow': 'Now playing: You Found Me · The Fray',
+    'preview.tagCount': '59 tracks · 3:05:34',
     'preview.alt': 'Shiranami app — library view',
 
     // Philosophy
@@ -317,8 +317,8 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'preview.headingTail': 'o trzeciej w nocy.',
     'preview.metaHeading': 'Pokój',
     'preview.metaSub': 'Ciemny lawendowy · zawsze',
-    'preview.tagNow': 'Teraz gra — Kuusou Mesorogiwi · LeeandLie',
-    'preview.tagCount': '12 utworów · 41:56',
+    'preview.tagNow': 'Teraz gra: You Found Me · The Fray',
+    'preview.tagCount': '59 utworów · 3:05:34',
     'preview.alt': 'Shiranami — widok biblioteki',
 
     // Philosophy
