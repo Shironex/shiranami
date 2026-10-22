@@ -16,6 +16,7 @@ import {
   type SkinnedMesh,
   SRGBColorSpace,
 } from 'three';
+import { BlobShadow } from './Dressing';
 import { type OnModel, Prop } from './Prop';
 import { near, ramp, room } from './progress';
 
@@ -177,6 +178,8 @@ export function Turntable({ deck, ...group }: GroupProps & { deck: 'A' | 'B' }) 
       <Prop name="turntable">
         <TurntableBlockout />
       </Prop>
+      {/* Deck B comes and goes, so it is not in the desk's bake: a blob grounds it instead. */}
+      {deck === 'B' && <BlobShadow size={[0.6, 0.48]} opacity={0.45} position={[0, 0.003, 0]} />}
       <group ref={record} position={RECORD_AT}>
         <Prop name="record" onModel={deck === 'B' ? creamLabel : vinylSheen}>
           <RecordBlockout label={deck === 'A' ? '#b9a3e3' : '#efe2c2'} />

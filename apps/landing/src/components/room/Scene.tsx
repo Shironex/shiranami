@@ -6,9 +6,11 @@ import {
   Shape,
   type Texture,
   TextureLoader,
+  Vector3,
 } from 'three';
 import { Dust, Moonbeam } from './Atmosphere';
 import { bakedSurface } from './baked';
+import { BlobShadow, Books, Mug, Plant, Poster, StringLights } from './Dressing';
 import {
   Desk,
   Lamp,
@@ -32,6 +34,9 @@ const DESK_TOP = 0.75;
 const MASCOT_AT = [1.27, 0, 0.5] as const;
 const WINDOW = { x: 0.45, bottom: 0.95, width: 1.4, height: 1.15 };
 const ROOM = { left: -3.2, right: 2.4, height: 2.7, depth: 6 };
+
+const LIGHTS_FROM = new Vector3(WINDOW.x - 0.72, WINDOW.bottom + WINDOW.height + 0.03, 0.08);
+const LIGHTS_TO = new Vector3(WINDOW.x + 0.72, WINDOW.bottom + WINDOW.height + 0.03, 0.08);
 
 /** The moonbeam, from a strip of the upper window down to the moon patch on the floor. */
 const BEAM = {
@@ -89,6 +94,9 @@ export function RoomScene() {
         <planeGeometry args={[0.6, 1.0]} />
       </mesh>
       <WindowFrame position={[WINDOW.x, WINDOW.bottom, 0]} />
+      <StringLights from={LIGHTS_FROM} to={LIGHTS_TO} />
+      {/* Fills the empty upper wall left of the window in the hero, clear of the headline. */}
+      <Poster position={[-0.8, 1.95, 0]} />
 
       {/* desk.glb is 2.30 x 0.62 m: its back edge 2 cm off the wall. */}
       <Desk position={[0, 0, 0.33]} />
@@ -97,11 +105,20 @@ export function RoomScene() {
       <Radio position={[-0.13, DESK_TOP, 0.33]} />
       <Turntable deck="A" position={[0.3, DESK_TOP, 0.34]} />
       <Turntable deck="B" position={[0.82, DESK_TOP, 0.34]} />
+      <Books position={[-0.98, DESK_TOP, 0.3]} rotation={[0, 0.25, 0]} />
+      <Mug position={[1.0, DESK_TOP, 0.59]} rotation={[0, -2.2, 0]} />
 
       {/* Her right elbow rests on the desk's right end (seat 0.533, elbow at 0.75). */}
       <Stool position={MASCOT_AT} />
       <Mascot position={MASCOT_AT} rotation={[0, -0.3, 0]} />
+      {/* She is not in the bake: a soft shadow on the floor around the stool instead. */}
+      <BlobShadow
+        position={[MASCOT_AT[0], 0.004, MASCOT_AT[2] + 0.06]}
+        size={[0.75, 0.7]}
+        opacity={0.35}
+      />
       <Shelf position={[1.97, 0, 0.3]} />
+      <Plant position={[1.93, 1.55, 0.27]} rotation={[0, 0.4, 0]} />
 
       {/* Rug and the moonlight falling through the window onto the floor. */}
       <mesh position={[0, 0.01, 2.4]} material={mat.rug}>
