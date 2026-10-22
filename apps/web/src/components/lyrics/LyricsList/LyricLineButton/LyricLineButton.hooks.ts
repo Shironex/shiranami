@@ -56,26 +56,25 @@ export function useLyricLineButton({
  * is underway) and runs on its own, paused with the player. React only
  * re-renders this on activation, play/pause, and seeks; never per tick.
  *
- * A seek inside the same line leaves the active index alone, so `_seekTarget`
+ * A seek inside the same line leaves the active index alone, so `_seekCount`
  * keys the spans: every seek remounts them with a freshly measured elapsed.
- * Elapsed comes from the seek target itself, or the store's `currentTime`.
+ * `seek` writes `currentTime` in the same update, so that is always current.
  */
 export function useKaraokeText({ text, time, duration }: IKaraokeTextProps): IKaraokeTextView {
   const chosen = useLyricsAppearanceStore(s => s.lyricsAnimation);
   const reducedMotion = useReducedMotion();
   const isPlaying = usePlaybackStore(s => s.isPlaying);
-  const seekTarget = usePlaybackStore(s => s._seekTarget);
+  const seekCount = usePlaybackStore(s => s._seekCount);
   const animation = reducedMotion ? 'off' : chosen;
 
   const timedWords = useMemo(() => {
-    const now = seekTarget ?? usePlaybackStore.getState().currentTime;
-    const elapsed = karaokeElapsed(now, time, duration);
+    const elapsed = karaokeElapsed(usePlaybackStore.getState().currentTime, time, duration);
     return karaokeTokens(text, duration).map(token => ({
       ...token,
       delay: token.start - elapsed,
     }));
     // `animation` too: switching style remounts the spans, so re-measure then.
-  }, [text, time, duration, seekTarget, animation]);
+  }, [text, time, duration, seekCount, animation]);
 
   const playState = isPlaying ? 'running' : 'paused';
   const words: IKaraokeWord[] = timedWords.map(word => {
@@ -99,5 +98,5 @@ export function useKaraokeText({ text, time, duration }: IKaraokeTextProps): IKa
     };
   });
 
-  return { animation, syncKey: `${time}:${seekTarget ?? 'live'}:${animation}`, words };
+  return { animation, syncKey: `${time}:${seekCount}:${animation}`, words };
 }

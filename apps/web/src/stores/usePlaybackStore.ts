@@ -143,6 +143,10 @@ interface PlaybackState {
   // `useAudioEngine` applies on its next RAF tick. Lives here (not in the
   // UI store) because it's part of the playback pipeline.
   _seekTarget: number | null;
+
+  // Bumped on every seek. `_seekTarget` is cleared by the engine in the same
+  // store notification, so UI that must react to a seek watches this instead.
+  _seekCount: number;
 }
 
 interface PlaybackActions {
@@ -237,6 +241,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
     sleepFadeDuration: DEFAULT_SLEEP_FADE_DURATION,
     _sleepFading: false,
     _seekTarget: null,
+    _seekCount: 0,
 
     // Playback controls
     play: () => set({ isPlaying: true }),
@@ -273,7 +278,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
 
       // If more than 3 seconds in, restart the current track
       if (currentTime > 3) {
-        set({ currentTime: 0, _seekTarget: 0 });
+        set(s => ({ currentTime: 0, _seekTarget: 0, _seekCount: s._seekCount + 1 }));
         return;
       }
 
@@ -291,7 +296,7 @@ export const usePlaybackStore = createPersistedStore<PlaybackStore>(
 
     seek: (time: number) => {
       if (isFinite(time) && time >= 0) {
-        set({ currentTime: time, _seekTarget: time });
+        set(s => ({ currentTime: time, _seekTarget: time, _seekCount: s._seekCount + 1 }));
       }
     },
 

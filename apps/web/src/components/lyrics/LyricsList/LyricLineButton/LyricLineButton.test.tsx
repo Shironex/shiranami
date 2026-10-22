@@ -126,7 +126,11 @@ describe('LyricLineButton karaoke animation', () => {
 
   it('restarts in sync when a seek lands inside the same line', () => {
     renderActive(4);
-    act(() => usePlaybackStore.getState().seek(10));
+    act(() => {
+      usePlaybackStore.getState().seek(10);
+      // The audio engine clears the target in the same notification.
+      usePlaybackStore.getState()._clearSeekTarget();
+    });
 
     const first = document.querySelector<HTMLSpanElement>('.lyric-word');
     expect(first?.style.animationDelay).toBe('-6s');
