@@ -1,7 +1,14 @@
 import { useProgress } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef, useState } from 'react';
-import { AgXToneMapping, MathUtils, PerspectiveCamera, Vector3 } from 'three';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  AgXToneMapping,
+  MathUtils,
+  PerspectiveCamera,
+  Vector3,
+  type Mesh,
+  type Object3D,
+} from 'three';
 import { Effects } from './Effects';
 import { motion } from './motion';
 import { ModelsContext, settledModels } from './Prop';
@@ -146,7 +153,7 @@ function lockedFov(fov: number, aspect: number): number {
 /**
  * Reports load progress and fires once the room is complete: every model has
  * settled (loaded, or failed and kept its blockout), the loading manager is
- * idle, and two frames have rendered since. Until then the canvas stays
+ * idle, every material has drawn once, and two frames have rendered since. Until then the canvas stays
  * hidden, so the blockouts never flash in before the models.
  */
 function LoadGate({ models, onProgress, onReady }: Props) {
@@ -160,10 +167,39 @@ function LoadGate({ models, onProgress, onReady }: Props) {
     onProgress(shown.current);
   }, [progress, onProgress]);
 
+  // The GPU builds each shader on its first draw, about 45 ms apiece: drawn all
+  // on one frame that blocks the main thread for most of a second. So the room
+  // stays hidden while it loads, then shows one material per frame.
+  const scene = useThree(state => state.scene);
+  const warming = useRef<Object3D[][]>([]);
+  useLayoutEffect(() => {
+    scene.visible = false;
+    return () => {
+      scene.visible = true;
+    };
+  }, [scene]);
+
   useFrame(() => {
+    if (frames.current === -2) {
+      const next = warming.current.shift();
+      if (next) for (const mesh of next) mesh.visible = true;
+      else frames.current = 0;
+      return;
+    }
     if (frames.current < 0) {
       const settled = models.every(name => settledModels.has(name));
-      if (settled && !active) frames.current = 0;
+      if (!settled || active) return;
+      const byMaterial = new Map<unknown, Object3D[]>();
+      scene.traverse(child => {
+        const mesh = child as Mesh;
+        if (!mesh.isMesh || !mesh.visible) return;
+        const key = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        byMaterial.set(key, [...(byMaterial.get(key) ?? []), mesh]);
+        mesh.visible = false;
+      });
+      warming.current = [...byMaterial.values()];
+      scene.visible = true;
+      frames.current = -2;
       return;
     }
     if (++frames.current === 2) {
