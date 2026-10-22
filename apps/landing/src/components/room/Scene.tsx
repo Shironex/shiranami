@@ -1,4 +1,13 @@
-import { AdditiveBlending, MeshBasicMaterial } from 'three';
+import { useMemo } from 'react';
+import {
+  AdditiveBlending,
+  MeshBasicMaterial,
+  NoColorSpace,
+  Shape,
+  type Texture,
+  TextureLoader,
+} from 'three';
+import { bakedSurface } from './baked';
 import {
   Desk,
   Lamp,
@@ -14,7 +23,9 @@ import {
 import { Sea } from './Sea';
 
 // The room layout, after concept C0. Metres; the window wall is z = 0 and the
-// room extends toward +Z. Desk top at 0.75.
+// room extends toward +Z. Desk top at 0.75. The Blender bake (bake_light.py,
+// LAYOUT) lays the static props out the same way: move a static prop here and
+// re-run the bake, or its baked shadows stay where it was.
 
 const DESK_TOP = 0.75;
 const MASCOT_AT = [1.27, 0, 0.5] as const;
@@ -90,25 +101,56 @@ function Lights() {
   );
 }
 
+/** The baked light textures for the floor and walls (bake_light.py). */
+function useShellLight() {
+  return useMemo(() => {
+    const loader = new TextureLoader();
+    const load = (name: string): Texture => {
+      const t = loader.load(`/room/textures/light-${name}.webp`);
+      t.colorSpace = NoColorSpace;
+      return t;
+    };
+    const { left, right, height } = ROOM;
+    const wall = load('wall-back');
+    // The back wall's UVs are its x, y in metres (ShapeGeometry): map them onto the bake.
+    wall.repeat.set(1 / (right - left), 1 / height);
+    wall.offset.set(-left / (right - left), 0);
+    return {
+      floor: bakedSurface(mat.floor, load('floor')),
+      back: bakedSurface(mat.wall, wall),
+      right: bakedSurface(mat.wall, load('wall-right')),
+    };
+  }, []);
+}
+
 /** Floor, walls and ceiling as inward-facing planes, with the window cut out. */
 function Shell() {
   const { left, right, height, depth } = ROOM;
-  const wl = WINDOW.x - WINDOW.width / 2;
-  const wr = WINDOW.x + WINDOW.width / 2;
-  const wt = WINDOW.bottom + WINDOW.height;
-  // Back wall in four pieces around the window opening.
-  const back: [number, number, number, number][] = [
-    [left, wl, 0, height],
-    [wr, right, 0, height],
-    [wl, wr, 0, WINDOW.bottom],
-    [wl, wr, wt, height],
-  ];
+  const light = useShellLight();
+  const back = useMemo(() => {
+    const wl = WINDOW.x - WINDOW.width / 2;
+    const wb = WINDOW.bottom;
+    const shape = new Shape()
+      .moveTo(left, 0)
+      .lineTo(right, 0)
+      .lineTo(right, height)
+      .lineTo(left, height)
+      .closePath();
+    const hole = new Shape()
+      .moveTo(wl, wb)
+      .lineTo(wl, wb + WINDOW.height)
+      .lineTo(wl + WINDOW.width, wb + WINDOW.height)
+      .lineTo(wl + WINDOW.width, wb)
+      .closePath();
+    shape.holes.push(hole);
+    return shape;
+  }, [left, right, height]);
   return (
     <group>
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[(left + right) / 2, 0, depth / 2]}
-        material={mat.floor}
+        material={light.floor}
       >
         <planeGeometry args={[right - left, depth]} />
       </mesh>
@@ -119,11 +161,9 @@ function Shell() {
       >
         <planeGeometry args={[right - left, depth]} />
       </mesh>
-      {back.map(([x0, x1, y0, y1]) => (
-        <mesh key={`${x0}${y0}`} position={[(x0 + x1) / 2, (y0 + y1) / 2, 0]} material={mat.wall}>
-          <planeGeometry args={[x1 - x0, y1 - y0]} />
-        </mesh>
-      ))}
+      <mesh material={light.back}>
+        <shapeGeometry args={[back]} />
+      </mesh>
       <mesh
         rotation={[0, Math.PI / 2, 0]}
         position={[left, height / 2, depth / 2]}
@@ -134,7 +174,7 @@ function Shell() {
       <mesh
         rotation={[0, -Math.PI / 2, 0]}
         position={[right, height / 2, depth / 2]}
-        material={mat.wall}
+        material={light.right}
       >
         <planeGeometry args={[depth, height]} />
       </mesh>

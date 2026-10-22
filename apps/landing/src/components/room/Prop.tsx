@@ -12,6 +12,7 @@ import {
 import type { AnimationAction, Object3D, WebGLRenderer } from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { shadeBaked } from './baked';
 
 /** Prop names with a real file at /room/models/<name>.glb. Filled by the page. */
 export const ModelsContext = createContext<ReadonlySet<string>>(new Set());
@@ -33,7 +34,10 @@ export type PropName =
   | 'mascot'
   | 'window'
   | 'lamp'
-  | 'stool';
+  | 'stool'
+  | 'plant'
+  | 'books'
+  | 'mug';
 
 /** Called once the GLB is in the scene, with its copy and its clips by name. */
 export type OnModel = (model: Object3D, actions: Record<string, AnimationAction | null>) => void;
@@ -89,6 +93,8 @@ function Glb({ name, onModel }: { name: PropName; onModel?: OnModel }) {
   // The second deck reuses the turntable, so each instance gets its own copy.
   // SkeletonUtils rebinds a skinned mesh to the copy's own bones.
   const copy = useMemo(() => clone(scene), [scene]);
+  // Static props carry a baked light texture: let it shade the realtime light too.
+  useLayoutEffect(() => shadeBaked(copy), [copy]);
   const { actions } = useAnimations(animations, copy);
   useLayoutEffect(() => onModel?.(copy, actions), [copy, actions, onModel]);
   useLayoutEffect(() => {
