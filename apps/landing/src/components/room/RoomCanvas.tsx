@@ -74,7 +74,7 @@ function CameraRig() {
 
     pos.lerpVectors(a.fromArray(from.position), b.fromArray(to.position), f);
     target.lerpVectors(a.fromArray(from.target), b.fromArray(to.target), f);
-    const fov = MathUtils.lerp(from.fov, to.fov, f);
+    const fov = lockedFov(MathUtils.lerp(from.fov, to.fov, f), camera.aspect);
 
     // A slow 2 degree drift so the room never looks frozen.
     const drift = Math.sin(room.t * 0.25) * 0.035;
@@ -92,6 +92,20 @@ function CameraRig() {
   });
 
   return null;
+}
+
+/** The aspect the stops are framed at (1440 x 900). */
+const FRAME_ASPECT = 1.6;
+
+/**
+ * The stops' fov is vertical. On a wider screen, keep the horizontal view of
+ * the framing aspect and crop top and bottom instead, so nothing new walks in
+ * at the side edges (the copy on the left, the mascot on the right).
+ */
+function lockedFov(fov: number, aspect: number): number {
+  if (aspect <= FRAME_ASPECT) return fov;
+  const half = Math.tan(MathUtils.degToRad(fov / 2)) * (FRAME_ASPECT / aspect);
+  return MathUtils.radToDeg(2 * Math.atan(half));
 }
 
 /** 0 at the first stop, 1 at the second, and so on, from the sections' layout. */

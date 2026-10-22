@@ -55,7 +55,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'library',
     label: { en: 'Library', pl: 'Biblioteka' },
-    camera: { position: [1.3, 1.78, 1.8], target: [1.82, 1.15, 0.3], fov: 38 },
+    camera: { position: [1.35, 1.25, 1.05], target: [1.81, 1.27, 0.56], fov: 50 },
     panel: {
       eyebrow: { en: 'Side A · Your library', pl: 'Strona A · Twoja biblioteka' },
       lead: { en: 'Your folders are the', pl: 'Twoje foldery to' },
@@ -69,7 +69,7 @@ export const ROOM_STOPS: readonly RoomStop[] = [
   {
     id: 'radio',
     label: { en: 'Radio', pl: 'Radio' },
-    camera: { position: [-0.36, 0.95, 1.7], target: [-0.3, 0.88, 0.43], fov: 24 },
+    camera: { position: [-0.16, 0.93, 1.25], target: [-0.254, 0.83, 0.4], fov: 20 },
     panel: {
       eyebrow: { en: 'Side B · Internet radio', pl: 'Strona B · Radio internetowe' },
       lead: { en: 'A radio dial, still', pl: 'Pokrętło radia, wciąż' },
