@@ -43,7 +43,7 @@ overrides:
   ws: 8.21.0
   tar: 7.5.21
   js-yaml: ^4.3.2
-  piscina: 4.9.3
+  piscina: 4.9.4
   '@opentelemetry/core': 2.8.0
   # @vitest/mocker (the actual path-traversal CVE) is @vitest/browser's own
   # dependency, not vitest's — bumping `vitest` below doesn't cascade to it,
@@ -60,14 +60,17 @@ overrides:
   # that major jump is tracked separately as a Phase 3 migration.
   vitest: '>=4.1.11 <5'
   esbuild: '>=0.28.1'
-  vite: '>=7.3.5'
+  # Pinned at 8.3.4 (fixes the 8.0-8.1.5 and 8.3.0-8.3.2 advisories): a floor
+  # resolves 8.3.5, which is under the 7 day release age gate that pnpm 10.9.0
+  # does not enforce. Relax to a floor once 8.3.5 has aged.
+  vite: 8.3.4
   '@babel/core': '>=7.29.6'
   find-my-way: '>=9.7.0'
   # astro (apps/landing) already resolves svgo's own patched release as of
   # the Phase 1 astro bump; floor kept at that patched version so a future
   # astro downgrade can't silently reintroduce it.
   svgo: '>=4.1.0'
-  '@xhmikosr/decompress': '>=11.1.3'
+  '@xhmikosr/decompress': '>=11.1.4'
   valibot: '>=1.4.2'
   # CVE-2026-14257 (GHSA-mh99-v99m-4gvg) and CVE-2026-69152 (the follow-up
   # bypass of that mitigation via unbounded intermediate arrays): each major
@@ -75,8 +78,8 @@ overrides:
   # (>=2.0.0 <2.1.3, patched at 2.1.3). @1 now floors at 1.1.21, which
   # patches both CVEs on the 1.x line.
   'brace-expansion@1': 1.1.21
-  'brace-expansion@2': '^2.1.3'
-  'brace-expansion@5': '>=5.0.9'
+  'brace-expansion@2': '^2.1.7'
+  'brace-expansion@5': '>=5.0.12'
   # eslint-plugin-react-hooks > @babel/core pulls this transitively;
   # unbounded memory growth (no cache eviction) + a prototype-write crash
   # on untrusted browserslist-stats.json, both fixed at this floor.
