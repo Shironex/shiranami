@@ -12,6 +12,7 @@ import type { ElectronAPI } from '@/types/electron';
 import { DEFAULT_DISCORD_TEMPLATES } from '@shiranami/shared';
 import type { Playlist, Track, WatchedFolder } from '@shiranami/contracts';
 import { SHOWCASE_NOW } from '../determinism';
+import { version as appVersion } from '../../../../../../package.json';
 import { TRACKS, trackById } from './catalog';
 import {
   HISTORY,
@@ -104,7 +105,7 @@ export function createShowcaseApi(): ShowcaseApi {
 
   return {
     app: {
-      getVersion: async () => '2.0.0',
+      getVersion: async () => appVersion,
       getLocaleCountry: async () => 'PL',
       openLogsFolder: noop,
     },
