@@ -250,8 +250,8 @@ export function Speaker(group: GroupProps) {
 
   useFrame(() => {
     const cone = part(root.current, 'woofer');
-    // A soft pulse on the beat (80 bpm).
-    if (cone) cone.scale.z = 1 + Math.max(0, Math.sin(room.t * 8.38)) * 0.6;
+    // A soft pulse on the beat (80 bpm): the cone and cap move a few millimetres.
+    if (cone) cone.scale.z = 1 + Math.max(0, Math.sin(room.t * 8.38)) * 0.35;
   });
 
   return (
@@ -281,12 +281,26 @@ export function Speaker(group: GroupProps) {
 
 // --------------------------------------------------------------------- lamp
 
-/** lamp.glb's shade glows its own cream texture; tint that toward C0's amber. */
-const warmShade: OnModel = model => {
-  model.getObjectByName('shade')?.traverse(child => {
+/**
+ * lamp.glb's shade: the bright inside and rim (material `shade`) and the
+ * opaque outside, lit through a little (`shade_shell`), with their glow.
+ */
+const SHADE_GLOW: Record<string, number> = { shade: 1.4, shade_shell: 0.55 };
+
+function shadeGlow(root: Object3D | null): MeshStandardMaterial[] {
+  const out: MeshStandardMaterial[] = [];
+  root?.getObjectByName('shade')?.traverse(child => {
     const material = (child as Mesh).material;
-    if (material instanceof MeshStandardMaterial) material.emissive.set('#ffc477');
+    for (const mat of Array.isArray(material) ? material : [material]) {
+      if (mat instanceof MeshStandardMaterial && mat.name in SHADE_GLOW) out.push(mat);
+    }
   });
+  return out;
+}
+
+/** The shade glows its own cream texture; tint that toward C0's amber. */
+const warmShade: OnModel = model => {
+  for (const glowing of shadeGlow(model)) glowing.emissive.set('#ffc477');
 };
 
 export function Lamp(group: GroupProps) {
@@ -297,7 +311,10 @@ export function Lamp(group: GroupProps) {
   useFrame(() => {
     // The room lights go down for the last stop.
     const dim = 1 - near(5, 0.9) * 0.55;
-    setGlow(part(root.current, 'shade'), 1.4 * dim);
+    const glowing = shadeGlow(root.current);
+    // The blockout has no `shade` material: it glows as one piece.
+    if (glowing.length) for (const g of glowing) g.emissiveIntensity = SHADE_GLOW[g.name] * dim;
+    else setGlow(part(root.current, 'shade'), 1.4 * dim);
     if (light.current) light.current.intensity = 3 * dim;
   });
 
