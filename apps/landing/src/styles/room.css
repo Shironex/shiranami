@@ -20,7 +20,7 @@
     background: var(--bg);
   }
 
-  .room-stage > img,
+  .room-poster,
   .room-stage canvas {
     position: absolute;
     inset: 0;
@@ -31,11 +31,83 @@
   .room-poster {
     object-fit: cover;
     object-position: 62% 50%;
-    transition: opacity 0.8s ease;
   }
 
-  .room-stage[data-ready] .room-poster {
+  .room:not([data-static]) .room-poster {
+    display: none;
+  }
+
+  /* The canvas stays hidden until every model is in and a frame has rendered,
+     then fades in over the loader. */
+  .room-stage canvas {
     opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .room-stage[data-ready] canvas {
+    opacity: 1;
+  }
+
+  .room-loader {
+    position: absolute;
+    top: 50%;
+    left: 62%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    color: var(--ink-dim);
+    transform: translate(-50%, -50%);
+    transition: opacity 0.6s ease;
+  }
+
+  .room-stage[data-ready] .room-loader,
+  .room[data-static] .room-loader {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.6s ease,
+      visibility 0s 0.6s;
+  }
+
+  .room-loader-record {
+    width: 40px;
+    height: 40px;
+    color: var(--primary);
+    animation: room-spin 1.8s linear infinite;
+  }
+
+  .room-loader-bar {
+    width: 120px;
+    height: 1px;
+    background: oklch(from var(--ink-dim) l c h / 0.25);
+  }
+
+  .room-loader-bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+  }
+
+  .room-loader-pct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @keyframes room-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .room-loader-record {
+      animation: none;
+    }
   }
 
   /* Keeps the copy on the left legible over the room. */

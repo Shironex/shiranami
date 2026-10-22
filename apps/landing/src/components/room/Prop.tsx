@@ -16,6 +16,12 @@ import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 /** Prop names with a real file at /room/models/<name>.glb. Filled by the page. */
 export const ModelsContext = createContext<ReadonlySet<string>>(new Set());
 
+/**
+ * Model names that are in the scene or have failed (and kept their blockout).
+ * The loader holds the room back until every model has settled.
+ */
+export const settledModels = new Set<string>();
+
 export type PropName =
   | 'turntable'
   | 'record'
@@ -50,9 +56,9 @@ export function Prop({ name, children, onModel, ...group }: PropProps) {
   return (
     <group name={name} {...group}>
       {hasModel ? (
-        <Fallback fallback={children}>
+        <Fallback name={name} fallback={children}>
           <Suspense fallback={children}>
-            <Glb url={`/room/models/${name}.glb`} onModel={onModel} />
+            <Glb name={name} onModel={onModel} />
           </Suspense>
         </Fallback>
       ) : (
@@ -71,8 +77,9 @@ function ktx2Loader(gl: WebGLRenderer): KTX2Loader {
   return ktx2;
 }
 
-function Glb({ url, onModel }: { url: string; onModel?: OnModel }) {
+function Glb({ name, onModel }: { name: PropName; onModel?: OnModel }) {
   const gl = useThree(state => state.gl);
+  const url = `/room/models/${name}.glb`;
   // No Draco (meshopt instead), so nothing is fetched from a decoder CDN.
   // drei's GLTFLoader comes from three-stdlib, typed against its own KTX2Loader;
   // three's own loader fits it at runtime.
@@ -84,12 +91,15 @@ function Glb({ url, onModel }: { url: string; onModel?: OnModel }) {
   const copy = useMemo(() => clone(scene), [scene]);
   const { actions } = useAnimations(animations, copy);
   useLayoutEffect(() => onModel?.(copy, actions), [copy, actions, onModel]);
+  useLayoutEffect(() => {
+    settledModels.add(name);
+  }, [name]);
   return <primitive object={copy} />;
 }
 
 /** Falls back to the blockout when a GLB fails to load or parse. */
 class Fallback extends Component<
-  { fallback: ReactNode; children: ReactNode },
+  { name: PropName; fallback: ReactNode; children: ReactNode },
   { failed: boolean }
 > {
   state = { failed: false };
@@ -99,6 +109,7 @@ class Fallback extends Component<
   }
 
   componentDidCatch(error: unknown) {
+    settledModels.add(this.props.name);
     console.warn('[room] model failed, keeping the blockout', error);
   }
 

@@ -52,15 +52,38 @@ const models = fs.existsSync(modelsDir)
     </script>
 
     <div class="room-stage" data-room-stage aria-hidden="true">
-      <Image
-        src={poster}
-        alt=""
-        class="room-poster"
-        widths={[780, 1280, 1672]}
-        sizes="100vw"
-        loading="eager"
-        fetchpriority="high"
-      />
+      <picture>
+        {/* Desktop WebGL never shows the poster: the loader covers the wait.
+            The script below drops this source when the page went static. */}
+        <source
+          media="(min-width: 821px) and (prefers-reduced-motion: no-preference)"
+          srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+          data-room-blank
+        />
+        <Image
+          src={poster}
+          alt=""
+          class="room-poster"
+          widths={[780, 1280, 1672]}
+          sizes="100vw"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </picture>
+      <script is:inline>
+        if (document.querySelector('[data-room][data-static]'))
+          document.querySelector('[data-room-blank]').remove();
+      </script>
+      <div class="room-loader" data-room-loader>
+        <svg class="room-loader-record" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="19" fill="currentColor" opacity="0.18" />
+          <circle cx="20" cy="20" r="13" fill="none" stroke="currentColor" opacity="0.25" />
+          <circle cx="20" cy="20" r="6" fill="currentColor" opacity="0.7" />
+          <path d="M20 1a19 19 0 0 1 16 8.7" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        <div class="room-loader-bar"><span data-room-loader-bar></span></div>
+        <span class="room-loader-pct" data-room-loader-pct>0%</span>
+      </div>
       <RoomStage client:visible models={models} />
     </div>
 

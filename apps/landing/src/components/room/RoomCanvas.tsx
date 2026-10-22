@@ -1,17 +1,21 @@
+import { useProgress } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import { AgXToneMapping, MathUtils, PerspectiveCamera, Vector3 } from 'three';
-import { ModelsContext } from './Prop';
+import { ModelsContext, settledModels } from './Prop';
 import { RoomScene } from './Scene';
 import { room } from './progress';
 import { ROOM_STOPS } from './stops';
 
 interface Props {
   models: string[];
+  /** Load progress, 0 to 100. */
+  onProgress: (percent: number) => void;
+  /** Every model and texture is in and a frame has rendered with them. */
   onReady: () => void;
 }
 
-export default function RoomCanvas({ models, onReady }: Props) {
+export default function RoomCanvas({ models, onProgress, onReady }: Props) {
   const [visible, setVisible] = useState(true);
 
   // Stop rendering once the room has scrolled out of view.
@@ -40,7 +44,7 @@ export default function RoomCanvas({ models, onReady }: Props) {
       <ModelsContext.Provider value={new Set(models)}>
         <CameraRig />
         <RoomScene />
-        <ReadySignal onReady={onReady} />
+        <LoadGate models={models} onProgress={onProgress} onReady={onReady} />
       </ModelsContext.Provider>
     </Canvas>
   );
@@ -121,10 +125,33 @@ function scrollProgress(sections: HTMLElement[]): number {
   return 0;
 }
 
-function ReadySignal({ onReady }: { onReady: () => void }) {
-  const frames = useRef(0);
+/**
+ * Reports load progress and fires once the room is complete: every model has
+ * settled (loaded, or failed and kept its blockout), the loading manager is
+ * idle, and two frames have rendered since. Until then the canvas stays
+ * hidden, so the blockouts never flash in before the models.
+ */
+function LoadGate({ models, onProgress, onReady }: Props) {
+  const { active, progress } = useProgress();
+  const shown = useRef(0);
+  const frames = useRef(-1);
+
+  useEffect(() => {
+    // The manager's total grows as GLBs discover their textures: never step back.
+    shown.current = Math.max(shown.current, Math.min(progress, 99));
+    onProgress(shown.current);
+  }, [progress, onProgress]);
+
   useFrame(() => {
-    if (++frames.current === 3) onReady();
+    if (frames.current < 0) {
+      const settled = models.every(name => settledModels.has(name));
+      if (settled && !active) frames.current = 0;
+      return;
+    }
+    if (++frames.current === 2) {
+      onProgress(100);
+      onReady();
+    }
   });
   return null;
 }
