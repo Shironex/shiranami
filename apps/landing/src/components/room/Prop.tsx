@@ -1,8 +1,17 @@
-import { useGLTF } from '@react-three/drei';
+import { useAnimations, useGLTF } from '@react-three/drei';
 import { useThree, type ThreeElements } from '@react-three/fiber';
-import { Component, createContext, Suspense, useContext, useMemo, type ReactNode } from 'react';
-import type { WebGLRenderer } from 'three';
+import {
+  Component,
+  createContext,
+  Suspense,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import type { AnimationAction, Object3D, WebGLRenderer } from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 /** Prop names with a real file at /room/models/<name>.glb. Filled by the page. */
 export const ModelsContext = createContext<ReadonlySet<string>>(new Set());
@@ -21,10 +30,14 @@ export type PropName =
   | 'stool'
   | 'books';
 
+/** Called once the GLB is in the scene, with its copy and its clips by name. */
+export type OnModel = (model: Object3D, actions: Record<string, AnimationAction | null>) => void;
+
 type PropProps = ThreeElements['group'] & {
   name: PropName;
   /** The blockout, shown while there is no GLB, while it loads, or if it fails. */
   children: ReactNode;
+  onModel?: OnModel;
 };
 
 /**
@@ -33,14 +46,14 @@ type PropProps = ThreeElements['group'] & {
  * by node name (`platter`, `tonearm`, ...), so blockouts and GLBs must use the
  * same names. Origin at the bottom centre, metres, +Y up, front facing +Z.
  */
-export function Prop({ name, children, ...group }: PropProps) {
+export function Prop({ name, children, onModel, ...group }: PropProps) {
   const hasModel = useContext(ModelsContext).has(name);
   return (
     <group name={name} {...group}>
       {hasModel ? (
         <Fallback fallback={children}>
           <Suspense fallback={children}>
-            <Glb url={`/room/models/${name}.glb`} />
+            <Glb url={`/room/models/${name}.glb`} onModel={onModel} />
           </Suspense>
         </Fallback>
       ) : (
@@ -59,16 +72,19 @@ function ktx2Loader(gl: WebGLRenderer): KTX2Loader {
   return ktx2;
 }
 
-function Glb({ url }: { url: string }) {
+function Glb({ url, onModel }: { url: string; onModel?: OnModel }) {
   const gl = useThree(state => state.gl);
   // No Draco (meshopt instead), so nothing is fetched from a decoder CDN.
   // drei's GLTFLoader comes from three-stdlib, typed against its own KTX2Loader;
   // three's own loader fits it at runtime.
-  const { scene } = useGLTF(url, false, true, loader =>
+  const { scene, animations } = useGLTF(url, false, true, loader =>
     loader.setKTX2Loader(ktx2Loader(gl) as unknown as Parameters<typeof loader.setKTX2Loader>[0])
   );
   // The second deck reuses the turntable, so each instance gets its own copy.
-  const copy = useMemo(() => scene.clone(true), [scene]);
+  // SkeletonUtils rebinds a skinned mesh to the copy's own bones.
+  const copy = useMemo(() => clone(scene), [scene]);
+  const { actions } = useAnimations(animations, copy);
+  useLayoutEffect(() => onModel?.(copy, actions), [copy, actions, onModel]);
   return <primitive object={copy} />;
 }
 
