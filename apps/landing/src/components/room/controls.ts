@@ -109,4 +109,18 @@ export function initRoomControls() {
       play();
     }
   });
+
+  // The client router swaps pages without a reload: the music has no button
+  // on the other pages, so it stops, and the window listeners go with the room.
+  document.addEventListener(
+    'astro:before-swap',
+    () => {
+      removeEventListener('scroll', onScroll);
+      removeEventListener('resize', onScroll);
+      document.removeEventListener('pointerdown', onGesture, { capture: true });
+      document.removeEventListener('keydown', onGesture, { capture: true });
+      music.stop();
+    },
+    { once: true }
+  );
 }
