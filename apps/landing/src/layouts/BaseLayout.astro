@@ -28,29 +28,6 @@ const { title, description, structuredData, noindex } = Astro.props;
     </div>
 
     <script>
-      function initReveal() {
-        const els = document.querySelectorAll('.reveal:not(.is-visible)');
-        if (!els.length) return;
-
-        const observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (entry.isIntersecting) {
-                entry.target.classList.add('is-visible');
-                observer.unobserve(entry.target);
-              }
-            });
-          },
-          { threshold: 0.15, rootMargin: '-40px' }
-        );
-
-        els.forEach((el) => observer.observe(el));
-      }
-
-      document.addEventListener('astro:page-load', initReveal);
-    </script>
-
-    <script>
       import { translations, type LandingLanguage } from '../lib/i18n';
 
       const LANG_KEY = 'shiranami.language';

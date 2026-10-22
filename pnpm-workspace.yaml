@@ -109,6 +109,13 @@ overrides:
   # nanoid@5 used directly in apps/server, hence the scoped `@3` syntax,
   # same pattern as brace-expansion above); DoS fix floor.
   'nanoid@3': '>=3.3.18'
+  # apps/landing's three.js stack: @react-three/drei pulls gainmap-js
+  # (`^3.0.6`) and three-stdlib pulls draco3d (`^1.4.1`). Both had a burst of
+  # releases in mid October 2026, under the 7 day release age gate that pnpm
+  # 10.9.0 does not enforce. Held at the last release before each burst;
+  # relax to floors once they have aged.
+  '@monogrid/gainmap-js': 3.4.0
+  draco3d: 1.5.7
 
 onlyBuiltDependencies:
   - esbuild

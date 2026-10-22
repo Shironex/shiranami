@@ -1,54 +1,12 @@
 @layer components {
   /* responsive */
   @media (max-width: 1024px) {
-    .hero {
-      grid-template-columns: 1fr;
-      padding-block: 48px;
-      gap: 56px;
-    }
-    .hero .vlabel-l,
-    .hero .vlabel-r {
-      display: none;
-    }
-    .hero-left,
-    .hero-right {
-      grid-column: 1;
-    }
-    .vinyl-stage {
-      width: min(420px, 90%);
-      margin: 0 auto;
-    }
-    .deck-grid {
-      grid-template-columns: repeat(6, 1fr);
-    }
-    .dk-6,
-    .dk-8,
-    .dk-7 {
-      grid-column: span 6;
-    }
-    .dk-4,
-    .dk-5 {
-      grid-column: span 6;
-    }
-    .dk-3 {
-      grid-column: span 3;
-    }
-    .download-grid,
-    .philo-grid {
+    .download-grid {
       grid-template-columns: 1fr;
       gap: 32px;
     }
-    .suite-grid {
-      grid-template-columns: 1fr;
-    }
     .foot-grid {
       grid-template-columns: 1fr 1fr;
-    }
-    .preview-tag.t1 {
-      left: 8px;
-    }
-    .preview-tag.t2 {
-      right: 8px;
     }
   }
 
@@ -128,29 +86,6 @@
   }
 
   @media (max-width: 720px) {
-    section.bay {
-      padding-block: 56px;
-    }
-    .preview-wrap {
-      display: grid;
-      gap: 10px;
-    }
-    .preview-tag {
-      position: static;
-      transform: none;
-    }
-    .preview-tag.t1 {
-      justify-self: start;
-      order: 1;
-    }
-    .preview-frame {
-      order: 2;
-    }
-    .preview-tag.t2 {
-      justify-self: end;
-      order: 3;
-    }
-    .philo,
     .download-block {
       padding: 36px 22px;
     }
@@ -161,41 +96,9 @@
       flex-direction: column;
       align-items: stretch;
     }
-    .deck-grid {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    .deck-grid > .tape {
-      grid-column: 1 / -1;
-      padding: 24px 20px;
-    }
     .foot-grid {
       grid-template-columns: 1fr;
       gap: 28px;
-    }
-    .hero {
-      padding-block: 36px 32px;
-      gap: 40px;
-    }
-    .hero h1 {
-      font-size: 48px;
-    }
-    .hero-meta {
-      grid-template-columns: 1fr 1fr;
-      row-gap: 20px;
-    }
-    .hero-meta-cell:nth-child(3) {
-      grid-column: 1 / -1;
-    }
-    .hero-sub {
-      font-size: 15px;
-    }
-    .section-head {
-      grid-template-columns: 1fr;
-      gap: 18px;
-    }
-    .section-head .meta {
-      text-align: left;
     }
     .masthead {
       padding-top: 36px;
@@ -210,12 +113,6 @@
     .mh-center .sub {
       font-size: 14px;
     }
-    .suite-grid {
-      gap: 16px;
-    }
-    .suite-card {
-      padding: 24px 22px;
-    }
     .foot {
       padding: 40px 0 32px;
     }
@@ -228,14 +125,8 @@
     .page {
       padding: 0 20px;
     }
-    .hero h1 {
-      font-size: 40px;
-    }
     .mh-center h1 {
       font-size: 44px;
-    }
-    .section-head h2 {
-      font-size: 34px;
     }
   }
 }

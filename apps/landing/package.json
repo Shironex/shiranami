@@ -13,17 +13,23 @@
     "@astrojs/check": "^0.9.10",
     "@astrojs/react": "^6.0.1",
     "@astrojs/sitemap": "^3.7.4",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "3.2.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.3.4",
     "lucide-react": "^1.47.0",
     "motion": "^13.4.1",
+    "postprocessing": "6.39.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
+    "three": "0.186.1",
     "typescript": "^6.0.2"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "0.186.0"
   }
 }

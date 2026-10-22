@@ -56,15 +56,6 @@
     max-width: 36ch;
   }
 
-  .download-meta {
-    margin-top: 24px;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--ink-mute);
-  }
-
   .platforms {
     display: grid;
     gap: 12px;

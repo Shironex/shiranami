@@ -1,0 +1,525 @@
+/* The listening room, the homepage. Imported by that page only. */
+/* The build may inline this ahead of global.css; state Tailwind's layer order
+   first so this file cannot reorder the layers (and let preflight win). */
+@layer theme, base, components, utilities;
+
+@layer components {
+  .room {
+    position: relative;
+  }
+
+  /* The stage pins behind the stops while they scroll past, then unpins when
+     the last stop ends. */
+  .room-stage {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100lvh;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .room-poster,
+  .room-stage canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .room-poster {
+    object-fit: cover;
+    object-position: 62% 50%;
+  }
+
+  .room:not([data-static]) .room-poster {
+    display: none;
+  }
+
+  /* The canvas stays hidden until every model is in and a frame has rendered,
+     then fades in over the loader. */
+  .room-stage canvas {
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .room-stage[data-ready] canvas {
+    opacity: 1;
+  }
+
+  .room-loader {
+    position: absolute;
+    top: 50%;
+    left: 62%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    color: var(--ink-dim);
+    transform: translate(-50%, -50%);
+    transition: opacity 0.6s ease;
+  }
+
+  .room-stage[data-ready] .room-loader,
+  .room[data-static] .room-loader {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.6s ease,
+      visibility 0s 0.6s;
+  }
+
+  .room-loader-record {
+    width: 40px;
+    height: 40px;
+    color: var(--primary);
+    /* The same soft bloom the room gives its lights. */
+    filter: drop-shadow(0 0 6px oklch(from var(--primary) l c h / 0.7))
+      drop-shadow(0 0 18px oklch(from var(--primary) l c h / 0.35));
+    animation: room-spin 1.8s linear infinite;
+  }
+
+  .room-loader-bar {
+    width: 120px;
+    height: 1px;
+    background: oklch(from var(--ink-dim) l c h / 0.25);
+  }
+
+  .room-loader-bar span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--primary);
+    box-shadow: 0 0 8px oklch(from var(--primary) l c h / 0.8);
+    transition: width 0.3s ease;
+  }
+
+  .room-loader-pct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @keyframes room-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .room-loader-record {
+      animation: none;
+    }
+  }
+
+  /* Keeps the copy on the left legible over the room. */
+  .room-stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      oklch(from var(--bg) l c h / 0.72) 0%,
+      oklch(from var(--bg) l c h / 0.35) 34%,
+      transparent 58%
+    );
+  }
+
+  .room-stops {
+    position: relative;
+    margin-top: -100vh;
+    margin-top: -100lvh;
+  }
+
+  .room-stop {
+    min-height: 100vh;
+    min-height: 100lvh;
+    display: flex;
+    align-items: center;
+    padding: 96px clamp(24px, 6vw, 80px) 64px;
+  }
+
+  /* Top-down crossfade shot: the copy sits high, over the wall past the desk. */
+  .room-stop[data-room-stop='crossfade'] {
+    align-items: flex-start;
+    padding-top: 14vh;
+  }
+
+  /* The download panel rises from below, clear of the desk in that shot. */
+  .room-stop[data-room-stop='download'] {
+    align-items: flex-end;
+    padding-bottom: 12vh;
+  }
+
+  /* Fade the last stop into the page background as the stage unpins. */
+  .room-stop:last-child {
+    background: linear-gradient(to bottom, transparent 70%, var(--bg));
+  }
+
+  .room-panel {
+    max-width: 34rem;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .room-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  .room-heading {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(40px, 5vw, 68px);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .room-heading em {
+    color: var(--primary);
+  }
+
+  .room-body {
+    margin: 0;
+    max-width: 46ch;
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+  }
+
+  .room-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .room-cta-tag {
+    font-size: 12px;
+    opacity: 0.75;
+  }
+
+  /* Static mode: phones, reduced motion, no WebGL. The poster sits on top and
+     the copy stacks under it. */
+  .room[data-static] .room-stage {
+    position: relative;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .room[data-static] .room-stage::after {
+    display: none;
+  }
+
+  .room[data-static] .room-stops {
+    margin-top: 0;
+  }
+
+  .room[data-static] .room-stop {
+    min-height: 0;
+    padding-block: 48px;
+  }
+
+  .room[data-static] .room-stop:last-child {
+    background: none;
+  }
+
+  /* ---------------------------------------------------- overlays in the room */
+
+  /* Lyrics condensing on the window glass: soft light, the active line bright. */
+  .room-lyrics {
+    /* Sized to the window at the lyrics stop, which scales with the viewport width. */
+    width: 24vw;
+    height: 11.5em;
+    overflow: hidden;
+    font-family: var(--font-display);
+    font-size: 1.3vw;
+    line-height: 1.35;
+    text-align: center;
+    color: oklch(0.92 0.04 270);
+    mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+    transition: opacity 0.3s linear;
+  }
+
+  .room-lyrics ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    /* Keeps the active line in the middle, like the app's synced lyrics. */
+    transform: translateY(calc(4.4em - var(--line, 0) * 2.3em));
+    transition: transform 1.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+  }
+
+  .room-lyrics li {
+    height: 2.3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.28;
+    filter: blur(0.6px);
+    text-shadow: 0 0 12px oklch(0.8 0.08 270 / 0.6);
+    transition:
+      opacity 1.2s ease,
+      filter 1.2s ease;
+  }
+
+  .room-lyrics li[data-active] {
+    opacity: 1;
+    filter: none;
+    text-shadow:
+      0 0 10px oklch(0.85 0.1 270 / 0.9),
+      0 0 28px oklch(0.75 0.12 280 / 0.6);
+  }
+
+  .room-lyrics[data-still] ol,
+  .room-lyrics[data-still] li {
+    transition: none;
+  }
+
+  /* The radio's station readout, riding over the needle. */
+  .room-station {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border: 1px solid oklch(0.84 0.1 80 / 0.35);
+    border-radius: 8px;
+    background: oklch(0.12 0.02 285 / 0.72);
+    color: oklch(0.9 0.08 80);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    text-shadow: 0 0 10px oklch(0.84 0.12 80 / 0.6);
+    transform: translateY(-50%);
+  }
+
+  .room-station-freq {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    opacity: 0.8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .room-station-name {
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    opacity: 0.55;
+  }
+
+  .room-station[data-tuned] .room-station-name {
+    opacity: 1;
+  }
+
+  /* A deck's level meter at the crossfade stop. */
+  .room-level {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+  }
+
+  .room-level-bar {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 3px;
+    padding: 5px;
+    border-radius: 6px;
+    background: oklch(0.12 0.02 285 / 0.7);
+  }
+
+  .room-level-bar i {
+    width: 14px;
+    height: 4px;
+    border-radius: 1px;
+    background: oklch(from var(--ink-dim) l c h / 0.15);
+  }
+
+  .room-level-bar i[data-on] {
+    background: var(--primary);
+    box-shadow: 0 0 6px oklch(from var(--primary) l c h / 0.7);
+  }
+
+  .room-level-bar i:nth-last-child(-n + 2)[data-on] {
+    background: var(--accent);
+  }
+
+  /* ------------------------------------------------- stop dots and music */
+
+  .room-dots {
+    position: fixed;
+    right: clamp(16px, 2.4vw, 32px);
+    top: 50%;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transform: translateY(-50%);
+    transition: opacity 0.4s ease;
+  }
+
+  .room[data-away] .room-dots,
+  .room[data-static] .room-dots {
+    opacity: 0;
+    pointer-events: none;
+    /* Hidden from the keyboard too, once the fade is over. */
+    visibility: hidden;
+    transition:
+      opacity 0.4s ease,
+      visibility 0s 0.4s;
+  }
+
+  .room-dot {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+  }
+
+  .room-dot::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid oklch(from var(--ink) l c h / 0.55);
+    transition:
+      background 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  .room-dot:hover::before {
+    background: oklch(from var(--ink) l c h / 0.4);
+  }
+
+  .room-dot[aria-current]::before {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.35);
+  }
+
+  .room-dot:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .room-music {
+    position: fixed;
+    right: clamp(16px, 2.4vw, 32px);
+    bottom: clamp(16px, 3vh, 32px);
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background: oklch(from var(--paper) l c h / 0.75);
+    backdrop-filter: blur(8px);
+    color: var(--ink-dim);
+    cursor: pointer;
+    transition:
+      color 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .room-music svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .room-music:hover,
+  .room-music[aria-pressed='true'] {
+    color: var(--ink);
+    border-color: oklch(from var(--primary) l c h / 0.6);
+  }
+
+  .room-music:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+  }
+
+  /* Playing: three small bars replace the note. */
+  .room-music-bars {
+    display: none;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+  }
+
+  .room-music-bars i {
+    width: 3px;
+    height: 100%;
+    border-radius: 1px;
+    background: var(--primary);
+    transform-origin: bottom;
+    animation: room-bars var(--beat, 0.727s) ease-in-out infinite alternate;
+  }
+
+  .room-music-bars i:nth-child(2) {
+    animation-delay: -0.3s;
+  }
+
+  .room-music-bars i:nth-child(3) {
+    animation-delay: -0.6s;
+  }
+
+  .room-music[data-state='on'] svg {
+    display: none;
+  }
+
+  .room-music[data-state='on'] .room-music-bars {
+    display: flex;
+  }
+
+  /* Remembered as on, waiting for a click or key press to start. */
+  .room-music[data-state='ready'] {
+    box-shadow: 0 0 0 0 oklch(from var(--primary) l c h / 0.5);
+    animation: room-ready 2.4s ease-out infinite;
+  }
+
+  .room-music[data-state='loading'] svg {
+    opacity: 0.5;
+  }
+
+  @keyframes room-bars {
+    from {
+      transform: scaleY(0.3);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes room-ready {
+    70%,
+    100% {
+      box-shadow: 0 0 0 10px oklch(from var(--primary) l c h / 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .room-music-bars i,
+    .room-music[data-state='ready'] {
+      animation: none;
+    }
+
+    .room-music-bars i {
+      transform: scaleY(0.7);
+    }
+
+    .room-music[data-state='ready'] {
+      box-shadow: 0 0 0 2px oklch(from var(--primary) l c h / 0.5);
+    }
+  }
+}

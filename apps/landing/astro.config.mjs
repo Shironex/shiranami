@@ -10,6 +10,8 @@ export default defineConfig({
   // adjacent inline elements. Pinned to the pre-v7 behaviour until each call
   // site is reviewed; see docs/migrate/2026-07-26-astro-6-to-7-landing.md.
   compressHTML: true,
+  // The listening room was previewed at /room before it became the homepage.
+  redirects: { '/room': '/' },
   integrations: [react(), sitemap()],
   vite: {
     plugins: [tailwindcss()],

@@ -1,0 +1,125 @@
+import { useAnimations, useGLTF } from '@react-three/drei';
+import { useThree, type ThreeElements } from '@react-three/fiber';
+import {
+  Component,
+  createContext,
+  Suspense,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import type { AnimationAction, Object3D, WebGLRenderer } from 'three';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { shadeBaked } from './baked';
+
+/** Prop names with a real file at /room/models/<name>.glb. Filled by the page. */
+export const ModelsContext = createContext<ReadonlySet<string>>(new Set());
+
+/**
+ * Model names that are in the scene or have failed (and kept their blockout).
+ * The loader holds the room back until every model has settled.
+ */
+export const settledModels = new Set<string>();
+
+export type PropName =
+  | 'turntable'
+  | 'record'
+  | 'sleeve'
+  | 'shelf'
+  | 'radio'
+  | 'speaker'
+  | 'desk'
+  | 'mascot'
+  | 'window'
+  | 'lamp'
+  | 'stool'
+  | 'plant'
+  | 'books'
+  | 'mug';
+
+/** Called once the GLB is in the scene, with its copy and its clips by name. */
+export type OnModel = (model: Object3D, actions: Record<string, AnimationAction | null>) => void;
+
+type PropProps = ThreeElements['group'] & {
+  name: PropName;
+  /** The blockout, shown while there is no GLB, while it loads, or if it fails. */
+  children: ReactNode;
+  onModel?: OnModel;
+};
+
+/**
+ * One prop of the room. Renders /room/models/<name>.glb when that file exists,
+ * otherwise the blockout passed as children. Animations look their parts up
+ * by node name (`platter`, `tonearm`, ...), so blockouts and GLBs must use the
+ * same names. Origin at the bottom centre, metres, +Y up, front facing +Z.
+ */
+export function Prop({ name, children, onModel, ...group }: PropProps) {
+  const hasModel = useContext(ModelsContext).has(name);
+  return (
+    <group name={name} {...group}>
+      {hasModel ? (
+        <Fallback name={name} fallback={children}>
+          <Suspense fallback={children}>
+            <Glb name={name} onModel={onModel} />
+          </Suspense>
+        </Fallback>
+      ) : (
+        children
+      )}
+    </group>
+  );
+}
+
+let ktx2: KTX2Loader | null = null;
+
+function ktx2Loader(gl: WebGLRenderer): KTX2Loader {
+  // three bundles its own basis transcoder (hashed into /_astro), so it always
+  // matches this three version; no transcoder path to keep in sync.
+  ktx2 ??= new KTX2Loader().detectSupport(gl);
+  return ktx2;
+}
+
+function Glb({ name, onModel }: { name: PropName; onModel?: OnModel }) {
+  const gl = useThree(state => state.gl);
+  const url = `/room/models/${name}.glb`;
+  // No Draco (meshopt instead), so nothing is fetched from a decoder CDN.
+  // drei's GLTFLoader comes from three-stdlib, typed against its own KTX2Loader;
+  // three's own loader fits it at runtime.
+  const { scene, animations } = useGLTF(url, false, true, loader =>
+    loader.setKTX2Loader(ktx2Loader(gl) as unknown as Parameters<typeof loader.setKTX2Loader>[0])
+  );
+  // The second deck reuses the turntable, so each instance gets its own copy.
+  // SkeletonUtils rebinds a skinned mesh to the copy's own bones.
+  const copy = useMemo(() => clone(scene), [scene]);
+  // Static props carry a baked light texture: let it shade the realtime light too.
+  useLayoutEffect(() => shadeBaked(copy), [copy]);
+  const { actions } = useAnimations(animations, copy);
+  useLayoutEffect(() => onModel?.(copy, actions), [copy, actions, onModel]);
+  useLayoutEffect(() => {
+    settledModels.add(name);
+  }, [name]);
+  return <primitive object={copy} />;
+}
+
+/** Falls back to the blockout when a GLB fails to load or parse. */
+class Fallback extends Component<
+  { name: PropName; fallback: ReactNode; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    settledModels.add(this.props.name);
+    console.warn('[room] model failed, keeping the blockout', error);
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
