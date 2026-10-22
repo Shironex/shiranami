@@ -26,7 +26,16 @@ conditions:
    agree to license your contribution under the same terms as this license
    and grant the copyright holder unrestricted rights to use your contribution.
 
-4. DISCLAIMER
+4. ARTWORK
+   The 3D models, textures and light maps of the landing page (everything
+   under apps/landing/public/room/models/ and apps/landing/public/room/textures/,
+   and any copy or conversion of them) are not covered by the permissions in
+   section 1. All rights to them are reserved. You may NOT use, copy, modify,
+   redistribute or sell them, or include them in any other project, website,
+   game, product or dataset (including datasets for training machine learning
+   models), without prior written permission from the copyright holder.
+
+5. DISCLAIMER
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
