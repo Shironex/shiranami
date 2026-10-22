@@ -1,7 +1,8 @@
 import { RoundedBox, useTexture } from '@react-three/drei';
 import { useFrame, type ThreeElements } from '@react-three/fiber';
-import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
+import { Suspense, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import {
+  type AnimationAction,
   Color,
   DoubleSide,
   type Group,
@@ -12,9 +13,10 @@ import {
   MeshStandardMaterial,
   Object3D,
   type PointLight,
+  type SkinnedMesh,
   SRGBColorSpace,
 } from 'three';
-import { Prop } from './Prop';
+import { type OnModel, Prop } from './Prop';
 import { near, ramp, room } from './progress';
 
 // Blockouts for every prop, built to the sizes in props.txt, and the
@@ -300,18 +302,30 @@ export function Lamp(group: GroupProps) {
 // ------------------------------------------------------------------- mascot
 
 export function Mascot(group: GroupProps) {
-  const root = useRef<Group>(null);
+  const actions = useRef<Record<string, AnimationAction | null>>({});
+
+  const onModel = useCallback<OnModel>((model, clips) => {
+    // The skinned mesh keeps its T-pose bounds, which the seated pose leaves.
+    model.traverse(child => {
+      if ((child as SkinnedMesh).isSkinnedMesh) child.frustumCulled = false;
+    });
+    clips.sit_idle?.play();
+    clips.sit_listen?.play();
+    actions.current = clips;
+  }, []);
 
   useFrame(() => {
-    const head = part(root.current, 'head');
-    // Nods to the beat (80 bpm), eyes on the record.
-    if (head) head.rotation.x = 0.12 + Math.max(0, Math.sin(room.t * 8.38)) * 0.08;
+    // Both loops are 6 s and in phase, so a weight blend is the crossfade:
+    // head on her hand by default, up and listening at the lyrics and the end.
+    const listen = Math.max(near(3), near(5));
+    actions.current.sit_idle?.setEffectiveWeight(1 - listen);
+    actions.current.sit_listen?.setEffectiveWeight(listen);
   });
 
-  // Origin on the floor under her; the stool seat is at 0.45 m.
+  // Origin on the floor under her, at the stool's origin.
   return (
-    <group ref={root} {...group}>
-      <Prop name="mascot">
+    <group {...group}>
+      <Prop name="mascot" onModel={onModel}>
         <mesh position={[0, 0.6, 0]} material={mat.violet}>
           <capsuleGeometry args={[0.12, 0.16, 8, 16]} />
         </mesh>
@@ -323,7 +337,7 @@ export function Mascot(group: GroupProps) {
             <capsuleGeometry args={[0.035, 0.32, 4, 12]} />
           </mesh>
         ))}
-        <group name="head" position={[0, 0.76, 0]}>
+        <group position={[0, 0.76, 0]}>
           <mesh position={[0, 0.12, 0]} material={mat.skin}>
             <sphereGeometry args={[0.12, 32, 24]} />
           </mesh>
