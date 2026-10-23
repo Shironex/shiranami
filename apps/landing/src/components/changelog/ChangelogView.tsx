@@ -160,7 +160,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
         </div>
       </div>
 
-      <main className="releases page">
+      <main id="main" className="releases page">
         {filtered.length === 0 ? (
           <div className="empty">
             {copy.empty}
