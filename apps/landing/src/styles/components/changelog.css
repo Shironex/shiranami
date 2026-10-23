@@ -131,10 +131,40 @@
     align-items: center;
     gap: 12px;
     padding: 14px 0;
-    background: oklch(from var(--bg) l c h / 0.88);
-    backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
+  }
+
+  /* The backdrop while the bar is stuck under the navbar (data-stuck, set by
+     changelog.ts): the navbar's own tint, blur and rule, run edge to edge
+     (.site-shell clips the overhang) so the two read as one header. At rest
+     the chips sit straight on the page. */
+  .filters::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(50% - 50vw) -1px;
+    z-index: -1;
+    pointer-events: none;
+    background: oklch(from var(--bg) l c h / 0.7);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 18px 32px -20px oklch(0 0 0 / 0.5);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .filters[data-stuck] {
+    border-bottom-color: transparent;
+  }
+
+  .filters[data-stuck]::before {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .filters::before {
+      transition: none;
+    }
   }
 
   .filter-group {

@@ -61,6 +61,30 @@ function haystack(article: HTMLElement): string {
   return parts.join(' ').toLowerCase();
 }
 
+/**
+ * Sets data-stuck on the sticky filter bar while it sits under the navbar,
+ * so its backdrop only shows then. A zero-height sentinel just above the bar
+ * leaves the band above the bar's sticky offset exactly when the bar sticks.
+ */
+function watchStuck(bar: HTMLElement): () => void {
+  const sentinel = document.createElement('div');
+  sentinel.setAttribute('aria-hidden', 'true');
+  bar.before(sentinel);
+  const offset = parseFloat(getComputedStyle(bar).top) || 0;
+  const io = new IntersectionObserver(
+    ([entry]) => {
+      const stuck = !entry.isIntersecting && entry.boundingClientRect.top < offset + 1;
+      bar.toggleAttribute('data-stuck', stuck);
+    },
+    { rootMargin: `${-(offset + 1)}px 0px 0px 0px` }
+  );
+  io.observe(sentinel);
+  return () => {
+    io.disconnect();
+    sentinel.remove();
+  };
+}
+
 export function initChangelog() {
   const list = document.querySelector<HTMLElement>('[data-changelog-list]');
   const filters = document.querySelector<HTMLElement>('[data-changelog-filters]');
@@ -164,12 +188,14 @@ export function initChangelog() {
     if (next === 'en' || next === 'pl') void setLang(next);
   };
   document.addEventListener('shiranami:lang-change', onLang);
+  const unwatch = watchStuck(filters);
   document.addEventListener(
     'astro:before-swap',
-    () => document.removeEventListener('shiranami:lang-change', onLang),
-    {
-      once: true,
-    }
+    () => {
+      document.removeEventListener('shiranami:lang-change', onLang);
+      unwatch();
+    },
+    { once: true }
   );
 
   index();
