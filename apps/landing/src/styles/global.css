@@ -2,10 +2,7 @@
 @import './base.css';
 @import './components/utility.css';
 @import './components/nav.css';
-@import './components/download.css';
 @import './components/footer.css';
-@import './components/page-shell.css';
-@import './components/changelog.css';
 @import './responsive.css';
 
 @theme {

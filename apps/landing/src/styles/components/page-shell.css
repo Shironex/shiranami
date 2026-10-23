@@ -1,5 +1,13 @@
-@layer components {
-  /* ===== DOWNLOAD / CHANGELOG PAGE SHELL ===== */
+/* The page shell, used by the 404 page. Imported by that page only. */
+/* Astro emits page stylesheets ahead of the shared global.css bundle, so a
+   plain components rule here would lose ties it used to win when it was part
+   of that bundle. A pages layer above components (still under utilities)
+   keeps those outcomes; stating the full order first also stops this file
+   from reordering Tailwind's layers. */
+@layer theme, base, components, pages, utilities;
+
+@layer pages {
+  /* ===== PAGE SHELL ===== */
   .page-shell {
     max-width: 1100px;
     margin: 0 auto;
@@ -234,5 +242,15 @@
     border: 1px solid var(--line-strong);
     background: oklch(from var(--primary) l c h / 0.1);
     color: var(--ink);
+  }
+
+  @media (max-width: 720px) {
+    .platform-grid {
+      grid-template-columns: 1fr;
+    }
+    .download-hero {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 }

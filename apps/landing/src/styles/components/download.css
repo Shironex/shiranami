@@ -1,4 +1,12 @@
-@layer components {
+/* The download page. Imported by that page only. */
+/* Astro emits page stylesheets ahead of the shared global.css bundle, so a
+   plain components rule here would lose ties it used to win when it was part
+   of that bundle. A pages layer above components (still under utilities)
+   keeps those outcomes; stating the full order first also stops this file
+   from reordering Tailwind's layers. */
+@layer theme, base, components, pages, utilities;
+
+@layer pages {
   /* ===== DOWNLOAD ===== */
   .download-block {
     border: 1px solid var(--line-strong);
@@ -400,6 +408,19 @@
       font-size: clamp(180px, 44vw, 300px);
       right: -20px;
       top: -30px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .download-grid {
+      grid-template-columns: 1fr;
+      gap: 32px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .download-block {
+      padding: 36px 22px;
     }
   }
 }

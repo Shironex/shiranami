@@ -1,10 +1,6 @@
 @layer components {
-  /* responsive */
+  /* responsive: shared chrome only; page rules sit with their page */
   @media (max-width: 1024px) {
-    .download-grid {
-      grid-template-columns: 1fr;
-      gap: 32px;
-    }
     .foot-grid {
       grid-template-columns: 1fr 1fr;
     }
@@ -86,32 +82,9 @@
   }
 
   @media (max-width: 720px) {
-    .download-block {
-      padding: 36px 22px;
-    }
-    .platform-grid {
-      grid-template-columns: 1fr;
-    }
-    .download-hero {
-      flex-direction: column;
-      align-items: stretch;
-    }
     .foot-grid {
       grid-template-columns: 1fr;
       gap: 28px;
-    }
-    .masthead {
-      padding-top: 36px;
-      padding-bottom: 24px;
-    }
-    .mh-meta {
-      font-size: 10px;
-    }
-    .mh-center h1 {
-      font-size: 56px;
-    }
-    .mh-center .sub {
-      font-size: 14px;
     }
     .foot {
       padding: 40px 0 32px;
@@ -124,9 +97,6 @@
   @media (max-width: 420px) {
     .page {
       padding: 0 20px;
-    }
-    .mh-center h1 {
-      font-size: 44px;
     }
   }
 }

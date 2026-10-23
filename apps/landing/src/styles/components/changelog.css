@@ -1,4 +1,12 @@
-@layer components {
+/* The changelog page. Imported by that page only. */
+/* Astro emits page stylesheets ahead of the shared global.css bundle, so a
+   plain components rule here would lose ties it used to win when it was part
+   of that bundle. A pages layer above components (still under utilities)
+   keeps those outcomes; stating the full order first also stops this file
+   from reordering Tailwind's layers. */
+@layer theme, base, components, pages, utilities;
+
+@layer pages {
   /* ===== CHANGELOG : MASTHEAD ===== */
   .masthead {
     position: relative;
@@ -680,6 +688,34 @@
     .filter-chip {
       padding: 6px 10px;
       font-size: 9px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .masthead {
+      padding-top: 36px;
+      padding-bottom: 24px;
+    }
+    .mh-meta {
+      font-size: 10px;
+    }
+    .mh-center h1 {
+      font-size: 56px;
+    }
+    .mh-center .sub {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    /* The shared small-phone gutter (responsive.css) came after these rules
+       in the old single bundle and won over .masthead, .filters and
+       .releases; restate it here, where the pages layer would beat it. */
+    .page {
+      padding: 0 20px;
+    }
+    .mh-center h1 {
+      font-size: 44px;
     }
   }
 }
