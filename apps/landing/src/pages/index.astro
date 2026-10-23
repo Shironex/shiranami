@@ -95,7 +95,9 @@ const models = fs.existsSync(modelsDir)
         <div class="room-loader-bar"><span data-room-loader-bar></span></div>
         <span class="room-loader-pct" data-room-loader-pct>0%</span>
       </div>
-      <RoomStage client:visible models={models} />
+      {/* Phones always go static, so they skip hydration (and react-dom) entirely.
+          The width matches the static-mode check above. */}
+      <RoomStage client:media="(min-width: 821px)" models={models} />
     </div>
 
     <div class="room-stops">

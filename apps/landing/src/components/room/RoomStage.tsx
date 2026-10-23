@@ -66,7 +66,8 @@ export default function RoomStage({ models }: Props) {
 
   return (
     <>
-      {/* Fills the stage: client:visible needs a box to observe, and this is it. */}
+      {/* Fills the stage and anchors the closest() lookups above. The island
+          hydrates on desktop widths only, so phones never fetch React. */}
       <div ref={anchor} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
       {run && (
         <Guard onError={fail}>
