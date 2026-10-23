@@ -15,6 +15,9 @@ RUN pnpm --filter @shiranami/landing build
 
 FROM node:22-alpine AS production
 RUN npm install -g serve@14
+# serve picks up dist/serve.json (from apps/landing/public) for Cache-Control:
+# hashed /_astro files for a year, the unhashed room assets for a week, HTML
+# and v2.json revalidated on every request.
 COPY --from=build /app/apps/landing/dist /app
 EXPOSE 3000
 CMD ["serve", "/app", "-l", "3000"]
