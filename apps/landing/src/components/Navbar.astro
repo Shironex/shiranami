@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+import mascot from '../assets/mascot.png';
 import { LANDING_VERSION } from '../lib/site';
 
 const shortVersion = LANDING_VERSION.split('.').slice(0, 2).join('.');
@@ -19,7 +21,8 @@ const ctaHref = '/download';
   <div class="page nav-row">
     <a href="/" class="brand">
       <span class="brand-mark" aria-hidden="true">
-        <img src="/assets/mascot.png" alt="" width="32" height="32" />
+        {/* Same files as the footer mark (32px here, scaled 1.55x). */}
+        <Image src={mascot} alt="" width={60} densities={[1, 2]} loading="eager" />
       </span>
       <div>
         <div class="brand-name">Shiranami</div>

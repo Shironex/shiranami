@@ -1,7 +1,7 @@
 ---
 import fs from 'node:fs';
 import path from 'node:path';
-import { Image } from 'astro:assets';
+import { getImage } from 'astro:assets';
 import poster from '../assets/room-poster.png';
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
@@ -20,6 +20,15 @@ const models = fs.existsSync(modelsDir)
       .filter(file => file.endsWith('.glb'))
       .map(file => file.slice(0, -4))
   : [];
+
+// The poster is the phone LCP: AVIF where supported, WebP otherwise. Built
+// with getImage rather than <Picture>, which owns its <picture> element, so
+// the desktop blank <source> below can still come first.
+const [posterAvif, posterWebp] = await Promise.all(
+  (['avif', 'webp'] as const).map(format =>
+    getImage({ src: poster, widths: [780, 1280, 1672], format })
+  )
+);
 ---
 
 <BaseLayout
@@ -60,14 +69,18 @@ const models = fs.existsSync(modelsDir)
           srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw="
           data-room-blank
         />
-        <Image
-          src={poster}
+        <source type="image/avif" srcset={posterAvif.srcSet.attribute} sizes="100vw" />
+        <img
+          src={posterWebp.src}
+          srcset={posterWebp.srcSet.attribute}
+          sizes="100vw"
           alt=""
           class="room-poster"
-          widths={[780, 1280, 1672]}
-          sizes="100vw"
+          width={posterWebp.attributes.width}
+          height={posterWebp.attributes.height}
           loading="eager"
           fetchpriority="high"
+          decoding="async"
         />
       </picture>
       <script is:inline>
@@ -83,7 +96,19 @@ const models = fs.existsSync(modelsDir)
             display: block;
           }
         </style>
-        <Image src={poster} alt="" class="room-poster" widths={[780, 1280, 1672]} sizes="100vw" />
+        <picture>
+          <source type="image/avif" srcset={posterAvif.srcSet.attribute} sizes="100vw" />
+          <img
+            src={posterWebp.src}
+            srcset={posterWebp.srcSet.attribute}
+            sizes="100vw"
+            alt=""
+            class="room-poster"
+            width={posterWebp.attributes.width}
+            height={posterWebp.attributes.height}
+            decoding="async"
+          />
+        </picture>
       </noscript>
       <div class="room-loader" data-room-loader>
         <svg class="room-loader-record" viewBox="0 0 40 40" aria-hidden="true">

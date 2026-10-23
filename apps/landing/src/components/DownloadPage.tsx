@@ -174,9 +174,11 @@ function useConfetti() {
 
 interface DownloadPageProps {
   translations: Record<LandingLanguage, Record<string, string>>;
+  /** The mascot, sized by the page for its 72px slot (1x and 2x). */
+  mascot: { src: string; srcSet: string; width: number; height: number };
 }
 
-export function DownloadPage({ translations }: DownloadPageProps) {
+export function DownloadPage({ translations, mascot }: DownloadPageProps) {
   const [lang, setLang] = useState<LandingLanguage>('en');
 
   useEffect(() => {
@@ -286,7 +288,10 @@ export function DownloadPage({ translations }: DownloadPageProps) {
 
             <div className="dl-inline">
               <motion.img
-                src="/assets/mascot.png"
+                src={mascot.src}
+                srcSet={mascot.srcSet}
+                width={mascot.width}
+                height={mascot.height}
                 alt={t('download.mascotAlt')}
                 className="dl-mascot-sm"
                 draggable={false}

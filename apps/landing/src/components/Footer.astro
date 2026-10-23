@@ -1,11 +1,17 @@
 
+---
+import { Image } from 'astro:assets';
+import mascot from '../assets/mascot.png';
+---
+
 <footer class="foot">
   <div class="page">
     <div class="foot-grid">
       <div class="foot-brand">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">
-            <img src="/assets/mascot.png" alt="" width="38" height="38" />
+            {/* Shown at 38px, scaled up 1.55x by .brand-mark img: ~60px at 1x. */}
+            <Image src={mascot} alt="" width={60} densities={[1, 2]} />
           </span>
           <div>
             <div class="brand-name">Shiranami</div>

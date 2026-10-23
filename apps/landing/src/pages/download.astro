@@ -1,10 +1,21 @@
 ---
+import { getImage } from 'astro:assets';
+import mascotSource from '../assets/mascot.png';
 import { DownloadPage } from '../components/DownloadPage';
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { translations } from '../lib/i18n';
 import '../styles/components/download.css';
+
+// The island is React, so the page sizes the mascot and hands it the URLs.
+const mascotImage = await getImage({ src: mascotSource, width: 72, densities: [1, 2] });
+const mascot = {
+  src: mascotImage.src,
+  srcSet: mascotImage.srcSet.attribute,
+  width: Number(mascotImage.attributes.width),
+  height: Number(mascotImage.attributes.height),
+};
 ---
 
 <BaseLayout
@@ -13,7 +24,7 @@ import '../styles/components/download.css';
 >
   <Navbar />
   <main id="main" class="bay page">
-    <DownloadPage client:load translations={translations} />
+    <DownloadPage client:load translations={translations} mascot={mascot} />
   </main>
   <Footer />
 </BaseLayout>
