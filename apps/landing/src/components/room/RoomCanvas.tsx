@@ -1,4 +1,4 @@
-import { useProgress } from '@react-three/drei';
+import { PerformanceMonitor, useProgress } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
@@ -27,6 +27,9 @@ interface Props {
 
 export default function RoomCanvas({ models, onProgress, onReady }: Props) {
   const [visible, setVisible] = useState(true);
+  const [ready, setReady] = useState(false);
+  // Pixel ratio cap: 1.5 until the frame rate shows the GPU cannot keep up.
+  const [maxDpr, setMaxDpr] = useState(1.5);
 
   // Stop rendering once the room has scrolled out of view.
   useEffect(() => {
@@ -42,10 +45,12 @@ export default function RoomCanvas({ models, onProgress, onReady }: Props) {
   return (
     <Canvas
       style={{ position: 'absolute', inset: 0 }}
-      dpr={[1, 1.5]}
+      dpr={[1, maxDpr]}
       frameloop={visible ? 'always' : 'never'}
       camera={{ position: [...first.position], fov: first.fov, near: 0.05, far: 60 }}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      // The effect composer multisamples (Effects.tsx), so the default
+      // framebuffer would only antialias a second time.
+      gl={{ antialias: false, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => {
         gl.toneMapping = AgXToneMapping;
         gl.toneMappingExposure = 1.3;
@@ -55,7 +60,18 @@ export default function RoomCanvas({ models, onProgress, onReady }: Props) {
         <CameraRig />
         <RoomScene />
         <Effects />
-        <LoadGate models={models} onProgress={onProgress} onReady={onReady} />
+        <LoadGate
+          models={models}
+          onProgress={onProgress}
+          onReady={() => {
+            setReady(true);
+            onReady();
+          }}
+        />
+        {/* Sampled only once the room is in (loading stalls every frame), and
+            one way: a slow GPU drops to 1x once and the monitor goes away,
+            so the resolution never flips back and forth. */}
+        {ready && maxDpr > 1 && <PerformanceMonitor onDecline={() => setMaxDpr(1)} />}
       </ModelsContext.Provider>
     </Canvas>
   );
