@@ -275,7 +275,7 @@ export function ChangelogView({ releasesByLang, copyByLang, initialLang }: Props
         </div>
 
         <div className="jump-bar">
-          <h5>{copy.jumpTitle}</h5>
+          <h2>{copy.jumpTitle}</h2>
           <div className="jump-list">
             {releases.map(release => (
               <a key={release.version} href={`#v${release.version}`}>
