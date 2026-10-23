@@ -9,10 +9,12 @@
 @import './responsive.css';
 
 @theme {
-  --font-sans: 'Inter Tight', system-ui, sans-serif;
-  --font-display: 'Instrument Serif', 'Times New Roman', serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-kanji: 'Shippori Mincho', 'Noto Serif JP', serif;
+  /* The families come from the Fonts API (astro.config.mjs) via <Font />,
+     which also adds metric-matched fallbacks. */
+  --font-sans: var(--font-inter-tight, system-ui, sans-serif);
+  --font-display: var(--font-instrument-serif, 'Times New Roman', serif);
+  --font-mono: var(--font-jetbrains-mono, ui-monospace, monospace);
+  --font-kanji: var(--font-shippori-mincho, 'Noto Serif JP', serif);
 
   --bg: oklch(0.09 0.022 285);
   --bg-2: oklch(0.07 0.018 285);

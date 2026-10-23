@@ -1,4 +1,5 @@
 ---
+import { Font } from 'astro:assets';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -75,12 +76,12 @@ const orgJsonLd = {
 <link rel="canonical" href={canonicalURL} />
 <link rel="sitemap" href="/sitemap-index.xml" />
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Shippori+Mincho:wght@400;800&display=swap"
-  rel="stylesheet"
-/>
+{/* Preload only what the hero paints first: the Instrument Serif heading
+    (upright lead, italic accent) and the Inter Tight body, latin files only. */}
+<Font cssVariable="--font-instrument-serif" preload={[{ subset: 'latin' }]} />
+<Font cssVariable="--font-inter-tight" preload={[{ subset: 'latin' }]} />
+<Font cssVariable="--font-jetbrains-mono" />
+<Font cssVariable="--font-shippori-mincho" />
 
 <title>{title}</title>
 <meta name="description" content={description} />

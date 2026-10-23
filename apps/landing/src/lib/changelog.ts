@@ -115,6 +115,14 @@ export function kanjiForVersion(version: string): string {
   return KANJI_BY_VERSION[version] ?? '白';
 }
 
+// Every kanji the site sets in the mincho face: the release kanji, the
+// fallback and download watermark (白) and the changelog masthead (記録). The
+// font is subset to exactly these glyphs, so a new release kanji lands here
+// on its own.
+export const MINCHO_KANJI = [
+  ...new Set(['白', '記', '録', ...Object.values(KANJI_BY_VERSION)]),
+].join('');
+
 export type ReleaseKind = 'feature' | 'fix' | 'perf' | 'polish';
 
 export function kindOfRelease(release: ResolvedChangelogRelease): ReleaseKind {
