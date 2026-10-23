@@ -16,7 +16,11 @@ export default defineConfig({
   build: { inlineStylesheets: 'always' },
   // The listening room was previewed at /room before it became the homepage.
   redirects: { '/room': '/' },
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    // /changelog/pl/ is a fragment the changelog page fetches, not a page.
+    sitemap({ filter: page => !page.endsWith('/changelog/pl/') }),
+  ],
   // Self-hosted at build time under /_astro/fonts. Only the weights and styles
   // the CSS sets are fetched; anything heavier is synthesized, as it was with
   // the Google stylesheet.

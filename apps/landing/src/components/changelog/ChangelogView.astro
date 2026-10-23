@@ -1,0 +1,57 @@
+---
+import ChangelogEntries from './ChangelogEntries.astro';
+import { RELEASE_KINDS, type ChangelogCopy, type ChangelogRow } from './rows';
+
+interface Props {
+  rows: ChangelogRow[];
+  copy: ChangelogCopy;
+}
+
+// The filters and the release list, rendered in English. A small script
+// (changelog.ts) runs the chips and search and swaps in the Polish list.
+const { rows, copy } = Astro.props;
+const chips = (['all', ...RELEASE_KINDS] as const).map(kind => ({
+  kind,
+  n: kind === 'all' ? rows.length : rows.filter(row => row.kind === kind).length,
+}));
+---
+
+<div class="filters page" data-changelog-filters>
+  <div class="filter-group">
+    {
+      chips.map(chip => (
+        <button
+          type="button"
+          class={'filter-chip' + (chip.kind === 'all' ? ' active' : '')}
+          data-filter={chip.kind}
+        >
+          <span data-i18n={`changelog.filter.${chip.kind}`}>{copy.filters[chip.kind]}</span>
+          <span class="c">{chip.n}</span>
+        </button>
+      ))
+    }
+  </div>
+  <div class="filter-spacer"></div>
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m20 20-3.5-3.5" stroke-linecap="round"></path>
+    </svg>
+    <input
+      type="search"
+      placeholder={copy.searchPlaceholder}
+      aria-label={copy.searchPlaceholder}
+      data-i18n-aria-label="changelog.search.placeholder"
+      data-changelog-search
+    />
+  </div>
+</div>
+
+<main id="main" class="releases page" data-changelog-list>
+  <ChangelogEntries rows={rows} copy={copy} />
+</main>
+
+<script>
+  import { initChangelog } from './changelog';
+  document.addEventListener('astro:page-load', initChangelog);
+</script>

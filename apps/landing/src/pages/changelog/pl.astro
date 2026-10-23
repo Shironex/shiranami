@@ -1,0 +1,10 @@
+---
+import ChangelogEntries from '../../components/changelog/ChangelogEntries.astro';
+import { buildCopy, buildRows } from '../../components/changelog/rows';
+
+// Not a page: the Polish release list as a bare fragment, fetched by the
+// changelog script when the site language is Polish. Kept out of the sitemap
+// (astro.config.mjs) and sent with X-Robots-Tag: noindex (public/serve.json).
+---
+
+<ChangelogEntries rows={buildRows('pl')} copy={buildCopy('pl')} />

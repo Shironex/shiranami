@@ -1,0 +1,133 @@
+---
+import type { ChangelogCopy, ChangelogRow } from './rows';
+
+interface Props {
+  rows: ChangelogRow[];
+  copy: ChangelogCopy;
+}
+
+// The release list in one language: the contents of the changelog <main>.
+// The page renders it in English; /changelog/pl/ serves the same markup in
+// Polish for the script to swap in. data-hl marks text the search highlights.
+const { rows, copy } = Astro.props;
+---
+
+{
+  rows.map((release, index) => {
+    const isLatest = index === 0;
+    return (
+      <article
+        class={'release' + (isLatest ? ' is-latest' : '')}
+        id={`v${release.version}`}
+        data-kind={release.kind}
+      >
+        <div class="rl-gutter">
+          <div class={'kanji' + (isLatest ? ' is-latest' : '')} aria-hidden="true">
+            {release.kanji}
+          </div>
+          <div>
+            {copy.entryNumber} {String(index + 1).padStart(2, '0')}
+          </div>
+          <div class="ver">
+            <span class="dp" aria-hidden="true" /> v{release.version}
+          </div>
+        </div>
+
+        <div class="rl-body">
+          <h2 data-hl>{release.title}</h2>
+          <p class="lede" data-hl>{release.description}</p>
+
+          {release.categories.map((category, i) => (
+            <div class="cat">
+              <div class="cat-head">
+                <span class="cat-label">
+                  <span class="cn">{String.fromCharCode(65 + i)}</span>
+                  {category.label}
+                </span>
+                <span class="rule" />
+                <span class="count">
+                  {category.entries.length}{' '}
+                  {category.entries.length === 1 ? copy.itemsSingular : copy.itemsPlural}
+                </span>
+              </div>
+              <ul class="cat-list">
+                {category.entries.map((entry, j) => (
+                  <li>
+                    <span class="idx">{String(j + 1).padStart(2, '0')}</span>
+                    <span data-hl>{entry}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <aside class="rl-side">
+          <div class="rl-card">
+            <div class="rl-date">
+              <span class="weekday">{release.weekday}</span>
+              {release.date}
+            </div>
+            <hr />
+            <div class="row">
+              <span>{copy.rowVersion}</span>
+              <b style="color:var(--primary)">v{release.version}</b>
+            </div>
+            <div class="row">
+              <span>{copy.rowKind}</span>
+              <b>{release.kindLabel}</b>
+            </div>
+            <div class="row">
+              <span>{copy.rowEntries}</span>
+              <b>{release.entriesCount}</b>
+            </div>
+            <div class="row">
+              <span>{copy.rowSections}</span>
+              <b>{release.categories.length}</b>
+            </div>
+            <div class="chips">
+              {release.categories.map(c => (
+                <span class="chip">
+                  <span class="d" aria-hidden="true" />
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </article>
+    );
+  })
+}
+
+<template data-changelog-empty>
+  <div class="empty">
+    {copy.empty}
+    <br />
+    <span
+      style="font-size:14px;font-style:normal;font-family:var(--font-mono);color:var(--ink-mute);letter-spacing:0.18em;text-transform:uppercase;display:block;margin-top:12px"
+    >
+      {copy.emptyHint}
+    </span>
+  </div>
+</template>
+
+<div class="archive-end">
+  <div class="stamp">{copy.stamp}</div>
+  <div class="quiet">{copy.quietNote}</div>
+</div>
+
+<div class="jump-bar">
+  <h2>{copy.jumpTitle}</h2>
+  <div class="jump-list">
+    {
+      rows.map(release => (
+        <a href={`#v${release.version}`}>
+          <span class="jv">v{release.version}</span>
+          <span class="jt">{release.title}</span>
+          <span class="jd">{release.date}</span>
+        </a>
+      ))
+    }
+  </div>
+</div>

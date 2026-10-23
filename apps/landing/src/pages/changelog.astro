@@ -1,90 +1,18 @@
 ---
-import { ChangelogView, type ChangelogCopy, type ChangelogRow } from '../components/changelog/ChangelogView';
+import ChangelogView from '../components/changelog/ChangelogView.astro';
+import { buildCopy, buildRows } from '../components/changelog/rows';
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import {
-  changelog,
-  formatChangelogDate,
-  getLocalizedChangelog,
-  kanjiForVersion,
-  kindOfRelease,
-  weekdayLabel,
-  type ChangelogLanguage,
-  type ReleaseKind,
-} from '../lib/changelog';
-import { translations } from '../lib/i18n';
+import { formatChangelogDate } from '../lib/changelog';
 import '../styles/components/changelog.css';
 
-function buildRows(language: ChangelogLanguage): ChangelogRow[] {
-  const localized = getLocalizedChangelog(language);
-  const kindLabelMap: Record<ReleaseKind, string> = {
-    feature: translations[language]['changelog.kind.feature'],
-    fix: translations[language]['changelog.kind.fix'],
-    perf: translations[language]['changelog.kind.perf'],
-    polish: translations[language]['changelog.kind.polish'],
-  };
-  return localized.map((release, index) => {
-    const raw = changelog[index];
-    const kind = kindOfRelease(release);
-    return {
-      version: release.version,
-      rawDate: raw.date,
-      date: release.date,
-      weekday: weekdayLabel(raw.date, language),
-      kanji: kanjiForVersion(release.version),
-      title: release.title,
-      description: release.description,
-      kind,
-      kindLabel: kindLabelMap[kind],
-      categories: release.categories,
-      entriesCount: release.categories.reduce((acc, c) => acc + c.entries.length, 0),
-    };
-  });
-}
-
-const rowsByLang: Record<ChangelogLanguage, ChangelogRow[]> = {
-  en: buildRows('en'),
-  pl: buildRows('pl'),
-};
-const rows = rowsByLang.en;
+const rows = buildRows('en');
+const rowsPl = buildRows('pl');
 const latest = rows[0];
 const first = rows[rows.length - 1];
-const latestPl = rowsByLang.pl[0];
-const firstPl = rowsByLang.pl[rowsByLang.pl.length - 1];
-
-function buildCopy(language: ChangelogLanguage): ChangelogCopy {
-  const d = translations[language];
-  return {
-    filters: {
-      all: d['changelog.filter.all'],
-      feature: d['changelog.filter.feature'],
-      fix: d['changelog.filter.fix'],
-      perf: d['changelog.filter.perf'],
-      polish: d['changelog.filter.polish'],
-    },
-    searchPlaceholder: d['changelog.search.placeholder'],
-    entry: d['changelog.entry'],
-    entryNumber: d['changelog.entryNumber'],
-    itemsSingular: d['changelog.items.one'],
-    itemsPlural: d['changelog.items.many'],
-    empty: d['changelog.empty'],
-    emptyHint: d['changelog.empty.hint'],
-    latest: d['changelog.latest'],
-    rowVersion: d['changelog.row.version'],
-    rowKind: d['changelog.row.kind'],
-    rowEntries: d['changelog.row.entries'],
-    rowSections: d['changelog.row.sections'],
-    jumpTitle: d['changelog.jump.title'],
-    stamp: d['changelog.stamp'],
-    quietNote: d['changelog.quietNote'],
-  };
-}
-
-const copyByLang: Record<ChangelogLanguage, ChangelogCopy> = {
-  en: buildCopy('en'),
-  pl: buildCopy('pl'),
-};
+const latestPl = rowsPl[0];
+const firstPl = rowsPl[rowsPl.length - 1];
 
 const PRINTED_DATE_ISO = '2026-04-18';
 const printedDate = formatChangelogDate(PRINTED_DATE_ISO, 'en');
@@ -140,7 +68,7 @@ const printedDatePl = formatChangelogDate(PRINTED_DATE_ISO, 'pl');
     </div>
   </header>
 
-  <ChangelogView client:load releasesByLang={rowsByLang} copyByLang={copyByLang} initialLang="en" />
+  <ChangelogView rows={rows} copy={buildCopy('en')} />
 
   <Footer />
 </BaseLayout>
