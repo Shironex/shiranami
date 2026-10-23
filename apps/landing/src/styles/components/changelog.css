@@ -708,11 +708,12 @@
   }
 
   @media (max-width: 420px) {
-    /* The shared small-phone gutter (responsive.css) came after these rules
-       in the old single bundle and won over .masthead, .filters and
-       .releases; restate it here, where the pages layer would beat it. */
-    .page {
-      padding: 0 20px;
+    /* Take only the sides of the shared small-phone gutter (a padding
+       shorthand on .page), so these keep their own top and bottom padding. */
+    .masthead,
+    .filters,
+    .releases {
+      padding-inline: 20px;
     }
     .mh-center h1 {
       font-size: 44px;
