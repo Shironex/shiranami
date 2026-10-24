@@ -41,6 +41,10 @@
 
 Shiranami is a desktop music player for people who keep their music locally. Instead of pushing you toward a streaming catalog, it wraps around your own folders and files and adds a recommendation engine, an overview home screen, playlists, synced lyrics, internet radio, YouTube downloads, full playlist importing, crossfade, an equalizer, a compact mini player, audio visualizers, listening statistics, and Discord Rich Presence on top — all wrapped in a calm, themeable interface that stays out of your way.
 
+<p align="center">
+  <a href="https://shiranami.app"><img src="assets/showcase/room-flythrough.webp" alt="Flythrough of the Shiranami listening room website" width="100%" /></a>
+</p>
+
 ### Screenshots
 
 <table>

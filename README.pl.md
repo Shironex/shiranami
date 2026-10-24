@@ -41,6 +41,10 @@
 
 Shiranami to odtwarzacz muzyki dla osób, które trzymają swoją kolekcję lokalnie. Zamiast kierować Cię do katalogu streamingowego, korzysta bezpośrednio z Twoich folderów i plików, dodając rekomendacje, ekran główny Overview, playlisty, zsynchronizowane teksty, radio internetowe, pobieranie z YouTube, import całych playlist, crossfade, equalizer, kompaktowy mini odtwarzacz, wizualizery, statystyki słuchania i Discord Rich Presence — wszystko w spokojnym, konfigurowalnym interfejsie, który nie przeszkadza w słuchaniu.
 
+<p align="center">
+  <a href="https://shiranami.app"><img src="assets/showcase/room-flythrough.webp" alt="Przelot nad stroną Shiranami z pokojem do słuchania" width="100%" /></a>
+</p>
+
 ### Zrzuty ekranu
 
 <table>
