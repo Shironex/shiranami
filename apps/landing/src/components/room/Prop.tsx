@@ -9,7 +9,14 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
-import type { AnimationAction, Object3D, WebGLRenderer } from 'three';
+import {
+  type AnimationAction,
+  type Camera,
+  type Object3D,
+  type Scene,
+  type WebGLRenderer,
+  WebGLRenderTarget,
+} from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { shadeBaked } from './baked';
@@ -37,7 +44,38 @@ export type PropName =
   | 'stool'
   | 'plant'
   | 'books'
-  | 'mug';
+  | 'mug'
+  | CornerProp;
+
+/** The listening corner's props, left of the desk. They load after the room is in (LATE). */
+export type CornerProp =
+  | 'reading_armchair'
+  | 'side_table_with_mug'
+  | 'arc_floor_lamp'
+  | 'cassette_deck_cabinet'
+  | 'vinyl_crate'
+  | 'guitar_on_stand'
+  | 'monstera_plant'
+  | 'wall_record_shelf';
+
+/**
+ * Models fetched only once the room has shown: the loader does not wait for
+ * them, so they never hold back the first view. They stay hidden (no
+ * blockout) until their shaders are compiled, then appear.
+ */
+export const LATE: ReadonlySet<string> = new Set<CornerProp>([
+  'reading_armchair',
+  'side_table_with_mug',
+  'arc_floor_lamp',
+  'cassette_deck_cabinet',
+  'vinyl_crate',
+  'guitar_on_stand',
+  'monstera_plant',
+  'wall_record_shelf',
+]);
+
+/** True once the room has shown; late models start loading then. Filled by RoomCanvas. */
+export const RoomReadyContext = createContext(false);
 
 /** Called once the GLB is in the scene, with its copy and its clips by name. */
 export type OnModel = (model: Object3D, actions: Record<string, AnimationAction | null>) => void;
@@ -57,13 +95,18 @@ type PropProps = ThreeElements['group'] & {
  */
 export function Prop({ name, children, onModel, ...group }: PropProps) {
   const hasModel = useContext(ModelsContext).has(name);
+  const ready = useContext(RoomReadyContext);
+  const late = LATE.has(name);
   return (
     <group name={name} {...group}>
       {hasModel ? (
         <Fallback name={name} fallback={children}>
-          <Suspense fallback={children}>
-            <Glb name={name} onModel={onModel} />
-          </Suspense>
+          {/* A late model shows nothing while it loads: no blockout popping in after the room. */}
+          {(!late || ready) && (
+            <Suspense fallback={late ? null : children}>
+              <Glb name={name} onModel={onModel} late={late} />
+            </Suspense>
+          )}
         </Fallback>
       ) : (
         children
@@ -81,8 +124,10 @@ function ktx2Loader(gl: WebGLRenderer): KTX2Loader {
   return ktx2;
 }
 
-function Glb({ name, onModel }: { name: PropName; onModel?: OnModel }) {
+function Glb({ name, onModel, late }: { name: PropName; onModel?: OnModel; late: boolean }) {
   const gl = useThree(state => state.gl);
+  const camera = useThree(state => state.camera);
+  const room = useThree(state => state.scene);
   const url = `/room/models/${name}.glb`;
   // No Draco (meshopt instead), so nothing is fetched from a decoder CDN.
   // drei's GLTFLoader comes from three-stdlib, typed against its own KTX2Loader;
@@ -100,7 +145,42 @@ function Glb({ name, onModel }: { name: PropName; onModel?: OnModel }) {
   useLayoutEffect(() => {
     settledModels.add(name);
   }, [name]);
+  // The room is already on screen: build a late model's shaders in parallel
+  // first (KHR_parallel_shader_compile), so its first draw does not stall.
+  useLayoutEffect(() => {
+    if (!late) return;
+    let live = true;
+    const job = warm(gl, copy, camera, room);
+    copy.visible = false;
+    const show = () => {
+      if (live) copy.visible = true;
+    };
+    job.then(show, show);
+    return () => {
+      live = false;
+    };
+  }, [late, copy, gl, camera, room]);
   return <primitive object={copy} />;
+}
+
+/**
+ * Compiles a model's programs as the composer will draw them. The effect
+ * composer renders the scene into its own target, where three keys programs
+ * without tone mapping and in linear colour, so compile against a target too;
+ * against the screen the programs would not match and would build again.
+ */
+async function warm(gl: WebGLRenderer, model: Object3D, camera: Camera, scene: Scene) {
+  const target = new WebGLRenderTarget(1, 1);
+  const previous = gl.getRenderTarget();
+  gl.setRenderTarget(target);
+  // compile() runs now, before the first await, so the target is set while it does.
+  const job = gl.compileAsync(model, camera, scene);
+  gl.setRenderTarget(previous);
+  try {
+    await job;
+  } finally {
+    target.dispose();
+  }
 }
 
 /** Falls back to the blockout when a GLB fails to load or parse. */
