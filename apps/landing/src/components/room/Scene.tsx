@@ -10,6 +10,7 @@ import {
 } from 'three';
 import { Dust, Moonbeam, MoonPool } from './Atmosphere';
 import { bakedSurface } from './baked';
+import { Corner } from './Corner';
 import { BlobShadow, Books, Mug, Plant, Poster, StringLights } from './Dressing';
 import { GlassLyrics } from './Overlays';
 import {
@@ -115,6 +116,9 @@ export function RoomScene() {
       />
       <Shelf position={[1.97, 0, 0.3]} />
       <Plant position={[1.93, 1.55, 0.27]} rotation={[0, 0.4, 0]} />
+
+      {/* The listening corner fills the left of the room, in the hero and lyrics views. */}
+      <Corner />
 
       {/* Rug and the moonlight falling through the window onto the floor. */}
       <mesh position={[0, 0.01, 2.4]} material={mat.rug}>
