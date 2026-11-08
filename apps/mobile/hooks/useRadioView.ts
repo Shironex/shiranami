@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { RADIO_GENRES, useRadioStore } from '@/stores/useRadioStore';
 import type { RadioStation } from '@/lib/radio';
+import { radioPresets } from '@/lib/radio-view';
 
 const SEARCH_DELAY_MS = 400;
 
-export const RADIO_CHIPS = [{ value: 'favorites', label: 'Favorites' }, ...RADIO_GENRES] as const;
+export const RADIO_CHIPS = [{ value: 'favorites', label: 'Saved' }, ...RADIO_GENRES] as const;
 
 export type RadioItem =
   | { type: 'label'; key: string; text: string }
@@ -17,9 +18,9 @@ function stationItems(stations: RadioStation[], prefix: string): RadioItem[] {
 }
 
 /**
- * The Radio tab's rows: saved stations first, then the popular ones for the
- * chosen genre, or search results while there is a query. The Favorites chip
- * shows saved stations alone.
+ * The Radio tab's rows: the popular stations for the chosen genre, or search
+ * results while there is a query. Saved stations are the presets above the
+ * list; the Saved chip lists every one of them.
  */
 export function useRadioView() {
   const filter = useRadioStore(s => s.filter);
@@ -57,13 +58,9 @@ export function useRadioView() {
       return [...rows, ...stationItems(stations, 'r-')];
     }
 
-    const saved: RadioItem[] = favorites.length
-      ? [{ type: 'label', key: 'l-fav', text: 'Favorites' }, ...stationItems(favorites, 'f-')]
-      : [];
-
     if (filter === 'favorites') {
-      return saved.length
-        ? saved
+      return favorites.length
+        ? stationItems(favorites, 'f-')
         : [
             {
               type: 'empty',
@@ -74,28 +71,18 @@ export function useRadioView() {
           ];
     }
 
+    // Saved stations sit in the presets above the chips; the list is for browsing.
     const savedIds = new Set(favorites.map(f => f.id));
     const popular = stations.filter(s => !savedIds.has(s.id));
+    // A failed load shows as the inline notice above the chips, so no rows here.
+    if (error) return [];
     const genre = RADIO_GENRES.find(g => g.value === filter)?.label.toLowerCase() ?? filter;
-    const rows: RadioItem[] = [
-      ...saved,
-      { type: 'label', key: 'l-pop', text: `Popular for ${genre}` },
-    ];
+    const rows: RadioItem[] = [{ type: 'label', key: 'l-pop', text: `Popular for ${genre}` }];
     if (isLoading && popular.length === 0) return [...rows, { type: 'loading', key: 'loading' }];
-    if (error) {
-      return [
-        ...rows,
-        {
-          type: 'empty',
-          key: 'empty',
-          title: 'Stations did not load',
-          body: 'Check the connection and try again.',
-        },
-      ];
-    }
     return [...rows, ...stationItems(popular, 'p-')];
   }, [filter, query, stations, favorites, isLoading, error]);
 
   const favoriteIds = useMemo(() => new Set(favorites.map(f => f.id)), [favorites]);
-  return { items, favoriteIds };
+  const presets = useMemo(() => (query.trim() ? [] : radioPresets(favorites)), [query, favorites]);
+  return { items, favoriteIds, presets, favorites, error: query.trim() ? null : error, refresh };
 }
