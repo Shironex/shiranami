@@ -37,14 +37,14 @@ fn service(state: &AppState) -> CommandResult<&PhoneSync> {
         .ok_or_else(|| not_booted("phone sync"))
 }
 
-/// `sync:get-status` — listener, pairing window, waiting phones, transfers.
+/// `sync:get-status`: listener, pairing window, waiting phones, transfers.
 #[tauri::command]
 #[specta::specta]
 pub async fn sync_get_status(state: State<'_, AppState>) -> CommandResult<SyncStatus> {
     Ok(service(&state)?.status().await)
 }
 
-/// `sync:set-enabled` — start or stop the LAN listener and mDNS.
+/// `sync:set-enabled`: start or stop the LAN listener and mDNS.
 ///
 /// Not persisted: sync runs only while the user has it switched on in this
 /// session. A start failure (no private network interface, a bind error) is a
@@ -61,7 +61,7 @@ pub async fn sync_set_enabled(
         .map_err(bad_request)
 }
 
-/// `sync:start-pairing` — open a 5 minute pairing window and return the QR
+/// `sync:start-pairing`: open a 5 minute pairing window and return the QR
 /// payload. Starts the listener when it is off.
 #[tauri::command]
 #[specta::specta]
@@ -69,7 +69,7 @@ pub async fn sync_start_pairing(state: State<'_, AppState>) -> CommandResult<Syn
     service(&state)?.start_pairing().await.map_err(bad_request)
 }
 
-/// `sync:cancel-pairing` — close the window and deny anyone waiting.
+/// `sync:cancel-pairing`: close the window and deny anyone waiting.
 #[tauri::command]
 #[specta::specta]
 pub async fn sync_cancel_pairing(state: State<'_, AppState>) -> CommandResult<SyncStatus> {
@@ -80,7 +80,7 @@ pub async fn sync_cancel_pairing(state: State<'_, AppState>) -> CommandResult<Sy
     Ok(sync.status().await)
 }
 
-/// `sync:respond-pairing` — Allow or Deny a waiting phone. Resolves `false`
+/// `sync:respond-pairing`: Allow or Deny a waiting phone. Resolves `false`
 /// when the request is no longer waiting (it timed out or the phone left).
 #[tauri::command]
 #[specta::specta]
@@ -96,7 +96,7 @@ pub async fn sync_respond_pairing(
         .is_some_and(|server| server.respond_pairing(&request_id, allow)))
 }
 
-/// `sync:list-devices` — paired phones, without their secrets.
+/// `sync:list-devices`: paired phones, without their secrets.
 #[tauri::command]
 #[specta::specta]
 pub async fn sync_list_devices(state: State<'_, AppState>) -> CommandResult<Vec<SyncDevice>> {
@@ -104,7 +104,7 @@ pub async fn sync_list_devices(state: State<'_, AppState>) -> CommandResult<Vec<
     shiranami_sync::devices::list(&mut conn).await.wire()
 }
 
-/// `sync:revoke-device` — forget a phone. Its next request gets a 404. Works
+/// `sync:revoke-device`: forget a phone. Its next request gets a 404. Works
 /// while sync is off. Returns the remaining devices.
 #[tauri::command]
 #[specta::specta]

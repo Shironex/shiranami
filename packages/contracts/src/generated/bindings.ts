@@ -1366,10 +1366,10 @@ export const commands = {
 	storeSet: (key: RendererStoreKey, value: Json) => __TAURI_INVOKE<null>("store_set", { key, value }),
 	/**  `store:delete` — remove one renderer-visible key. */
 	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
-	/**  `sync:get-status` — listener, pairing window, waiting phones, transfers. */
+	/**  `sync:get-status`: listener, pairing window, waiting phones, transfers. */
 	syncGetStatus: () => __TAURI_INVOKE<SyncStatus>("sync_get_status"),
 	/**
-	 *  `sync:set-enabled` — start or stop the LAN listener and mDNS.
+	 *  `sync:set-enabled`: start or stop the LAN listener and mDNS.
 	 * 
 	 *  Not persisted: sync runs only while the user has it switched on in this
 	 *  session. A start failure (no private network interface, a bind error) is a
@@ -1377,21 +1377,21 @@ export const commands = {
 	 */
 	syncSetEnabled: (enabled: boolean) => __TAURI_INVOKE<SyncStatus>("sync_set_enabled", { enabled }),
 	/**
-	 *  `sync:start-pairing` — open a 5 minute pairing window and return the QR
+	 *  `sync:start-pairing`: open a 5 minute pairing window and return the QR
 	 *  payload. Starts the listener when it is off.
 	 */
 	syncStartPairing: () => __TAURI_INVOKE<SyncPairingTicket>("sync_start_pairing"),
-	/**  `sync:cancel-pairing` — close the window and deny anyone waiting. */
+	/**  `sync:cancel-pairing`: close the window and deny anyone waiting. */
 	syncCancelPairing: () => __TAURI_INVOKE<SyncStatus>("sync_cancel_pairing"),
 	/**
-	 *  `sync:respond-pairing` — Allow or Deny a waiting phone. Resolves `false`
+	 *  `sync:respond-pairing`: Allow or Deny a waiting phone. Resolves `false`
 	 *  when the request is no longer waiting (it timed out or the phone left).
 	 */
 	syncRespondPairing: (requestId: string, allow: boolean) => __TAURI_INVOKE<boolean>("sync_respond_pairing", { requestId, allow }),
-	/**  `sync:list-devices` — paired phones, without their secrets. */
+	/**  `sync:list-devices`: paired phones, without their secrets. */
 	syncListDevices: () => __TAURI_INVOKE<SyncDevice[]>("sync_list_devices"),
 	/**
-	 *  `sync:revoke-device` — forget a phone. Its next request gets a 404. Works
+	 *  `sync:revoke-device`: forget a phone. Its next request gets a 404. Works
 	 *  while sync is off. Returns the remaining devices.
 	 */
 	syncRevokeDevice: (deviceId: string) => __TAURI_INVOKE<SyncDevice[]>("sync_revoke_device", { deviceId }),

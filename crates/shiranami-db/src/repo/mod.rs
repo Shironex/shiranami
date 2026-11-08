@@ -76,6 +76,6 @@ pub mod youtube_mappings;
 // migration `0006`, with no v1 counterpart of any kind.
 pub mod companion;
 
-// LAN sync v0 (migration `0010`) — paired devices and the read-only snapshot a
+// LAN sync v0 (migration `0010`): paired devices and the read-only snapshot a
 // phone pulls. v2-born; see `docs/research/mobile-2026-11/lan-sync.md`.
 pub mod sync;
