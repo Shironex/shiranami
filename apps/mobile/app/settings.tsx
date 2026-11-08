@@ -8,6 +8,7 @@ import { ArtTile } from '@/components/art/ArtTile';
 import { ScanProgress } from '@/components/library/ScanProgress';
 import { Button } from '@/components/ui/button';
 import { AppUpdateRows } from '@/components/settings/AppUpdateRows';
+import { DesktopSyncRows } from '@/components/settings/DesktopSyncRows';
 import { SettingsRow, SettingsValue } from '@/components/settings/SettingsRow';
 import { ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
@@ -106,6 +107,9 @@ export default function SettingsScreen() {
             disabled={importing}
           />
         </SettingsRow>
+
+        <GroupLabel className="px-6 pt-8">Desktop</GroupLabel>
+        <DesktopSyncRows />
 
         <GroupLabel className="px-6 pt-8">Server</GroupLabel>
         <View className="px-6 pt-1">
