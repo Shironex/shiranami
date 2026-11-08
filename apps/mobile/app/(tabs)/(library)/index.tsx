@@ -1,7 +1,7 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import ArrowUpDown from 'lucide-react-native/icons/arrow-up-down';
 import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import Search from 'lucide-react-native/icons/search';
@@ -76,6 +76,12 @@ export default function LibraryScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const view = useLibraryView();
+  // The Favorites tile on Playlists opens here on the Favorites chip; `at` makes each tap count.
+  const { filter: openOn, at } = useLocalSearchParams<{ filter?: string; at?: string }>();
+  const { setFilter } = view;
+  useEffect(() => {
+    if (openOn === 'favorites') setFilter('favorites');
+  }, [openOn, at, setFilter]);
   const { importFiles, importing } = useLibraryActions();
   const scan = useLibraryScan();
   const { scrollY, onScroll } = useWindowScroll();
