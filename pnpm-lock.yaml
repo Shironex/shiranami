@@ -219,6 +219,12 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@expo-google-fonts/dm-sans':
+        specifier: 0.4.2
+        version: 0.4.2
+      '@expo-google-fonts/sora':
+        specifier: 0.4.2
+        version: 0.4.2
       '@rn-primitives/portal':
         specifier: ^1.5.3
         version: 1.5.3(@types/react@19.2.18)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(use-sync-external-store@1.7.0(react@19.2.3))
@@ -252,6 +258,9 @@ importers:
       expo-file-system:
         specifier: ~56.0.11
         version: 56.0.11(expo@56.0.24)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))
+      expo-font:
+        specifier: 56.0.7
+        version: 56.0.7(expo@56.0.24)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
       expo-haptics:
         specifier: ~56.0.3
         version: 56.0.3(expo@56.0.24)
@@ -328,6 +337,9 @@ importers:
       '@babel/plugin-transform-react-jsx':
         specifier: ^7.29.7
         version: 7.29.7(@babel/core@7.29.7)
+      '@expo-google-fonts/shippori-mincho':
+        specifier: 0.4.1
+        version: 0.4.1
       '@testing-library/react-native':
         specifier: ^14.1.0
         version: 14.1.0(jest@29.7.0(@types/node@22.20.5))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(test-renderer@1.2.0(@types/react@19.2.18)(react@19.2.3))
@@ -1985,8 +1997,17 @@ packages:
       '@noble/hashes':
         optional: true
 
+  '@expo-google-fonts/dm-sans@0.4.2':
+    resolution: {integrity: sha512-e/fLH5aCJzkEenz7axvEn8N7IJAKhUwNjIxS75h9j+Ip1M9S7d22M19gJN3A7QW4egVkBJRyQh1hQFhngQn9yA==}
+
   '@expo-google-fonts/material-symbols@0.4.52':
     resolution: {integrity: sha512-iC9GRpj7WV0GENbHTYPtJqGjyy/7yI3soG9SrKTY1ta19cbMZm2HA0nUdIK8d6OD9uv1BZHAh3Zn/UWV57IeWg==}
+
+  '@expo-google-fonts/shippori-mincho@0.4.1':
+    resolution: {integrity: sha512-+nyw31jQWKm8GJLU1kcDYBRJ9jIp/8H6R1RSipkXQMf3+GIKSR3l8zJxuyoeal2+EzFDgo/xFQceM24MItobyA==}
+
+  '@expo-google-fonts/sora@0.4.2':
+    resolution: {integrity: sha512-X86Kl1cfObcSUzTLIbtmrPCLRlIbCNh0uBOo8bjmXb8gWgVVhnI8CZJEK2btsdq85JPn5k4P6sbV9JLbAm7dqQ==}
 
   '@expo/cli@56.1.27':
     resolution: {integrity: sha512-uk1tWU9zEFVcZIjV4GR+uNrxxSyc16nB1lprGn/wL8qVQMMlhItsv8wzCgz+ldzSXcYlAYCsfrwJhhExE4FKbQ==}
@@ -13889,7 +13910,13 @@ snapshots:
     optionalDependencies:
       '@noble/hashes': 2.2.0
 
+  '@expo-google-fonts/dm-sans@0.4.2': {}
+
   '@expo-google-fonts/material-symbols@0.4.52': {}
+
+  '@expo-google-fonts/shippori-mincho@0.4.1': {}
+
+  '@expo-google-fonts/sora@0.4.2': {}
 
   '@expo/cli@56.1.27(@expo/dom-webview@56.0.6)(@expo/metro-runtime@56.0.21)(expo-constants@56.0.27)(expo-font@56.0.7)(expo-router@56.2.22)(expo@56.0.24)(react-dom@19.3.0(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@5.9.3)':
     dependencies:
@@ -16286,9 +16313,7 @@ snapshots:
       metro-runtime: 0.84.6
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
 
   '@react-native/normalize-colors@0.85.3': {}
 

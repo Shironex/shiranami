@@ -2,7 +2,8 @@ import '@/global.css';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NAV_THEME } from '@/lib/theme';
+import { NAV_THEME, colors } from '@/lib/theme';
+import { useAppFonts } from '@/lib/use-app-fonts';
 import { PortalHost } from '@rn-primitives/portal';
 import { SQLiteProvider } from 'expo-sqlite';
 import { Stack, ThemeProvider } from 'expo-router';
@@ -20,7 +21,7 @@ SplashScreen.preventAutoHideAsync();
 function LoadingFallback() {
   return (
     <View className="flex-1 items-center justify-center bg-background">
-      <ActivityIndicator size="large" color="hsl(265 50% 72%)" />
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }
@@ -35,6 +36,7 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const fontsReady = useAppFonts();
 
   useEffect(() => startPlaybackService(), []);
 
@@ -48,7 +50,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'hsl(265 25% 8%)' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Suspense fallback={<LoadingFallback />}>
         <SQLiteProvider databaseName="shiranami.db" onInit={migrateDbIfNeeded} useSuspense>
           <SettingsProvider>
@@ -66,7 +68,7 @@ export default function RootLayout() {
                 />
               </Stack>
               <PortalHost />
-              <ReadySignal onReady={handleAppReady} />
+              {fontsReady && <ReadySignal onReady={handleAppReady} />}
             </ThemeProvider>
           </SettingsProvider>
         </SQLiteProvider>

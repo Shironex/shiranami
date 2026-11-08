@@ -38,6 +38,19 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/dm-sans/600SemiBold/DMSans_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/sora/500Medium/Sora_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf",
+            "./assets/fonts/ShipporiMincho_700Bold.ttf"
+          ]
+        }
+      ],
       "expo-sqlite",
       [
         "expo-audio",
