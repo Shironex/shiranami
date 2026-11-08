@@ -7,7 +7,7 @@
 //! [`start`] when the user turns sync on and [`SyncServer::shutdown`] when they
 //! turn it off or quit.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -165,10 +165,47 @@ pub(crate) struct Shared {
     pub(crate) transfers: Mutex<HashMap<u64, SyncTransfer>>,
     pub(crate) next_transfer: AtomicU64,
     pub(crate) touched: Mutex<HashMap<String, Instant>>,
-    /// Per device, a child of [`Shared::shutdown`] every audio stream of that
-    /// device ends on. Fired when the device is revoked.
-    pub(crate) device_streams: Mutex<HashMap<String, CancellationToken>>,
+    /// The tokens audio streams end on, per device. Fired when the device is
+    /// revoked.
+    pub(crate) device_streams: Mutex<DeviceStreams>,
     pub(crate) shutdown: CancellationToken,
+}
+
+/// Per device, a child of the shutdown token that every audio stream of that
+/// device ends on, plus the devices revoked while the listener runs.
+///
+/// Remembering revoked ids closes a race: a request authenticated just before
+/// the revoke could otherwise ask for its token just after it, get a fresh
+/// one and stream the whole file. Device ids are random and never reused, so
+/// the set only grows by one id per revoke.
+#[derive(Default)]
+pub(crate) struct DeviceStreams {
+    tokens: HashMap<String, CancellationToken>,
+    revoked: HashSet<String>,
+}
+
+impl DeviceStreams {
+    /// The token `device_id`'s streams stop on: already cancelled for a
+    /// revoked device.
+    fn token(&mut self, device_id: &str, shutdown: &CancellationToken) -> CancellationToken {
+        if self.revoked.contains(device_id) {
+            let token = CancellationToken::new();
+            token.cancel();
+            return token;
+        }
+        self.tokens
+            .entry(device_id.to_owned())
+            .or_insert_with(|| shutdown.child_token())
+            .clone()
+    }
+
+    /// End `device_id`'s open streams and refuse it a token from now on.
+    fn revoke(&mut self, device_id: &str) {
+        self.revoked.insert(device_id.to_owned());
+        if let Some(token) = self.tokens.remove(device_id) {
+            token.cancel();
+        }
+    }
 }
 
 impl Shared {
@@ -178,10 +215,7 @@ impl Shared {
 
     /// The token `device_id`'s streams stop on: revoking it or shutting down.
     pub(crate) fn stream_token(&self, device_id: &str) -> CancellationToken {
-        lock_or_recover(&self.device_streams)
-            .entry(device_id.to_owned())
-            .or_insert_with(|| self.shutdown.child_token())
-            .clone()
+        lock_or_recover(&self.device_streams).token(device_id, &self.shutdown)
     }
 
     /// Forget everything held in memory for a revoked device and end its open
@@ -189,10 +223,7 @@ impl Shared {
     pub(crate) fn forget_device(&self, device_id: &str) {
         self.nonces.forget(device_id);
         lock_or_recover(&self.touched).remove(device_id);
-        let token = lock_or_recover(&self.device_streams).remove(device_id);
-        if let Some(token) = token {
-            token.cancel();
-        }
+        lock_or_recover(&self.device_streams).revoke(device_id);
     }
 
     pub(crate) fn hosts(&self) -> Vec<String> {
@@ -343,7 +374,7 @@ pub async fn start(config: SyncConfig) -> Result<SyncServer, StartError> {
         transfers: Mutex::new(HashMap::new()),
         next_transfer: AtomicU64::new(1),
         touched: Mutex::new(HashMap::new()),
-        device_streams: Mutex::new(HashMap::new()),
+        device_streams: Mutex::new(DeviceStreams::default()),
         shutdown: CancellationToken::new(),
     });
 
@@ -473,5 +504,34 @@ impl SyncServer {
 fn deny_all(shared: &Shared) {
     for pending in lock_or_recover(&shared.pending).values_mut() {
         pending.responder.take();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn revoking_ends_open_streams_and_any_asked_for_later() {
+        let shutdown = CancellationToken::new();
+        let mut streams = DeviceStreams::default();
+        let open = streams.token("phone", &shutdown);
+        let other = streams.token("tablet", &shutdown);
+
+        streams.revoke("phone");
+        assert!(open.is_cancelled());
+        // A request authenticated before the revoke, asking only now.
+        assert!(streams.token("phone", &shutdown).is_cancelled());
+        assert!(!other.is_cancelled());
+        assert!(!streams.token("tablet", &shutdown).is_cancelled());
+    }
+
+    #[test]
+    fn shutting_down_ends_every_stream() {
+        let shutdown = CancellationToken::new();
+        let mut streams = DeviceStreams::default();
+        let open = streams.token("phone", &shutdown);
+        shutdown.cancel();
+        assert!(open.is_cancelled());
     }
 }
