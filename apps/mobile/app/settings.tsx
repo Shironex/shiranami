@@ -6,6 +6,8 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import { ArtTile } from '@/components/art/ArtTile';
+import { ScanProgress } from '@/components/library/ScanProgress';
+import { Button } from '@/components/ui/button';
 import { ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
 import { GroupLabel } from '@/components/ui/list-row';
@@ -13,7 +15,11 @@ import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { useSettingsContext } from '@/context/SettingsContext';
+import { useLibraryActions } from '@/hooks/useLibraryActions';
+import { useLibraryScan } from '@/hooks/useLibraryScan';
 import type { PlaceholderArt } from '@/hooks/useSettings';
+import { describeScan } from '@/lib/library-scan';
+import { permissionNote } from '@/lib/media-permission';
 import { colors } from '@/lib/theme';
 import { useAppStore } from '@/stores/useAppStore';
 
@@ -48,6 +54,12 @@ export default function SettingsScreen() {
   const { scrollY, onScroll } = useWindowScroll();
   const topInset = useWindowInset();
   const version = Constants.expoConfig?.version ?? '0.1.0';
+  const scan = useLibraryScan();
+  const { importFiles, importing } = useLibraryActions();
+  const scanHint =
+    permissionNote(scan.permission) ??
+    scan.error ??
+    (scan.last ? describeScan(scan.last) : 'Adds new songs, updates changed ones');
 
   return (
     <View className="flex-1 bg-background">
@@ -78,6 +90,37 @@ export default function SettingsScreen() {
             ))}
           </View>
         </View>
+
+        <GroupLabel className="px-6 pt-8">Library</GroupLabel>
+        <Row label="Scan music on this phone" hint={scan.running ? undefined : scanHint}>
+          {!scan.running && (
+            <Button
+              label={
+                scan.permission === 'blocked' ? 'Open settings' : scan.last ? 'Rescan' : 'Scan'
+              }
+              variant="tonal"
+              size="compact"
+              onPress={scan.permission === 'blocked' ? scan.openSettings : scan.scan}
+            />
+          )}
+        </Row>
+        {scan.running && (
+          <ScanProgress
+            done={scan.done}
+            total={scan.total}
+            onCancel={scan.cancel}
+            className="px-6 pb-2"
+          />
+        )}
+        <Row label="Import files" hint="Songs already in the library are skipped">
+          <Button
+            label={importing ? 'Importing' : 'Import'}
+            variant="tonal"
+            size="compact"
+            onPress={importFiles}
+            disabled={importing}
+          />
+        </Row>
 
         <GroupLabel className="px-6 pt-8">Server</GroupLabel>
         <View className="px-6 pt-1">

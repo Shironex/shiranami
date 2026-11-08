@@ -10,6 +10,7 @@ import X from 'lucide-react-native/icons/x';
 import { ArtTile } from '@/components/art/ArtTile';
 import { FirstRun } from '@/components/library/FirstRun';
 import { PlayShuffleRow } from '@/components/library/PlayShuffleRow';
+import { ScanProgress } from '@/components/library/ScanProgress';
 import { TrackRow } from '@/components/library/TrackRow';
 import { Avatar } from '@/components/ui/avatar';
 import { ChipRow } from '@/components/ui/chip';
@@ -20,6 +21,7 @@ import { SearchField } from '@/components/ui/search-field';
 import { Text } from '@/components/ui/text';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
+import { useLibraryScan } from '@/hooks/useLibraryScan';
 import {
   LIBRARY_FILTERS,
   SORT_LABELS,
@@ -50,6 +52,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const view = useLibraryView();
   const { importFiles, importing } = useLibraryActions();
+  const scan = useLibraryScan();
   const { scrollY, onScroll } = useWindowScroll();
   const topInset = useWindowInset();
   const [searching, setSearching] = useState(false);
@@ -103,6 +106,9 @@ export default function LibraryScreen() {
 
   const header = (
     <View className="px-3 pb-1">
+      {scan.running && (
+        <ScanProgress done={scan.done} total={scan.total} onCancel={scan.cancel} className="mt-2" />
+      )}
       <ChipRow
         options={LIBRARY_FILTERS}
         value={view.filter}
