@@ -21,5 +21,6 @@ mod pair;
 mod shared;
 
 pub(crate) use shared::{
-    artwork_hash, authenticate, cursor, is_art_hash, json, limit, make_cursor, router,
+    MAX_BODY_BYTES, artwork_hash, authenticate, cursor, is_art_hash, json, limit, make_cursor,
+    router,
 };
