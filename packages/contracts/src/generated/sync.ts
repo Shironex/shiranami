@@ -142,6 +142,13 @@ export type PairResponse = {
 	 *  base64url without padding.
 	 */
 	publicKey: string,
+	/**
+	 *  Base64url HMAC-SHA256, under the QR secret, over the lines
+	 *  `shiranami-sync/v2/pair-response`, `deviceId`, the phone's public key
+	 *  and `publicKey`, joined by `\n`. The phone checks it before deriving
+	 *  the device secret, so a key swapped in on the way back is caught.
+	 */
+	keyProof: string,
 	/**  Stable id of this desktop install. */
 	desktopId: string,
 	/**  The desktop's display name. */

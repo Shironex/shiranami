@@ -13,7 +13,10 @@ use tokio::sync::oneshot;
 
 use x25519_dalek::{EphemeralSecret, PublicKey};
 
-use crate::auth::{b64, device_secret, hmac_verify, pair_proof_message, parse_public_key, unb64};
+use crate::auth::{
+    b64, device_secret, hmac_verify, pair_proof_message, pair_response_proof, parse_public_key,
+    unb64,
+};
 use crate::error::SyncError;
 use crate::pairing::{APPROVAL_TIMEOUT, MAX_PAIR_FAILURES};
 use crate::routes::json;
@@ -150,6 +153,12 @@ pub(super) async fn pair(
     Ok(json(
         StatusCode::OK,
         &PairResponse {
+            key_proof: pair_response_proof(
+                &pairing_secret,
+                &device_id,
+                &request.public_key,
+                &desktop_public,
+            ),
             device_id,
             public_key: desktop_public,
             desktop_id: shared.desktop_id.clone(),

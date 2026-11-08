@@ -86,6 +86,11 @@ pub struct PairResponse {
     /// The desktop's ephemeral X25519 public key for this pairing, 32 bytes
     /// base64url without padding.
     pub public_key: String,
+    /// Base64url HMAC-SHA256, under the QR secret, over the lines
+    /// `shiranami-sync/v2/pair-response`, `deviceId`, the phone's public key
+    /// and `publicKey`, joined by `\n`. The phone checks it before deriving
+    /// the device secret, so a key swapped in on the way back is caught.
+    pub key_proof: String,
     /// Stable id of this desktop install.
     pub desktop_id: String,
     /// The desktop's display name.

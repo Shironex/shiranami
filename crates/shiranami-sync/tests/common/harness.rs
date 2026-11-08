@@ -16,8 +16,8 @@ use std::time::Duration;
 use shiranami_core::paths::FoldersCache;
 use shiranami_core::paths::authority::{PathAuthority, PathAuthorityResult};
 use shiranami_sync::auth::{
-    NonceCache, authorization_header, b64, device_secret, pair_proof, parse_public_key,
-    random_bytes, unb64,
+    NonceCache, authorization_header, b64, device_secret, hmac_verify, pair_proof,
+    pair_response_message, parse_public_key, random_bytes, unb64,
 };
 use shiranami_sync::wire::PairResponse;
 use shiranami_sync::{BindPolicy, PairingLink, SyncConfig, SyncServer};
@@ -264,6 +264,15 @@ impl Phone {
             return Err(reply);
         }
         let paired: PairResponse = serde_json::from_slice(&reply.body).unwrap();
+        // Before trusting the desktop key: it must come with a proof only the
+        // desktop that showed the QR can make.
+        let pairing_key = unb64(&parsed.secret).expect("k is base64url");
+        let proof = unb64(&paired.key_proof).expect("the key proof is base64url");
+        let message = pair_response_message(&paired.device_id, &public, &paired.public_key);
+        assert!(
+            hmac_verify(&pairing_key, message.as_bytes(), &proof),
+            "the desktop proves its public key"
+        );
         let desktop_key = parse_public_key(&paired.public_key).expect("a 32 byte key");
         let shared = key.diffie_hellman(&PublicKey::from(desktop_key));
         Ok(Self {

@@ -63,9 +63,18 @@ is a `400`.
 
 The desktop shows an Allow / Deny prompt (the request is held up to 120 s). On Allow it makes its own
 ephemeral key pair and answers
-`PairResponse { deviceId, publicKey, desktopId, desktopName, libraryId, protocolVersion, serverTime }`,
-`publicKey` being the desktop's, and closes the window, so one QR pairs one phone. Both sides then derive
-the device secret; it never crosses the wire:
+`PairResponse { deviceId, publicKey, keyProof, desktopId, desktopName, libraryId, protocolVersion,
+serverTime }`, `publicKey` being the desktop's, and closes the window, so one QR pairs one phone.
+`keyProof` authenticates the desktop key:
+
+```
+keyProof = base64url(HMAC-SHA256(k, "shiranami-sync/v2/pair-response\n" + deviceId
+                                    + "\n" + phonePublicKey + "\n" + desktopPublicKey))
+```
+
+The phone checks it (`verifyPairResponse` in `@shiranami/contracts/sync`) and refuses the pairing when
+it does not match, so someone who answers in the desktop's place with their own key, but never saw the
+QR, is caught. Both sides then derive the device secret; it never crosses the wire:
 
 ```
 shared       = X25519(own private key, other side's public key)
@@ -167,7 +176,8 @@ messages to HMAC, from `@shiranami/contracts/sync`, a subpath with no Tauri impo
   still cannot compute the device secret, because it is keyed by an X25519 shared secret that needs one of
   the two ephemeral private keys. Someone who has the QR and can actively intercept the phone's request
   before it reaches the desktop could pair in its place; the Allow / Deny prompt (with the phone's name)
-  and the one-phone-per-QR window are the defence there, and TLS pinning in v1 closes it.
+  and the one-phone-per-QR window are the defence there, and TLS pinning in v1 closes it. An active
+  attacker without the QR cannot substitute the desktop's key either: `keyProof` needs `k`.
 - Revoking a device (from the desktop, or `DELETE /v1/sync/devices/self`) deletes its row, so its next
   request is a 404, and ends any audio stream it has open mid-file.
 - `db:backup:export` deletes `sync_peers` rows from the exported copy with `secure_delete` on and then

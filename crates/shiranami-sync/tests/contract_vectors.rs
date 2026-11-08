@@ -20,6 +20,7 @@ const PHONE_PUBLIC: &str = "hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo";
 const DESKTOP_PUBLIC: &str = "3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08";
 const SHARED: &str = "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742";
 const PROOF: &str = "viAAzEqSCV0va7LtCeoa647zZcs-C0cc5pbIDSF4fSs";
+const KEY_PROOF: &str = "VdwbK1YiGfGj8J9oGYM1h15ys2YBY4qNODzpvlb6Nno";
 const DEVICE_SECRET: &str = "R_T6TkxtTqk6KHHqxANdfbYs5MLiuZIJZvjiCB_Y8ew";
 const SIGNATURE: &str = "qNUAzd9-_dlTBPKaWs2NP3q9LXVmauiBLGeZGzOSGkY";
 
@@ -44,12 +45,16 @@ fn the_x25519_exchange_matches_rfc_7748_and_the_shared_vector() {
 }
 
 #[test]
-fn the_pairing_proof_and_device_secret_match_the_shared_vector() {
+fn the_pairing_proofs_and_device_secret_match_the_shared_vector() {
     let k = auth::unb64(SECRET).unwrap();
     assert_eq!(k, (0u8..32).collect::<Vec<_>>());
     assert_eq!(
         auth::pair_proof(&k, "nonce-0001", "Pixel 9", "android", PHONE_PUBLIC),
         PROOF
+    );
+    assert_eq!(
+        auth::pair_response_proof(&k, "dev-0001", PHONE_PUBLIC, DESKTOP_PUBLIC),
+        KEY_PROOF
     );
     let derived = auth::device_secret(
         &unhex(SHARED),
@@ -104,6 +109,10 @@ fn the_typescript_mirror_carries_the_rust_constants() {
         format!("SYNC_AUTH_SCHEME = '{}';", auth::AUTH_SCHEME),
         format!("SYNC_MAX_SKEW_SECONDS = {};", auth::MAX_SKEW_SECS),
         format!("SYNC_PAIR_PROOF_CONTEXT = '{}';", auth::PAIR_PROOF_CONTEXT),
+        format!(
+            "SYNC_PAIR_RESPONSE_CONTEXT = '{}';",
+            auth::PAIR_RESPONSE_CONTEXT
+        ),
         format!(
             "SYNC_DEVICE_SECRET_CONTEXT = '{}';",
             auth::DEVICE_SECRET_CONTEXT

@@ -39,6 +39,9 @@ pub const MAX_SKEW_SECS: i64 = 120;
 /// Domain separator for the pairing proof.
 pub const PAIR_PROOF_CONTEXT: &str = "shiranami-sync/v2/pair";
 
+/// Domain separator for the desktop's proof over its pairing response.
+pub const PAIR_RESPONSE_CONTEXT: &str = "shiranami-sync/v2/pair-response";
+
 /// Domain separator for the device secret derivation.
 pub const DEVICE_SECRET_CONTEXT: &str = "shiranami-sync/v2/device-secret";
 
@@ -107,6 +110,30 @@ pub fn pair_proof(
     phone_public_key: &str,
 ) -> String {
     let message = pair_proof_message(nonce, device_name, platform, phone_public_key);
+    b64(&hmac_sha256(pairing_secret, message.as_bytes()))
+}
+
+/// What the desktop's key proof covers: the context, the device id it minted
+/// and both public keys.
+pub fn pair_response_message(
+    device_id: &str,
+    phone_public_key: &str,
+    desktop_public_key: &str,
+) -> String {
+    format!("{PAIR_RESPONSE_CONTEXT}\n{device_id}\n{phone_public_key}\n{desktop_public_key}")
+}
+
+/// `PairResponse.keyProof`: base64url HMAC, under the QR secret, over
+/// [`pair_response_message`]. Only someone who saw the QR can compute it, so
+/// the phone knows the desktop public key came from the desktop it scanned
+/// and not from someone answering in its place.
+pub fn pair_response_proof(
+    pairing_secret: &[u8],
+    device_id: &str,
+    phone_public_key: &str,
+    desktop_public_key: &str,
+) -> String {
+    let message = pair_response_message(device_id, phone_public_key, desktop_public_key);
     b64(&hmac_sha256(pairing_secret, message.as_bytes()))
 }
 
