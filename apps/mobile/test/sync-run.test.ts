@@ -88,7 +88,7 @@ const HELLO: SyncHello = {
 };
 
 /** A desktop on 192.168.1.20 with three songs, one of which the phone already has. */
-function fakeDesktop() {
+function fakeDesktop(manifest?: ManifestTrack[]) {
   const paths: string[] = [];
   const fetchImpl: SyncFetch = async (url, init) => {
     if (!url.startsWith('http://192.168.1.20:53111')) throw new TypeError('unreachable');
@@ -97,6 +97,15 @@ function fakeDesktop() {
     expect(init.headers.Authorization).toMatch(/^SNM1 dev=dev-0001,ts=\d+,n=[\w-]{22},sig=/);
     paths.push(path.split('?')[0]);
     if (path === '/v1/sync/hello') return json(HELLO);
+    if (path.startsWith('/v1/sync/manifest') && manifest) {
+      return json({
+        libraryId: 'lib-1',
+        trackCount: manifest.length,
+        tracks: manifest,
+        nextCursor: null,
+        hasMore: false,
+      });
+    }
     if (path.startsWith('/v1/sync/manifest')) {
       const second = path.includes('cursor=page2');
       return json({
@@ -154,7 +163,7 @@ function memoryFiles() {
   return { written, partialFile };
 }
 
-async function setup() {
+async function setup(manifest?: ManifestTrack[]) {
   const db = openTestDb();
   await migrateDbIfNeeded(db);
   await db.runAsync(
@@ -162,12 +171,11 @@ async function setup() {
   );
   const files = memoryFiles();
   const saved: DesktopPeer[] = [];
-  const desktop = fakeDesktop();
+  const desktop = fakeDesktop(manifest);
   const deps: SyncDeps = {
     fetch: desktop.fetchImpl,
     lock: withLibraryLock,
     partialFile: files.partialFile,
-    audioFileName: id => `${id}.flac`,
     saveArt: async (_client, hash) => `file:///art/${hash}.jpg`,
     savePeer: async peer => void saved.push(peer),
     now: () => 1762600000_000,
@@ -197,7 +205,7 @@ describe('runSync', () => {
     // Favorites and playlists were requested before any audio.
     const firstAudio = desktop.paths.findIndex(path => path.endsWith('/audio'));
     expect(desktop.paths.indexOf('/v1/sync/playlists')).toBeLessThan(firstAudio);
-    expect([...files.written.keys()]).toEqual(['d1.flac', 'd2.flac']);
+    expect([...files.written.keys()]).toEqual(['desktop-d1.flac', 'desktop-d2.flac']);
 
     const library = await loadLibrary(db);
     expect(library.map(t => t.id).sort()).toEqual(['d1', 'd2', 'p1']);
@@ -217,6 +225,18 @@ describe('runSync', () => {
         lastSyncAt: '2025-11-08T11:06:40.000Z',
       },
     ]);
+  });
+
+  it('downloads two desktop tracks with the same audio into separate files', async () => {
+    const { db, deps, files } = await setup([
+      track('d1', { contentHash: 'a1:dup' }),
+      track('d2', { contentHash: 'a1:dup' }),
+    ]);
+    const summary = await runSync(db, PEER, DEVICE_SECRET, deps);
+    expect(summary).toMatchObject({ downloaded: 2, failed: 0 });
+    expect([...files.written.keys()]).toEqual(['desktop-d1.flac', 'desktop-d2.flac']);
+    const ids = (await loadLibrary(db)).map(t => t.id).sort();
+    expect(ids).toEqual(['d1', 'd2', 'p1']);
   });
 
   it('downloads nothing the second time', async () => {

@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import type { HistoryEntry, ManifestTrack, SyncPlaylist } from '@shiranami/contracts/sync';
+import { hashString } from '@/lib/hash';
 import { randomUUID } from '@/lib/utils';
 
 /**
@@ -147,6 +148,20 @@ export async function applyManifest(
     }
   });
   return plan;
+}
+
+/**
+ * The file a synced track's audio is saved as, in the tracks folder. Named
+ * after the desktop track, not the content hash: the desktop can hold two
+ * tracks with the same audio, each gets its own row here, and `file_path` is
+ * unique.
+ */
+export function audioFileName(desktopId: string, format: string | null): string {
+  const ext = /^[a-z0-9]{1,5}$/i.test(format ?? '') ? (format as string).toLowerCase() : 'mp3';
+  const id = /^[A-Za-z0-9_-]{1,80}$/.test(desktopId)
+    ? desktopId
+    : `x${hashString(desktopId).toString(16)}`;
+  return `desktop-${id}.${ext}`;
 }
 
 /** The `file_path` of a desktop row whose audio has not arrived yet. */

@@ -10,6 +10,7 @@ import { downloadAudio, type PartialFile } from '@/lib/sync-download';
 import {
   applyArtwork,
   applyManifest,
+  audioFileName,
   completeDownload,
   loadDesktopIds,
   mergeFavorites,
@@ -58,7 +59,6 @@ export interface SyncDeps {
   /** The library lock (lib/library-scan.ts `withLibraryLock`). */
   lock: <T>(job: () => Promise<T>) => Promise<T>;
   partialFile: (name: string) => PartialFile;
-  audioFileName: (desktopId: string, contentHash: string | null, format: string | null) => string;
   /** Saves the cover for `hash` (fetching it with `client` if it is not there). Returns its uri. */
   saveArt: (client: SyncClient, hash: string, signal?: AbortSignal) => Promise<string>;
   /** Saves the peer after a run: the host that answered first, the clock skew, the time. */
@@ -198,7 +198,7 @@ export async function runSync(
     for (const job of downloads) {
       checkCancel();
       const { track } = job;
-      const name = deps.audioFileName(track.id, track.contentHash, track.format);
+      const name = audioFileName(track.id, track.format);
       const path = SYNC_ROUTES.audio(track.id);
       let counted = 0;
       try {

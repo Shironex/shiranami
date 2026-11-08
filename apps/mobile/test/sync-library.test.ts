@@ -6,6 +6,7 @@ import { loadPlaylists } from '@/lib/playlists';
 import {
   applyArtwork,
   applyManifest,
+  audioFileName,
   completeDownload,
   loadDesktopIds,
   mergeFavorites,
@@ -235,6 +236,13 @@ describe('applyManifest and the merges', () => {
       'SELECT album_art FROM tracks ORDER BY id'
     );
     expect(art.map(a => a.album_art)).toEqual(['file:///art/h.jpg', 'file:///art/own.jpg']);
+  });
+
+  it('names audio files after the desktop track, so equal audio never shares a path', () => {
+    expect(audioFileName('d1', 'flac')).toBe('desktop-d1.flac');
+    expect(audioFileName('d2', 'FLAC')).toBe('desktop-d2.flac');
+    expect(audioFileName('d3', null)).toBe('desktop-d3.mp3');
+    expect(audioFileName('../x', 'mp3')).toMatch(/^desktop-x[0-9a-f]+\.mp3$/);
   });
 
   it('uses a placeholder path a scan never matches', () => {

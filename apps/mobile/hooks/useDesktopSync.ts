@@ -3,7 +3,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { loadLibrary } from '@/lib/library';
 import { withLibraryLock } from '@/lib/library-scan';
 import { SyncClient, asSyncError, findHost } from '@/lib/sync-client';
-import { audioFileName, partialFile, saveArt, secureSecrets, syncFetch } from '@/lib/sync-files';
+import { partialFile, saveArt, secureSecrets, syncFetch } from '@/lib/sync-files';
 import { forgetPeer, loadPeer, savePeerDetails } from '@/lib/sync-peer';
 import { runSync } from '@/lib/sync-run';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -66,7 +66,6 @@ export function useDesktopSync() {
           fetch: syncFetch,
           lock: withLibraryLock,
           partialFile,
-          audioFileName,
           saveArt,
           savePeer: async next => {
             await savePeerDetails(db, next);

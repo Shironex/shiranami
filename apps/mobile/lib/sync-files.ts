@@ -46,18 +46,6 @@ export async function saveArt(
   return file.uri;
 }
 
-/** The file name a synced track's audio gets: its content hash, like an import. */
-export function audioFileName(
-  desktopId: string,
-  contentHash: string | null,
-  format: string | null
-): string {
-  const ext = /^[a-z0-9]{1,5}$/i.test(format ?? '') ? (format as string).toLowerCase() : 'mp3';
-  const hex = contentHash?.slice(contentHash.indexOf(':') + 1).replace(/[^A-Za-z0-9]/g, '');
-  const base = hex || `desktop-${desktopId.replace(/[^A-Za-z0-9_-]/g, '')}`;
-  return `${base}.${ext}`;
-}
-
 /** A `.part` file in the tracks folder, appended through one open handle. */
 export function partialFile(name: string): PartialFile {
   const dir = tracksDir();
