@@ -15,6 +15,8 @@ export interface Track {
   playCount?: number;
   /** A live stream (internet radio): no duration and no seeking. */
   isLive?: boolean;
+  /** When the file was imported, as SQLite `datetime('now')` text. */
+  addedAt?: string;
 }
 
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -30,6 +32,8 @@ export interface PlayerTransport {
   pause: () => void;
   seekTo: (seconds: number) => void;
   stop: () => void;
+  /** Output level, 0 to 1 (user volume times the sleep fade). */
+  setVolume: (level: number) => void;
 }
 
 /** Player state as the audio engine reports it. */
@@ -59,6 +63,12 @@ interface PlayerState {
   repeatMode: RepeatMode;
   isLoading: boolean;
   error: string | null;
+  /** Where the queue came from, for "Playing from Library". */
+  queueSource: string;
+  /** Sleep timer fade, multiplied into the output level. 1 means no fade. */
+  fade: number;
+  /** Pause when the current track ends instead of moving on (sleep timer). */
+  stopAfterCurrent: boolean;
 }
 
 interface PlayerActions {
@@ -69,19 +79,29 @@ interface PlayerActions {
   next: () => void;
   previous: () => void;
   seek: (time: number) => void;
+  /** Seeks relative to the current position, clamped to the start and the duration. */
+  seekBy: (seconds: number) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   setLibrary: (tracks: Track[]) => void;
   addToLibrary: (tracks: Track[]) => void;
   removeFromLibrary: (trackIds: string[]) => void;
   /** Plays `tracks[startIndex]` and queues the rest of the list after it. */
-  playFromList: (tracks: Track[], startIndex?: number) => void;
+  playFromList: (tracks: Track[], startIndex?: number, source?: string) => void;
+  /** Turns shuffle on and plays the list from a random track. */
+  playShuffled: (tracks: Track[], source?: string, random?: () => number) => void;
+  /** Jumps to a track already in the queue. */
+  playIndex: (index: number) => void;
+  setFade: (level: number) => void;
+  setStopAfterCurrent: (stop: boolean) => void;
   setQueue: (tracks: Track[], startIndex?: number) => void;
   addToQueue: (tracks: Track[]) => void;
   playNext: (track: Track) => void;
   removeFromQueue: (index: number) => void;
   reorderQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
+  /** Drops everything after the current track; the current one keeps playing. */
+  clearUpNext: () => void;
   toggleFavorite: (trackId: string) => void;
   incrementTrackPlayCount: (trackId: string) => void;
   toggleShuffle: () => void;
@@ -95,9 +115,19 @@ export type PlayerStore = PlayerState & PlayerActions;
 
 let transport: PlayerTransport | null = null;
 
-/** Connects the audio engine. Returns a function that disconnects it. */
+/** Output level the engine should play at: the user volume times the sleep fade. */
+function outputLevel(state: Pick<PlayerState, 'volume' | 'fade'>): number {
+  return state.volume * state.fade;
+}
+
+/**
+ * Connects the audio engine. Returns a function that disconnects it. The
+ * engine starts at its own default level, so the store's level is applied
+ * right away and the two agree from the first sample.
+ */
 export function attachTransport(next: PlayerTransport): () => void {
   transport = next;
+  next.setVolume(outputLevel(usePlayerStore.getState()));
   return () => {
     if (transport === next) transport = null;
   };
@@ -165,6 +195,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     });
     if (track) {
       transport?.load(track);
+      transport?.setVolume(outputLevel(get()));
       transport?.play();
     } else {
       transport?.stop();
@@ -205,6 +236,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     repeatMode: 'off',
     isLoading: false,
     error: null,
+    queueSource: 'Library',
+    fade: 1,
+    stopAfterCurrent: false,
 
     play: () => {
       if (!get().currentTrack) return;
@@ -246,9 +280,23 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       transport?.seekTo(target);
     },
 
-    setVolume: (volume: number) => {
-      set({ volume: Math.max(0, Math.min(1, volume)), isMuted: false });
+    seekBy: (seconds: number) => {
+      const { currentTime } = get();
+      get().seek(Math.max(0, currentTime + seconds));
     },
+
+    setVolume: (volume: number) => {
+      const next = Math.max(0, Math.min(1, volume));
+      set({ volume: next, isMuted: false });
+      transport?.setVolume(outputLevel(get()));
+    },
+    setFade: (level: number) => {
+      const fade = Math.max(0, Math.min(1, level));
+      if (fade === get().fade) return;
+      set({ fade });
+      transport?.setVolume(outputLevel(get()));
+    },
+    setStopAfterCurrent: stopAfterCurrent => set({ stopAfterCurrent }),
     toggleMute: () => set(s => ({ isMuted: !s.isMuted })),
 
     setLibrary: (tracks: Track[]) => set({ library: tracks }),
@@ -258,13 +306,23 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       set(s => ({ library: s.library.filter(t => !ids.has(t.id)) }));
     },
 
-    playFromList: (tracks: Track[], startIndex = 0) => {
+    playFromList: (tracks: Track[], startIndex = 0, source = 'Library') => {
       const start = tracks[startIndex] ?? null;
       if (get().isShuffled && start) {
-        startAt(shuffledAround(tracks, start), 0, { originalQueue: tracks });
+        startAt(shuffledAround(tracks, start), 0, { originalQueue: tracks, queueSource: source });
         return;
       }
-      startAt(tracks, startIndex, { originalQueue: tracks });
+      startAt(tracks, startIndex, { originalQueue: tracks, queueSource: source });
+    },
+    playShuffled: (tracks: Track[], source = 'Library', random = Math.random) => {
+      if (tracks.length === 0) return;
+      set({ isShuffled: true });
+      get().playFromList(tracks, Math.floor(random() * tracks.length), source);
+    },
+    playIndex: (index: number) => {
+      const { queue } = get();
+      if (index < 0 || index >= queue.length) return;
+      startAt(queue, index);
     },
     setQueue: (tracks: Track[], startIndex = 0) => get().playFromList(tracks, startIndex),
 
@@ -320,6 +378,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       else if (fromIndex > queueIndex && toIndex <= queueIndex) newIndex = queueIndex + 1;
 
       set({ queue: newQueue, queueIndex: newIndex });
+    },
+
+    clearUpNext: () => {
+      const { queue, queueIndex, currentTrack } = get();
+      const kept = queue.slice(0, queueIndex + 1);
+      set({ queue: kept, originalQueue: currentTrack ? kept : [] });
     },
 
     clearQueue: () => {
@@ -402,8 +466,14 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     _setError: error => set({ error, isLoading: false }),
 
     _onTrackEnd: () => {
-      const { repeatMode, currentTrack } = get();
+      const { repeatMode, currentTrack, stopAfterCurrent } = get();
       if (!currentTrack || currentTrack.isLive) return;
+      if (stopAfterCurrent) {
+        transport?.pause();
+        transport?.seekTo(0);
+        set({ isPlaying: false, currentTime: 0, stopAfterCurrent: false });
+        return;
+      }
       if (repeatMode === 'one') {
         set({ currentTime: 0, isPlaying: true });
         transport?.seekTo(0);

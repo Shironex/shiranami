@@ -1,293 +1,126 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Stack } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
+import EllipsisVertical from 'lucide-react-native/icons/ellipsis-vertical';
 import Heart from 'lucide-react-native/icons/heart';
-import Mic2 from 'lucide-react-native/icons/mic-vocal';
-import Music2 from 'lucide-react-native/icons/eighth-note';
-import Pause from 'lucide-react-native/icons/pause';
-import Play from 'lucide-react-native/icons/play';
-import Repeat from 'lucide-react-native/icons/repeat';
-import Repeat1 from 'lucide-react-native/icons/repeat-1';
-import Shuffle from 'lucide-react-native/icons/shuffle';
-import SkipBack from 'lucide-react-native/icons/skip-back';
-import SkipForward from 'lucide-react-native/icons/skip-forward';
-import { LyricsPanel } from '@/components/player/LyricsPanel';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import { Cover } from '@/components/player/Cover';
+import { PlayerActions } from '@/components/player/PlayerActions';
+import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
+import { SeekBar } from '@/components/player/SeekBar';
+import { Transport } from '@/components/player/Transport';
+import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { useCurrentStation } from '@/hooks/useCurrentStation';
+import { useToggleFavorite } from '@/hooks/useToggleFavorite';
+import { stationMeta } from '@/lib/radio';
 import { colors } from '@/lib/theme';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+/** Cover side margin; the cover is the screen width minus both. */
+const COVER_GUTTER = 24;
+/** Keeps the whole player on screen on short phones. */
+const MAX_COVER = 420;
 
 export default function PlayerScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const track = usePlayerStore(s => s.currentTrack);
+  const source = usePlayerStore(s => s.queueSource);
+  const toggleFavorite = useToggleFavorite();
+  const radio = useCurrentStation();
 
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const isPlaying = usePlayerStore(s => s.isPlaying);
-  const currentTime = usePlayerStore(s => s.currentTime);
-  const duration = usePlayerStore(s => s.duration);
-  const isShuffled = usePlayerStore(s => s.isShuffled);
-  const repeatMode = usePlayerStore(s => s.repeatMode);
+  // Close once the queue is cleared under the open player (not on a cold open).
+  const hadTrack = useRef(false);
+  useEffect(() => {
+    if (track) hadTrack.current = true;
+    else if (hadTrack.current && router.canGoBack()) router.back();
+  }, [track, router]);
 
-  const togglePlay = usePlayerStore(s => s.togglePlay);
-  const next = usePlayerStore(s => s.next);
-  const previous = usePlayerStore(s => s.previous);
-  const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
-  const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
-  const seek = usePlayerStore(s => s.seek);
-  const [barWidth, setBarWidth] = useState(0);
-  const [showLyrics, setShowLyrics] = useState(false);
-  const playScale = useSharedValue(1);
-  const playStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: playScale.value }],
-  }));
+  if (!track) return <View className="flex-1 bg-background" />;
 
-  const handlePlayPress = () => {
-    playScale.value = withSpring(0.9, { damping: 15, stiffness: 400 });
-    setTimeout(() => {
-      playScale.value = withSpring(1, { damping: 8, stiffness: 200 });
-    }, 100);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    togglePlay();
-  };
-
-  const isLive = currentTrack?.isLive ?? false;
-  const canSeek = !isLive && duration > 0 && barWidth > 0;
-  const progress = duration > 0 ? currentTime / duration : 0;
-
-  const handleSeekPress = (event: GestureResponderEvent) => {
-    if (!canSeek) return;
-    const ratio = Math.min(Math.max(event.nativeEvent.locationX / barWidth, 0), 1);
-    seek(ratio * duration);
-  };
-
-  if (!currentTrack) {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
-        <View style={[s.container, { paddingTop: insets.top }]}>
-          <Text style={s.emptyText}>No track playing</Text>
-        </View>
-      </>
-    );
-  }
-
-  const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat;
-  const repeatActive = repeatMode !== 'off';
+  // Room under the cover for meta, seek, transport and actions (about 380pt).
+  const coverSize = Math.min(width - COVER_GUTTER * 2, MAX_COVER, height - 380 - insets.top);
+  const live = !!track.isLive;
+  const favorite = live ? radio.saved : !!track.isFavorite;
 
   return (
-    <>
-      <Stack.Screen options={{ headerShown: false, presentation: 'modal' }} />
-      <View style={[s.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 16 }]}>
-        {/* Top bar */}
-        <View style={s.topBar}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <ChevronDown size={28} color={colors.foreground} />
-          </Pressable>
-          <Text style={s.topBarTitle}>Now Playing</Text>
-          <Pressable onPress={() => setShowLyrics(v => !v)} hitSlop={12}>
-            <Mic2 size={22} color={showLyrics ? colors.primary : colors.mutedForeground} />
-          </Pressable>
-        </View>
-
-        {/* Album art / Lyrics */}
-        <View style={s.artSection}>
-          {showLyrics ? (
-            <LyricsPanel />
+    <View className="flex-1 bg-background">
+      <PlayerBackdrop />
+      <ScrollView
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingTop: insets.top + 6,
+          paddingBottom: Math.max(insets.bottom, 12) + 8,
+        }}
+      >
+        <View className="flex-row items-center justify-between px-2">
+          <IconButton
+            icon={ChevronDown}
+            size={24}
+            color={colors.foreground}
+            accessibilityLabel="Close player"
+            onPress={() => router.back()}
+          />
+          <Text
+            variant="label"
+            numberOfLines={1}
+            className="flex-1 text-center text-soft-foreground"
+          >
+            {live ? 'Live radio' : `Playing from ${source}`}
+          </Text>
+          {live ? (
+            <View className="h-11 w-11" />
           ) : (
-            <View style={s.artLarge}>
-              <Music2 size={64} color={colors.mutedForeground} />
-            </View>
+            <IconButton
+              icon={EllipsisVertical}
+              color={colors.foreground}
+              accessibilityLabel="More for this song"
+              onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+            />
           )}
         </View>
 
-        {/* Track info */}
-        <View style={s.trackInfo}>
-          <View style={s.trackInfoRow}>
-            <View style={s.trackInfoText}>
-              <Text style={s.trackTitle} numberOfLines={1}>
-                {currentTrack.title}
-              </Text>
-              <Text style={s.trackArtist} numberOfLines={1}>
-                {currentTrack.artist}
-              </Text>
-            </View>
-            <Pressable onPress={() => toggleFavorite(currentTrack.id)} hitSlop={12}>
-              <Heart
-                size={22}
-                color={currentTrack.isFavorite ? colors.favorite : colors.mutedForeground}
-                fill={currentTrack.isFavorite ? colors.favorite : 'transparent'}
-              />
-            </Pressable>
-          </View>
+        <View className="items-center pt-5">
+          <Cover track={track} size={coverSize} />
         </View>
 
-        {/* Progress bar */}
-        <View style={s.progressSection}>
-          <Pressable
-            onPress={handleSeekPress}
-            onLayout={e => setBarWidth(e.nativeEvent.layout.width)}
-            disabled={!canSeek}
-            hitSlop={{ top: 12, bottom: 12 }}
-            accessibilityRole="adjustable"
-            accessibilityLabel={isLive ? 'Live stream' : 'Seek'}
-          >
-            <View style={s.progressTrack} pointerEvents="none">
-              <View style={[s.progressFill, { width: isLive ? '100%' : `${progress * 100}%` }]} />
-            </View>
-          </Pressable>
-          <View style={s.timeRow}>
-            {isLive ? (
-              <Text style={s.timeText}>Live</Text>
-            ) : (
-              <>
-                <Text style={s.timeText}>{formatTime(currentTime)}</Text>
-                <Text style={s.timeText}>{formatTime(duration)}</Text>
-              </>
-            )}
+        <View className="flex-row items-center gap-3 pl-7 pr-[18px] pt-6">
+          <View className="min-w-0 flex-1">
+            <Text variant="title" numberOfLines={1}>
+              {track.title}
+            </Text>
+            <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[16px]">
+              {live && radio.station ? stationMeta(radio.station) : track.artist}
+            </Text>
           </View>
+          {(!live || radio.station) && (
+            <IconButton
+              icon={Heart}
+              size={26}
+              filled={favorite}
+              color={favorite ? colors.favorite : colors.foreground}
+              accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
+              accessibilityState={{ selected: favorite }}
+              onPress={() => (live ? radio.toggle() : toggleFavorite(track.id))}
+            />
+          )}
         </View>
 
-        {/* Controls */}
-        <View style={s.controls}>
-          <Pressable onPress={toggleShuffle} hitSlop={12}>
-            <Shuffle size={22} color={isShuffled ? colors.primary : colors.mutedForeground} />
-          </Pressable>
-          <Pressable onPress={previous} hitSlop={12}>
-            <SkipBack size={28} color={colors.foreground} fill={colors.foreground} />
-          </Pressable>
-          <Animated.View style={playStyle}>
-            <Pressable onPress={handlePlayPress} style={s.playBtn}>
-              {isPlaying ? (
-                <Pause size={32} color={colors.primaryForeground} fill={colors.primaryForeground} />
-              ) : (
-                <Play size={32} color={colors.primaryForeground} fill={colors.primaryForeground} />
-              )}
-            </Pressable>
-          </Animated.View>
-          <Pressable onPress={next} hitSlop={12}>
-            <SkipForward size={28} color={colors.foreground} fill={colors.foreground} />
-          </Pressable>
-          <Pressable onPress={cycleRepeatMode} hitSlop={12}>
-            <RepeatIcon size={22} color={repeatActive ? colors.primary : colors.mutedForeground} />
-          </Pressable>
+        <View className="px-7 pt-[18px]">
+          <SeekBar />
         </View>
-      </View>
-    </>
+        <View className="px-[22px] pt-3.5">
+          <Transport />
+        </View>
+        <View className="mt-auto px-4 pt-6">
+          <PlayerActions />
+        </View>
+      </ScrollView>
+    </View>
   );
 }
-
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingHorizontal: 24,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.mutedForeground,
-    textAlign: 'center',
-    marginTop: 100,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-  },
-  topBarTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.mutedForeground,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  artSection: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  artLarge: {
-    width: '85%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  trackInfo: {
-    paddingVertical: 12,
-  },
-  trackInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  trackInfoText: {
-    flex: 1,
-    gap: 4,
-  },
-  trackTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.foreground,
-  },
-  trackArtist: {
-    fontSize: 15,
-    color: colors.mutedForeground,
-  },
-  progressSection: {
-    paddingVertical: 8,
-  },
-  progressTrack: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  timeText: {
-    fontSize: 12,
-    color: colors.mutedForeground,
-    fontVariant: ['tabular-nums'],
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-  },
-  playBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

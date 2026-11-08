@@ -8,11 +8,6 @@
     "scheme": "shiranami",
     "platforms": ["android", "ios"],
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#110f1a"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.shiranami.mobile",
@@ -25,8 +20,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#110f1a"
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#1c1c42"
       },
+      "icon": "./assets/images/icon.png",
       "package": "com.shiranami.mobile",
       "permissions": [
         "android.permission.READ_MEDIA_AUDIO",
@@ -34,10 +31,38 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#010105"
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/dm-sans/400Regular/DMSans_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/dm-sans/500Medium/DMSans_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/dm-sans/600SemiBold/DMSans_600SemiBold.ttf",
+            "./node_modules/@expo-google-fonts/sora/500Medium/Sora_500Medium.ttf",
+            "./node_modules/@expo-google-fonts/sora/600SemiBold/Sora_600SemiBold.ttf",
+            "./assets/fonts/ShipporiMincho_700Bold.ttf"
+          ]
+        }
+      ],
       "expo-sqlite",
       [
         "expo-audio",
@@ -45,14 +70,6 @@
           "enableBackgroundPlayback": true,
           "recordAudioAndroid": false,
           "microphonePermission": false
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": false,
-          "savePhotosPermission": false,
-          "isAccessMediaLocationEnabled": false
         }
       ],
       [

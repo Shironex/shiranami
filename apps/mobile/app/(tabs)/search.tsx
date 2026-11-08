@@ -58,7 +58,7 @@ export default function SearchScreen() {
             </View>
             {isStreaming && (
               <View style={s.streamingOverlay}>
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={colors.foreground} />
               </View>
             )}
           </View>
@@ -237,19 +237,19 @@ const s = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: colors.shade,
     borderRadius: 4,
     paddingHorizontal: 4,
     paddingVertical: 1,
   },
   durationText: {
     fontSize: 11,
-    color: '#fff',
+    color: colors.foreground,
     fontVariant: ['tabular-nums'],
   },
   streamingOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.veil,
     alignItems: 'center',
     justifyContent: 'center',
   },

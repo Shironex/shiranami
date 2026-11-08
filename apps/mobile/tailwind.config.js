@@ -1,4 +1,6 @@
 const { hairlineWidth } = require('nativewind/theme');
+const { colors } = require('./theme/colors.json');
+const { fontFamily } = require('./theme/fonts');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -7,45 +9,18 @@ module.exports = {
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
-      colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-      },
+      // Generated from theme/palette.js; see `pnpm tokens`.
+      colors,
+      fontFamily: Object.fromEntries(
+        Object.entries(fontFamily).map(([key, family]) => [key, [family]])
+      ),
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        sm: '8px',
+        md: '10px',
+        lg: '12px',
+        xl: '16px',
+        panel: '24px',
+        sheet: '28px',
       },
       borderWidth: {
         hairline: hairlineWidth(),

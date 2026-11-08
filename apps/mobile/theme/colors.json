@@ -1,0 +1,77 @@
+{
+  "colors": {
+    "background": "#010105",
+    "surface": "#030307",
+    "card": "#05050d",
+    "muted": "#090a13",
+    "raised": "#0a0b15",
+    "nav": "#04040c",
+    "mini": "#0d0e1b",
+    "sheet": "#070711",
+    "player-glow": "#12132a",
+    "player-mid": "#03040d",
+    "icon": "#1c1c42",
+    "foreground": "#e6e7ef",
+    "soft-foreground": "#cfd0db",
+    "muted-foreground": "#9c9dab",
+    "primary": "#969cee",
+    "primary-foreground": "#030309",
+    "primary-tint": "#969cee17",
+    "primary-tonal": "#969cee29",
+    "primary-chip": "#969cee33",
+    "primary-pill": "#969cee42",
+    "primary-ring": "#969cee66",
+    "border": "#ffffff0f",
+    "border-strong": "#ffffff2e",
+    "rail": "#ffffff29",
+    "handle": "#ffffff47",
+    "shade": "#000002",
+    "veil": "#00000199",
+    "favorite": "#f9667a",
+    "live": "#fa6863",
+    "switch-track": "#31323d",
+    "destructive": "#fa6863"
+  },
+  "tiles": {
+    "15": {
+      "bg": "#3b1b1e",
+      "fg": "#f4ccce"
+    },
+    "45": {
+      "bg": "#3a1e11",
+      "fg": "#f2cfc0"
+    },
+    "80": {
+      "bg": "#332305",
+      "fg": "#e7d5b7"
+    },
+    "160": {
+      "bg": "#0b2e1e",
+      "fg": "#bfe1cd"
+    },
+    "190": {
+      "bg": "#002e2c",
+      "fg": "#b7e2de"
+    },
+    "220": {
+      "bg": "#002c37",
+      "fg": "#b8dfec"
+    },
+    "250": {
+      "bg": "#12283e",
+      "fg": "#c2daf5"
+    },
+    "280": {
+      "bg": "#22233e",
+      "fg": "#d1d5f5"
+    },
+    "315": {
+      "bg": "#301e37",
+      "fg": "#e3cfec"
+    },
+    "345": {
+      "bg": "#371c2c",
+      "fg": "#eeccde"
+    }
+  }
+}

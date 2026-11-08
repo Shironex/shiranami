@@ -2,14 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { env } from '@/lib/env';
 
+export type PlaceholderArt = 'kanji' | 'photo';
+
 export interface AppSettings {
   showLabels: boolean;
   serverUrl: string;
+  /** What tracks and stations without artwork show. */
+  placeholderArt: PlaceholderArt;
 }
 
 const DEFAULTS: AppSettings = {
   showLabels: true,
   serverUrl: env.apiUrl,
+  placeholderArt: 'kanji',
 };
 
 export function useSettings() {
@@ -23,6 +28,7 @@ export function useSettings() {
       setSettings({
         showLabels: raw.showLabels !== 'false',
         serverUrl: raw.serverUrl || DEFAULTS.serverUrl,
+        placeholderArt: raw.placeholderArt === 'photo' ? 'photo' : 'kanji',
       });
       setLoaded(true);
     });

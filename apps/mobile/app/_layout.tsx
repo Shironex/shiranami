@@ -2,7 +2,8 @@ import '@/global.css';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NAV_THEME } from '@/lib/theme';
+import { NAV_THEME, colors } from '@/lib/theme';
+import { useAppFonts } from '@/lib/use-app-fonts';
 import { PortalHost } from '@rn-primitives/portal';
 import { SQLiteProvider } from 'expo-sqlite';
 import { Stack, ThemeProvider } from 'expo-router';
@@ -15,12 +16,23 @@ import { startPlaybackService } from '@/lib/playback-service';
 
 export { ErrorBoundary } from 'expo-router';
 
+/**
+ * Bottom sheets are expo-router form sheets (native Material bottom sheets on
+ * Android) sized to their content; components/ui/sheet.tsx draws the inside.
+ */
+const SHEET = {
+  presentation: 'formSheet',
+  sheetAllowedDetents: 'fitToContents',
+  sheetCornerRadius: 28,
+  contentStyle: { backgroundColor: colors.sheet },
+} as const;
+
 SplashScreen.preventAutoHideAsync();
 
 function LoadingFallback() {
   return (
     <View className="flex-1 items-center justify-center bg-background">
-      <ActivityIndicator size="large" color="hsl(265 50% 72%)" />
+      <ActivityIndicator size="large" color={colors.primary} />
     </View>
   );
 }
@@ -35,6 +47,7 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const fontsReady = useAppFonts();
 
   useEffect(() => startPlaybackService(), []);
 
@@ -48,25 +61,39 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'hsl(265 25% 8%)' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Suspense fallback={<LoadingFallback />}>
         <SQLiteProvider databaseName="shiranami.db" onInit={migrateDbIfNeeded} useSuspense>
           <SettingsProvider>
             <ThemeProvider value={NAV_THEME}>
               <StatusBar style="light" />
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
                 <Stack.Screen
                   name="player"
-                  options={{
-                    headerShown: false,
-                    presentation: 'modal',
-                    animation: 'slide_from_bottom',
-                  }}
+                  options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
                 />
+                <Stack.Screen
+                  name="lyrics"
+                  options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                />
+                <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="sleep" options={SHEET} />
+                <Stack.Screen
+                  name="queue"
+                  options={{ ...SHEET, sheetAllowedDetents: [0.6, 0.92] }}
+                />
+                <Stack.Screen name="track/[id]" options={SHEET} />
+                <Stack.Screen name="add-to-playlist" options={SHEET} />
+                <Stack.Screen name="playlist-name" options={SHEET} />
               </Stack>
               <PortalHost />
-              <ReadySignal onReady={handleAppReady} />
+              {fontsReady && <ReadySignal onReady={handleAppReady} />}
             </ThemeProvider>
           </SettingsProvider>
         </SQLiteProvider>

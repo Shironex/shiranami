@@ -34,6 +34,7 @@ beforeEach(() => {
     pause: jest.fn(),
     seekTo: jest.fn(),
     stop: jest.fn(),
+    setVolume: jest.fn(),
   };
   detach = attachTransport(transport);
 });
@@ -231,9 +232,95 @@ describe('queue edits', () => {
     expect(store().queue[store().queueIndex].id).toBe('a');
   });
 
+  it('clears what is up next and keeps the playing track', () => {
+    store().playFromList([a, b, c], 1);
+    store().clearUpNext();
+    expect(ids(store().queue)).toEqual(['a', 'b']);
+    expect(store().currentTrack?.id).toBe('b');
+    expect(transport.stop).not.toHaveBeenCalled();
+  });
+
   it('clamps seeking to the duration', () => {
     store().playFromList([a], 0);
     store().seek(500);
     expect(transport.seekTo).toHaveBeenLastCalledWith(180);
+  });
+
+  it('seeks relative to the position, clamped to the start and the duration', () => {
+    store().playFromList([a], 0);
+    store().seek(5);
+    store().seekBy(-10);
+    expect(transport.seekTo).toHaveBeenLastCalledWith(0);
+    store().seek(175);
+    store().seekBy(10);
+    expect(transport.seekTo).toHaveBeenLastCalledWith(180);
+  });
+});
+
+describe('play and shuffle buttons', () => {
+  it('records where the queue came from', () => {
+    store().playFromList([a, b], 0, 'Late night');
+    expect(store().queueSource).toBe('Late night');
+  });
+
+  it('shuffles the list and starts from a random track', () => {
+    store().playShuffled([a, b, c, d], 'Library', () => 0.6);
+    expect(store().isShuffled).toBe(true);
+    expect(store().currentTrack?.id).toBe('c');
+    expect(ids(store().queue).sort()).toEqual(['a', 'b', 'c', 'd']);
+    expect(store().queue[0].id).toBe('c');
+  });
+
+  it('jumps to a queued track', () => {
+    store().playFromList([a, b, c], 0);
+    store().playIndex(2);
+    expect(store().currentTrack?.id).toBe('c');
+    expect(transport.load).toHaveBeenLastCalledWith(c);
+  });
+});
+
+describe('sleep timer hooks', () => {
+  it('scales the output level by the fade', () => {
+    store().setVolume(0.8);
+    store().setFade(0.5);
+    expect(transport.setVolume).toHaveBeenLastCalledWith(0.4);
+  });
+
+  it('pauses at the end of the track instead of moving on when asked', () => {
+    store().playFromList([a, b], 0);
+    store().setStopAfterCurrent(true);
+    store()._onTrackEnd();
+    expect(store().currentTrack?.id).toBe('a');
+    expect(store().isPlaying).toBe(false);
+    expect(store().stopAfterCurrent).toBe(false);
+    expect(transport.pause).toHaveBeenCalled();
+  });
+});
+
+describe('output level', () => {
+  it('applies the store volume to the engine as soon as it attaches', () => {
+    expect(transport.setVolume).toHaveBeenCalledWith(store().volume);
+  });
+
+  it('applies the store volume before a loaded track starts playing', () => {
+    store().setVolume(0.6);
+    transport.setVolume.mockClear();
+    store().playFromList([a, b], 0);
+
+    expect(transport.setVolume).toHaveBeenCalledWith(0.6);
+    const setAt = transport.setVolume.mock.invocationCallOrder[0];
+    expect(setAt).toBeGreaterThan(transport.load.mock.invocationCallOrder[0]);
+    expect(setAt).toBeLessThan(transport.play.mock.invocationCallOrder[0]);
+  });
+
+  it('fades down from the store volume with no jump', () => {
+    store().playFromList([a], 0);
+    const engine = () => transport.setVolume.mock.lastCall?.[0] ?? Number.NaN;
+    const start = engine();
+    expect(start).toBe(store().volume);
+
+    store().setFade(0.99);
+    expect(engine()).toBeCloseTo(start * 0.99);
+    expect(start - engine()).toBeLessThan(0.01);
   });
 });

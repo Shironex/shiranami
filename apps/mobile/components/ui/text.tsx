@@ -4,23 +4,27 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { Platform, Text as RNText, type Role } from 'react-native';
 
-const textVariants = cva(cn('text-base text-foreground', Platform.select({ web: 'select-text' })), {
+/**
+ * Type scale from the Window design. Sora carries titles, DM Sans everything
+ * else. Weights come from the font family (see theme/fonts.js), so no variant
+ * sets `font-weight`. Letter spacing is in px: React Native has no `em`.
+ */
+const textVariants = cva(cn('text-foreground', Platform.select({ web: 'select-text' })), {
   variants: {
     variant: {
-      default: '',
-      h1: cn(
-        'text-center text-4xl font-extrabold tracking-tight',
-        Platform.select({ web: 'scroll-m-20 text-balance' })
-      ),
-      h2: cn(
-        'border-b border-border pb-2 text-3xl font-semibold tracking-tight',
-        Platform.select({ web: 'scroll-m-20 first:mt-0' })
-      ),
-      h3: cn('text-2xl font-semibold tracking-tight', Platform.select({ web: 'scroll-m-20' })),
-      h4: cn('text-xl font-semibold tracking-tight', Platform.select({ web: 'scroll-m-20' })),
-      large: 'text-lg font-semibold',
-      small: 'text-sm font-medium leading-none',
-      muted: 'text-sm text-muted-foreground',
+      default: 'font-body text-base',
+      display: 'font-display text-[28px] leading-[31px] tracking-[-0.56px]',
+      title: 'font-display text-[24px] leading-[29px] tracking-[-0.36px]',
+      heading: 'font-display text-[22px] leading-[27px] tracking-[-0.33px]',
+      sheetTitle: 'font-display text-[20px] leading-[24px] tracking-[-0.2px]',
+      body: 'font-body text-[15.5px] leading-[23px]',
+      bodyMuted: 'font-body text-[15.5px] leading-[23px] text-muted-foreground',
+      rowTitle: 'font-body-medium text-[15.5px] leading-[20px]',
+      meta: 'font-body text-[13.5px] leading-[18px] text-muted-foreground',
+      label: 'font-body-medium text-[14px] leading-[18px] text-muted-foreground',
+      option: 'font-body text-[16px] leading-[21px]',
+      button: 'font-body-semibold text-[15px] leading-[18px]',
+      caption: 'font-body-medium text-[12.5px] leading-[16px]',
     },
   },
   defaultVariants: {
@@ -32,17 +36,10 @@ type TextVariantProps = VariantProps<typeof textVariants>;
 type TextVariant = NonNullable<TextVariantProps['variant']>;
 
 const ROLE: Partial<Record<TextVariant, Role>> = {
-  h1: 'heading',
-  h2: 'heading',
-  h3: 'heading',
-  h4: 'heading',
-};
-
-const ARIA_LEVEL: Partial<Record<TextVariant, string>> = {
-  h1: '1',
-  h2: '2',
-  h3: '3',
-  h4: '4',
+  display: 'heading',
+  title: 'heading',
+  heading: 'heading',
+  sheetTitle: 'heading',
 };
 
 const TextClassContext = React.createContext<string | undefined>(undefined);
@@ -63,7 +60,6 @@ function Text({
     <Component
       className={cn(textVariants({ variant }), textClass, className)}
       role={variant ? ROLE[variant] : undefined}
-      aria-level={variant ? ARIA_LEVEL[variant] : undefined}
       {...props}
     />
   );
