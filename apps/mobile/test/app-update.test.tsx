@@ -86,6 +86,23 @@ describe('AppUpdateRows', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
+  it('applies a rollback to the embedded build like an update', async () => {
+    checkForUpdate.mockResolvedValue({
+      isAvailable: false,
+      isRollBackToEmbedded: true,
+    } as Updates.UpdateCheckResult);
+    fetchUpdate.mockResolvedValue({
+      isNew: false,
+      isRollBackToEmbedded: true,
+    } as Updates.UpdateFetchResult);
+    await render(<AppUpdateRows />);
+
+    await fireEvent.press(screen.getByLabelText('Check for updates'));
+
+    await waitFor(() => expect(screen.getByText('Update ready, restart to use it')).toBeTruthy());
+    expect(fetchUpdate).toHaveBeenCalledTimes(1);
+  });
+
   it('offers a restart when the launch check already downloaded an update', async () => {
     useUpdates.mockReturnValue({ isUpdatePending: true } as ReturnType<typeof Updates.useUpdates>);
     await render(<AppUpdateRows />);

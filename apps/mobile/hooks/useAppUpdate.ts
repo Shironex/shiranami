@@ -37,13 +37,15 @@ export function useAppUpdate() {
     setStatus('checking');
     try {
       const result = await Updates.checkForUpdateAsync();
-      if (!result.isAvailable) {
+      // A rollback directive reports isAvailable false but still has to be
+      // fetched and applied, or the app keeps running the rolled-back update.
+      if (!result.isAvailable && !result.isRollBackToEmbedded) {
         setStatus('upToDate');
         return;
       }
       setStatus('downloading');
       const fetched = await Updates.fetchUpdateAsync();
-      setStatus(fetched.isNew ? 'ready' : 'upToDate');
+      setStatus(fetched.isNew || fetched.isRollBackToEmbedded ? 'ready' : 'upToDate');
     } catch {
       setStatus('error');
     }
