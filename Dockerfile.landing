@@ -19,5 +19,10 @@ RUN npm install -g serve@14
 # hashed /_astro files for a year, the unhashed room assets for a week, HTML
 # and v2.json revalidated on every request.
 COPY --from=build /app/apps/landing/dist /app
+# Run as an unprivileged user. 10001 avoids colliding with host uids (1000/1001).
+# App files stay root-owned and read-only; the process writes nothing at runtime.
+RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
+USER 10001:10001
+
 EXPOSE 3000
 CMD ["serve", "/app", "-l", "3000"]

@@ -8,6 +8,7 @@ import { RedisModule } from './modules/redis/redis.module';
 import { ShareModule } from './modules/share/share.module';
 import { YoutubeModule } from './modules/youtube/youtube.module';
 import { YOUTUBE_PROXY_ENABLED } from './features';
+import { HealthController } from './health.controller';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -32,5 +33,6 @@ const isDev = process.env.NODE_ENV !== 'production';
     // linted and buildable, so it cannot rot while it waits.
     ...(YOUTUBE_PROXY_ENABLED ? [YoutubeModule] : []),
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
