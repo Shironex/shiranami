@@ -1,0 +1,111 @@
+diff --git a/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 196a5d57f887c2667a88543bd2f6a80044a044f2..5076b4e3d6275cb5a06713753cee9277d442e1fa 100644
+--- a/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -335,6 +335,12 @@ class AudioControlsService : MediaSessionService() {
+     }
+   }
+ 
++  // Live streams have no queue to move through, so next and previous stay off for them.
++  private fun skipHandler(player: AudioPlayer, options: AudioLockScreenOptions?): ((Boolean) -> Unit)? {
++    if (options?.isLiveStream ?: player.isLive) return null
++    return { next -> player.emit(SKIP_EVENT, mapOf("direction" to if (next) "next" else "previous")) }
++  }
++
+   private fun setActivePlayerInternal(
+     player: AudioPlayer?,
+     metadata: Metadata? = null,
+@@ -367,7 +373,7 @@ class AudioControlsService : MediaSessionService() {
+ 
+       appContext?.mainQueue?.launch {
+         val context = appContext?.reactContext ?: return@launch
+-        val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(player, options)).apply {
++        val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(player, options), skipHandler(player, options)).apply {
+           updateMetadata(metadata)
+         }
+         val session = MediaSession.Builder(context, sessionPlayer)
+@@ -448,7 +454,7 @@ class AudioControlsService : MediaSessionService() {
+       sessionMetadataPlayer = null
+       appContext?.mainQueue?.launch {
+         val context = appContext?.reactContext ?: return@launch
+-        val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(player, options)).apply {
++        val sessionPlayer = MetadataInjectingPlayer(resolveSessionPlayer(player, options), skipHandler(player, options)).apply {
+           updateMetadata(metadata)
+         }
+         val session = MediaSession.Builder(context, sessionPlayer)
+@@ -560,5 +566,6 @@ class AudioControlsService : MediaSessionService() {
+     const val ACTION_SEEK_BACKWARD = "expo.modules.audio.action.SEEK_BACKWARD"
+ 
+     const val SEEK_INTERVAL_MS = 10000L
++    const val SKIP_EVENT = "lockScreenSkip"
+   }
+ }
+diff --git a/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+index 839aaef12d7699ea1a89037b31849775daa079f4..ce0a372e71c8867ffc5d4c11486a9dac0cfc8174 100644
+--- a/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
++++ b/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+@@ -24,11 +24,7 @@ class AudioMediaSessionCallback : MediaSession.Callback {
+             .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+             .add(Player.COMMAND_SEEK_FORWARD)
+             .add(Player.COMMAND_SEEK_BACK)
+-            // Remove track navigation commands
+-            .remove(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+-            .remove(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+-            .remove(Player.COMMAND_SEEK_TO_PREVIOUS)
+-            .remove(Player.COMMAND_SEEK_TO_NEXT)
++            // Track navigation stays allowed: MetadataInjectingPlayer offers it when JS owns a queue.
+             .build()
+         )
+         .setAvailableSessionCommands(
+diff --git a/android/src/main/java/expo/modules/audio/service/MetadataInjectingPlayer.kt b/android/src/main/java/expo/modules/audio/service/MetadataInjectingPlayer.kt
+index 18203a364d17dcf3de95d22a20175308e3363889..b44f6256e2445d6048c4061d9ce124869970a861 100644
+--- a/android/src/main/java/expo/modules/audio/service/MetadataInjectingPlayer.kt
++++ b/android/src/main/java/expo/modules/audio/service/MetadataInjectingPlayer.kt
+@@ -16,7 +16,9 @@ import java.util.IdentityHashMap
+ // metadata updates without replacing the active media item on the real ExoPlayer instance.
+ @UnstableApi
+ internal class MetadataInjectingPlayer(
+-  player: Player
++  player: Player,
++  // Called with true for next and false for previous; null keeps track navigation off.
++  private val onSkip: ((Boolean) -> Unit)? = null
+ ) : ForwardingPlayer(player) {
+   private val handler = Handler(applicationLooper)
+   private val listeners = IdentityHashMap<Player.Listener, Player.Listener>()
+@@ -36,6 +38,25 @@ internal class MetadataInjectingPlayer(
+     super.removeListener(forwardingListener ?: listener)
+   }
+ 
++  // The underlying player holds one item, so next and previous are offered here and forwarded to
++  // JS, which owns the queue. Lock screen, notification, Bluetooth and headset keys all land here.
++  private val skipCommands = Player.Commands.Builder().addAll(
++    Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
++    Player.COMMAND_SEEK_TO_PREVIOUS, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
++  ).build()
++
++  override fun getAvailableCommands(): Player.Commands =
++    if (onSkip == null) super.getAvailableCommands()
++    else super.getAvailableCommands().buildUpon().addAll(skipCommands).build()
++
++  override fun isCommandAvailable(command: Int): Boolean =
++    (onSkip != null && skipCommands.contains(command)) || super.isCommandAvailable(command)
++
++  override fun seekToNext() { onSkip?.invoke(true) ?: super.seekToNext() }
++  override fun seekToNextMediaItem() { onSkip?.invoke(true) ?: super.seekToNextMediaItem() }
++  override fun seekToPrevious() { onSkip?.invoke(false) ?: super.seekToPrevious() }
++  override fun seekToPreviousMediaItem() { onSkip?.invoke(false) ?: super.seekToPreviousMediaItem() }
++
+   override fun getMediaMetadata(): MediaMetadata {
+     val metadata = injectedMetadata
+     return super.getMediaMetadata()
+@@ -86,6 +107,10 @@ internal class MetadataInjectingPlayer(
+       listener.onMediaMetadataChanged(this@MetadataInjectingPlayer.mediaMetadata)
+     }
+ 
++    override fun onAvailableCommandsChanged(availableCommands: Player.Commands) {
++      listener.onAvailableCommandsChanged(this@MetadataInjectingPlayer.availableCommands)
++    }
++
+     override fun onEvents(player: Player, events: Player.Events) {
+       listener.onEvents(this@MetadataInjectingPlayer, events)
+     }

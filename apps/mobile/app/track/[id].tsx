@@ -7,9 +7,11 @@ import ListEnd from 'lucide-react-native/icons/list-end';
 import ListMinus from 'lucide-react-native/icons/list-minus';
 import ListPlus from 'lucide-react-native/icons/list-plus';
 import ListStart from 'lucide-react-native/icons/list-start';
+import Trash2 from 'lucide-react-native/icons/trash-2';
 import { ArtTile } from '@/components/art/ArtTile';
 import type { IconComponent } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { useRemoveTrack } from '@/hooks/useRemoveTrack';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { colors } from '@/lib/theme';
 import { usePlayerStore } from '@/stores/usePlayerStore';
@@ -50,6 +52,7 @@ export default function TrackActionsSheet() {
     s => !!s.currentTrack && !s.currentTrack.isLive && s.currentTrack.id !== id
   );
   const toggleFavorite = useToggleFavorite();
+  const removeTrack = useRemoveTrack();
 
   if (!track) return <View className="h-24 bg-sheet" />;
 
@@ -107,6 +110,12 @@ export default function TrackActionsSheet() {
         label={track.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         color={track.isFavorite ? colors.favorite : colors.softForeground}
         onPress={done(() => toggleFavorite(track.id))}
+      />
+      <Action
+        icon={Trash2}
+        label="Remove from library"
+        color={colors.destructive}
+        onPress={done(() => removeTrack(track))}
       />
     </View>
   );
