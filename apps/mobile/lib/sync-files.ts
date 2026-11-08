@@ -1,7 +1,8 @@
 import { fetch as expoFetch } from 'expo/fetch';
+import { SYNC_ROUTES } from '@shiranami/contracts/sync';
 import { Directory, File, FileMode, Paths, type FileHandle } from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
-import type { SyncFetch, SyncResponse } from '@/lib/sync-client';
+import type { SyncClient, SyncFetch, SyncResponse } from '@/lib/sync-client';
 import type { PartialFile } from '@/lib/sync-download';
 import type { SecretStore } from '@/lib/sync-peer';
 
@@ -26,6 +27,23 @@ export function artDir(): Directory {
 /** `art/<hash>.jpg`, the cover for a desktop artwork hash. */
 export function artFile(hash: string): File {
   return new File(artDir(), `${hash.replace(/[^A-Za-z0-9_-]/g, '')}.jpg`);
+}
+
+/** Saves the cover for a desktop artwork hash, fetching it only when it is not there yet. */
+export async function saveArt(
+  client: SyncClient,
+  hash: string,
+  signal?: AbortSignal
+): Promise<string> {
+  const file = artFile(hash);
+  if (file.exists) return file.uri;
+  const path = SYNC_ROUTES.art(hash);
+  await File.downloadFileAsync(client.url(path), file, {
+    headers: { Authorization: client.authorization('GET', path) },
+    idempotent: true,
+    signal,
+  });
+  return file.uri;
 }
 
 /** The file name a synced track's audio gets: its content hash, like an import. */
