@@ -118,6 +118,36 @@ function shuffledAround(queue: Track[], current: Track | null): Track[] {
   return [current, ...shuffleArray(queue.filter(t => t.id !== current.id))];
 }
 
+/**
+ * Order of the live queue to restore when shuffle turns off, as positions in
+ * `queue`. Tracks follow their order in `original`; each `original` entry
+ * takes the next unclaimed live copy with the same id, so tracks removed
+ * while shuffled stay gone and the live copies (with fresh favorite and play
+ * count) are kept. Live tracks `original` never had (added with play next)
+ * go at the end, in queue order.
+ */
+function unshuffledOrder(original: Track[], queue: Track[]): number[] {
+  const unclaimed = new Map<string, number[]>();
+  queue.forEach((t, i) => {
+    const positions = unclaimed.get(t.id);
+    if (positions) positions.push(i);
+    else unclaimed.set(t.id, [i]);
+  });
+
+  const order: number[] = [];
+  const claimed = new Set<number>();
+  for (const t of original) {
+    const position = unclaimed.get(t.id)?.shift();
+    if (position === undefined) continue;
+    order.push(position);
+    claimed.add(position);
+  }
+  queue.forEach((_, i) => {
+    if (!claimed.has(i)) order.push(i);
+  });
+  return order;
+}
+
 export const usePlayerStore = create<PlayerStore>((set, get) => {
   /** Makes `queue[index]` the current track and starts it. */
   const startAt = (queue: Track[], index: number, extra: Partial<PlayerState> = {}) => {
@@ -336,7 +366,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     },
 
     toggleShuffle: () => {
-      const { isShuffled, queue, originalQueue, currentTrack } = get();
+      const { isShuffled, queue, queueIndex, originalQueue, currentTrack } = get();
       if (!isShuffled) {
         set({
           originalQueue: queue,
@@ -346,9 +376,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
         });
         return;
       }
-      const restored = originalQueue.length > 0 ? originalQueue : queue;
-      const index = currentTrack ? restored.findIndex(t => t.id === currentTrack.id) : -1;
-      set({ queue: restored, queueIndex: index, isShuffled: false });
+      const order = unshuffledOrder(originalQueue, queue);
+      set({
+        queue: order.map(i => queue[i]),
+        queueIndex: currentTrack ? order.indexOf(queueIndex) : -1,
+        isShuffled: false,
+      });
     },
 
     cycleRepeatMode: () => {

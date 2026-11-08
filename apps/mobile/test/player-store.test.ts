@@ -152,6 +152,48 @@ describe('shuffle', () => {
     expect(ids(store().queue)).toEqual(['a', 'b', 'c', 'd']);
     expect(store().queueIndex).toBe(2);
   });
+
+  it('keeps a track removed while shuffled out of the restored order', () => {
+    store().playFromList([a, b, c, d], 2);
+    store().toggleShuffle();
+    store().removeFromQueue(ids(store().queue).indexOf('b'));
+
+    store().toggleShuffle();
+    expect(ids(store().queue)).toEqual(['a', 'c', 'd']);
+    expect(store().queue[store().queueIndex].id).toBe('c');
+  });
+
+  it('keeps a track added with play next while shuffled, at the end', () => {
+    const e = track('e');
+    store().playFromList([a, b, c, d], 2);
+    store().toggleShuffle();
+    store().playNext(e);
+
+    store().toggleShuffle();
+    expect(ids(store().queue)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(store().queue[store().queueIndex].id).toBe('c');
+  });
+
+  it('keeps a duplicate added with play next while shuffled', () => {
+    store().playFromList([a, b, c], 1);
+    store().toggleShuffle();
+    store().playNext(a);
+
+    store().toggleShuffle();
+    expect(ids(store().queue)).toEqual(['a', 'b', 'c', 'a']);
+    expect(store().queueIndex).toBe(1);
+  });
+
+  it('keeps favorite changes made while shuffled', () => {
+    store().playFromList([a, b, c, d], 0);
+    store().toggleShuffle();
+    store().toggleFavorite('d');
+
+    store().toggleShuffle();
+    expect(ids(store().queue)).toEqual(['a', 'b', 'c', 'd']);
+    expect(store().queue[3].isFavorite).toBe(true);
+    expect(store().queueIndex).toBe(0);
+  });
 });
 
 describe('live streams', () => {
