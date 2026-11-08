@@ -1,6 +1,6 @@
 import { PerformanceMonitor, useProgress } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AgXToneMapping,
   MathUtils,
@@ -11,7 +11,7 @@ import {
 } from 'three';
 import { Effects } from './Effects';
 import { motion } from './motion';
-import { ModelsContext, settledModels } from './Prop';
+import { LATE, ModelsContext, RoomReadyContext, settledModels } from './Prop';
 import { RoomScene } from './Scene';
 import { room } from './progress';
 import { scrollProgress, stopSections } from './scroll';
@@ -28,6 +28,10 @@ interface Props {
 export default function RoomCanvas({ models, onProgress, onReady }: Props) {
   const [visible, setVisible] = useState(true);
   const [ready, setReady] = useState(false);
+  // The late models start one commit after the room is in, once the load gate
+  // has unmounted, so their loading never reports to it.
+  const [late, setLate] = useState(false);
+  useEffect(() => setLate(ready), [ready]);
   // Pixel ratio cap: 1.5 until the frame rate shows the GPU cannot keep up.
   const [maxDpr, setMaxDpr] = useState(1.5);
 
@@ -57,17 +61,23 @@ export default function RoomCanvas({ models, onProgress, onReady }: Props) {
       }}
     >
       <ModelsContext.Provider value={new Set(models)}>
-        <CameraRig />
-        <RoomScene />
+        <RoomReadyContext.Provider value={late}>
+          <CameraRig />
+          <RoomScene />
+        </RoomReadyContext.Provider>
         <Effects />
-        <LoadGate
-          models={models}
-          onProgress={onProgress}
-          onReady={() => {
-            setReady(true);
-            onReady();
-          }}
-        />
+        {/* Its work ends once the room is in; unmounted, it stops following the
+            late models' loading (and stops re-rendering on their progress). */}
+        {!ready && (
+          <LoadGate
+            models={models}
+            onProgress={onProgress}
+            onReady={() => {
+              setReady(true);
+              onReady();
+            }}
+          />
+        )}
         {/* Sampled only once the room is in (loading stalls every frame), and
             one way: a slow GPU drops to 1x once and the monitor goes away,
             so the resolution never flips back and forth. */}
@@ -176,6 +186,8 @@ function LoadGate({ models, onProgress, onReady }: Props) {
   const { active, progress } = useProgress();
   const shown = useRef(0);
   const frames = useRef(-1);
+  // The late models (Prop's LATE) load after the room shows: the gate does not wait for them.
+  const awaited = useMemo(() => models.filter(name => !LATE.has(name)), [models]);
 
   useEffect(() => {
     // The manager's total grows as GLBs discover their textures: never step back.
@@ -203,7 +215,7 @@ function LoadGate({ models, onProgress, onReady }: Props) {
       return;
     }
     if (frames.current < 0) {
-      const settled = models.every(name => settledModels.has(name));
+      const settled = awaited.every(name => settledModels.has(name));
       if (!settled || active) return;
       const byMaterial = new Map<unknown, Object3D[]>();
       scene.traverse(child => {

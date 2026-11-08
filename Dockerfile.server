@@ -49,5 +49,10 @@ COPY --from=build /app/apps/server/src/generated ./apps/server/src/generated
 COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 RUN pnpm install --frozen-lockfile --filter @shiranami/server... --prod --ignore-scripts
 
+# Run as an unprivileged user. 10001 avoids colliding with host uids (1000/1001).
+# App files stay root-owned and read-only; the process writes nothing at runtime.
+RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
+USER 10001:10001
+
 EXPOSE 3000
 CMD ["node", "apps/server/dist/main.js"]
