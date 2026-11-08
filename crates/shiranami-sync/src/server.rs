@@ -324,22 +324,15 @@ pub async fn start(config: SyncConfig) -> Result<SyncServer, StartError> {
         shutdown: CancellationToken::new(),
     });
 
-    let router = crate::routes::router(Arc::clone(&shared));
+    let router = crate::listen::limited(crate::routes::router(Arc::clone(&shared)));
     let tasks = listeners
         .into_iter()
         .map(|listener| {
-            let app = router
-                .clone()
-                .into_make_service_with_connect_info::<SocketAddr>();
-            let stop = shared.shutdown.clone();
-            tokio::spawn(async move {
-                let served = axum::serve(listener, app)
-                    .with_graceful_shutdown(async move { stop.cancelled().await })
-                    .await;
-                if let Err(error) = served {
-                    tracing::error!(%error, "sync: a listener stopped");
-                }
-            })
+            tokio::spawn(crate::listen::serve(
+                listener,
+                router.clone(),
+                shared.shutdown.clone(),
+            ))
         })
         .collect();
 

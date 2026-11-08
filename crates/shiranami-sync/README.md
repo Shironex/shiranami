@@ -77,6 +77,11 @@ sig = HMAC-SHA256(deviceSecret,
 - 30 failures per minute from one address: the same bare 404 for everything from it for the rest of
   the minute, so being blocked looks like any other refusal.
 - Per device: 50 requests per second (burst 100), 4 concurrent audio downloads (`429 too_many_streams`).
+- A body on a GET or DELETE is refused with the same bare 404. Bodies over 16 KiB get `413` before any
+  route runs (the largest real one, a pairing request, is a few hundred bytes).
+- Transport limits per listening socket: 64 open connections (more are dropped at accept), 10 s to send
+  a request head (then the connection is closed), and 16 requests handled at once across the listener
+  (more wait; a streaming audio body does not hold a slot).
 
 ## Endpoints (v0)
 

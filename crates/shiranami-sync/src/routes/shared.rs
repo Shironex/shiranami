@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 
 use axum::Router;
 use axum::body::Body;
+use axum::extract::DefaultBodyLimit;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, Uri, header};
 use axum::response::Response;
 use axum::routing::{delete, get, post};
@@ -39,8 +40,15 @@ pub(crate) fn router(shared: Arc<Shared>) -> Router {
         .route("/v1/sync/tracks/{id}/audio", get(files::audio))
         .route("/v1/sync/devices/self", delete(library::revoke_self))
         .fallback(unknown)
+        // Bodies are read before the signature can be checked, so cap them:
+        // the largest legitimate one is a pairing request of a few hundred
+        // bytes.
+        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .with_state(shared)
 }
+
+/// The largest request body any route accepts.
+pub(crate) const MAX_BODY_BYTES: usize = 16 * 1024;
 
 async fn unknown() -> SyncError {
     SyncError::NotFound
@@ -138,6 +146,12 @@ pub(crate) async fn authenticate(
         tracing::debug!(reason, "sync: refused a request");
         SyncError::NotFound
     };
+
+    // Every signed route is a GET or a DELETE: neither carries a body, so one
+    // is a malformed (or probing) request, refused like any other.
+    if !body.is_empty() && (method == Method::GET || method == Method::DELETE) {
+        return Err(refuse("a body on a bodiless method"));
+    }
 
     let header_value = headers
         .get(header::AUTHORIZATION)

@@ -17,6 +17,7 @@
 pub mod auth;
 pub mod devices;
 pub mod error;
+pub mod listen;
 pub mod mdns;
 pub mod net;
 pub mod pairing;
