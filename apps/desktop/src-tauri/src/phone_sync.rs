@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use shiranami_core::paths::FoldersCache;
+use shiranami_sync::auth::NonceCache;
 use shiranami_sync::{SyncConfig, SyncPairingTicket, SyncServer, SyncStatus};
 use tauri::{AppHandle, Manager as _};
 use tokio::sync::Mutex;
@@ -20,6 +21,11 @@ pub struct PhoneSync {
     app: AppHandle,
     folders: Arc<FoldersCache>,
     art_dir: PathBuf,
+    /// Replay protection that outlives every listener this process starts:
+    /// switching sync off and on must not make a captured request valid
+    /// again. Created at boot, so it also refuses anything signed before
+    /// this process existed.
+    nonces: Arc<NonceCache>,
     server: Mutex<Option<Arc<SyncServer>>>,
 }
 
@@ -36,6 +42,7 @@ impl PhoneSync {
             app,
             folders,
             art_dir,
+            nonces: Arc::new(NonceCache::default()),
             server: Mutex::new(None),
         }
     }
@@ -108,6 +115,7 @@ impl PhoneSync {
             self.app.package_info().version.to_string(),
         );
         config.on_change = Arc::new(move |status| emit(&event_app, status));
+        config.nonces = Arc::clone(&self.nonces);
         config
     }
 }
