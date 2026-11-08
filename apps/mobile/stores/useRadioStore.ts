@@ -1,106 +1,103 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
 import { create } from 'zustand';
 import Constants from 'expo-constants';
-import { RadioBrowserApi, type Station } from 'radio-browser-api';
+import { RadioBrowserApi } from 'radio-browser-api';
+import {
+  deleteFavoriteStation,
+  fromApi,
+  loadFavoriteStations,
+  saveFavoriteStation,
+  type RadioStation,
+} from '@/lib/radio';
 
 const appVersion = Constants.expoConfig?.version ?? '0.1.0';
 const api = new RadioBrowserApi(`Shiranami/${appVersion}`);
-let latestRequestId = 0;
+const LIMIT = 40;
 
-function beginRequest(): number {
-  return ++latestRequestId;
-}
+/** Genre chips; the value is the radio-browser tag. */
+export const RADIO_GENRES = [
+  { value: 'lofi', label: 'Lofi' },
+  { value: 'jazz', label: 'Jazz' },
+  { value: 'ambient', label: 'Ambient' },
+  { value: 'japan', label: 'Japan' },
+] as const;
 
-function isCurrent(id: number): boolean {
-  return id === latestRequestId;
-}
+export type RadioGenre = (typeof RADIO_GENRES)[number]['value'];
+export type RadioFilter = RadioGenre | 'favorites';
 
-export type RadioTab = 'top' | 'search' | 'favorites';
+let latestRequest = 0;
 
 interface RadioState {
-  stations: Station[];
-  favoriteIds: Set<string>;
+  filter: RadioFilter;
+  query: string;
+  /** Popular stations for the selected genre, or search results. */
+  stations: RadioStation[];
+  favorites: RadioStation[];
   isLoading: boolean;
   error: string | null;
-  searchQuery: string;
-  activeTab: RadioTab;
-  currentStation: Station | null;
+  currentStationId: string | null;
 }
 
 interface RadioActions {
-  loadTopStations: () => Promise<void>;
-  searchStations: (query: string) => Promise<void>;
-  setSearchQuery: (query: string) => void;
-  setActiveTab: (tab: RadioTab) => void;
-  setCurrentStation: (station: Station | null) => void;
-  toggleFavorite: (stationId: string) => void;
-  isFavorite: (stationId: string) => boolean;
-  setFavoriteIds: (ids: Set<string>) => void;
+  setFilter: (filter: RadioFilter) => void;
+  setQuery: (query: string) => void;
+  /** Loads the list for the current filter and query. */
+  refresh: () => Promise<void>;
+  loadFavorites: (db: SQLiteDatabase) => Promise<void>;
+  toggleFavorite: (db: SQLiteDatabase, station: RadioStation) => Promise<void>;
+  setCurrentStation: (id: string | null) => void;
 }
 
 export const useRadioStore = create<RadioState & RadioActions>((set, get) => ({
+  filter: 'lofi',
+  query: '',
   stations: [],
-  favoriteIds: new Set(),
+  favorites: [],
   isLoading: false,
   error: null,
-  searchQuery: '',
-  activeTab: 'top',
-  currentStation: null,
+  currentStationId: null,
 
-  loadTopStations: async () => {
-    const reqId = beginRequest();
+  setFilter: filter => {
+    set({ filter });
+    get().refresh();
+  },
+  setQuery: query => set({ query }),
+
+  refresh: async () => {
+    const { filter, query } = get();
+    const name = query.trim();
+    if (filter === 'favorites' && !name) {
+      set({ stations: [], isLoading: false, error: null });
+      return;
+    }
+    const request = ++latestRequest;
     set({ isLoading: true, error: null });
     try {
-      const stations = await api.searchStations({
-        limit: 100,
+      const results = await api.searchStations({
+        ...(name ? { name } : { tag: filter }),
+        limit: LIMIT,
         order: 'clickCount',
         reverse: true,
         hideBroken: true,
       });
-      if (!isCurrent(reqId)) return;
-      set({ stations, isLoading: false });
-    } catch (err) {
-      if (!isCurrent(reqId)) return;
-      set({
-        error: err instanceof Error ? err.message : 'Failed to load stations',
-        isLoading: false,
-      });
+      if (request !== latestRequest) return;
+      set({ stations: results.map(fromApi), isLoading: false });
+    } catch {
+      if (request !== latestRequest) return;
+      set({ stations: [], isLoading: false, error: 'Stations did not load.' });
     }
   },
 
-  searchStations: async (query: string) => {
-    const reqId = beginRequest();
-    set({ isLoading: true, error: null });
-    try {
-      const stations = await api.searchStations({
-        name: query,
-        limit: 100,
-        order: 'clickCount',
-        reverse: true,
-        hideBroken: true,
-      });
-      if (!isCurrent(reqId)) return;
-      set({ stations, isLoading: false });
-    } catch (err) {
-      if (!isCurrent(reqId)) return;
-      set({ error: err instanceof Error ? err.message : 'Search failed', isLoading: false });
-    }
+  loadFavorites: async db => {
+    set({ favorites: await loadFavoriteStations(db) });
   },
 
-  setSearchQuery: searchQuery => set({ searchQuery }),
-  setActiveTab: activeTab => set({ activeTab }),
-  setCurrentStation: currentStation => set({ currentStation }),
-
-  toggleFavorite: (stationId: string) => {
-    const { favoriteIds } = get();
-    const newFavs = new Set(favoriteIds);
-    if (newFavs.has(stationId)) {
-      newFavs.delete(stationId);
-    } else {
-      newFavs.add(stationId);
-    }
-    set({ favoriteIds: newFavs });
+  toggleFavorite: async (db, station) => {
+    const saved = get().favorites.some(f => f.id === station.id);
+    if (saved) await deleteFavoriteStation(db, station.id);
+    else await saveFavoriteStation(db, station);
+    await get().loadFavorites(db);
   },
 
-  isFavorite: (stationId: string) => get().favoriteIds.has(stationId),
-  setFavoriteIds: ids => set({ favoriteIds: ids }),
+  setCurrentStation: currentStationId => set({ currentStationId }),
 }));

@@ -9,6 +9,7 @@ import {
 } from 'expo-audio';
 import { addBecomingNoisyListener } from '@/modules/audio-noisy';
 import { attachTransport, usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { isSleepTimerActive, useSleepTimerStore } from '@/stores/useSleepTimerStore';
 
 /** How often the player reports position, in milliseconds. */
 const STATUS_INTERVAL_MS = 500;
@@ -27,6 +28,11 @@ export function applyStatus(status: AudioStatus): void {
   });
   if (status.error) store._setError(status.error);
   if (status.didJustFinish) store._onTrackEnd();
+  // Status updates keep arriving while the app is in the background (the
+  // media session keeps the player alive), so the sleep timer is checked
+  // against the clock here too, not only on its own JS interval.
+  const sleep = useSleepTimerStore.getState();
+  if (isSleepTimerActive(sleep)) sleep.check();
 }
 
 function trackSource(track: Track) {
@@ -96,6 +102,9 @@ export function startPlaybackService(): () => void {
     pause: () => audio.pause(),
     seekTo: seconds => {
       audio.seekTo(seconds).catch(() => undefined);
+    },
+    setVolume: level => {
+      audio.volume = level;
     },
     stop: () => {
       audio.pause();
