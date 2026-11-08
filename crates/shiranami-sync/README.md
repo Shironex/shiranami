@@ -14,7 +14,7 @@ One way only (desktop to phone). Design: `docs/research/mobile-2026-11/lan-sync.
   `bridge`, `ipsec` or `ppp`, and Windows adapters named after Hyper-V, WSL, VirtualBox, VMware,
   Tailscale, ZeroTier, WireGuard, OpenVPN or Docker. CGNAT space (`100.64.0.0/10`) never counts.
 - The address the OS uses for its default route is listed first in the QR.
-- Advertises `_shiranami._tcp.local.` over mDNS while running (TXT `v=1`, `id=<desktopId>`). A multicast
+- Advertises `_shiranami._tcp.local.` over mDNS while running (TXT `v=2`, `id=<desktopId>`). A multicast
   failure is logged and ignored; the QR code is the primary path in v0.
 - Separate from `shiranami-serve` (the loopback media server). It reuses that crate's Range parser,
   extension allowlist and chunked file streaming, nothing else.
@@ -24,12 +24,12 @@ One way only (desktop to phone). Design: `docs/research/mobile-2026-11/lan-sync.
 The desktop opens a 5 minute window and shows a QR code with this link:
 
 ```
-shiranami://pair?v=1&h=192.168.1.20,10.0.0.5&p=47321&id=<desktopId>&n=<desktopName>&t=<nonce>&k=<secret>
+shiranami://pair?v=2&h=192.168.1.20,10.0.0.5&p=47321&id=<desktopId>&n=<desktopName>&t=<nonce>&k=<secret>
 ```
 
 | Param | Meaning                                           |
 | ----- | ------------------------------------------------- |
-| `v`   | protocol version (1)                              |
+| `v`   | protocol version (2)                              |
 | `h`   | comma separated host candidates, try in order     |
 | `p`   | port                                              |
 | `id`  | desktop id (stable per install)                   |
@@ -37,21 +37,41 @@ shiranami://pair?v=1&h=192.168.1.20,10.0.0.5&p=47321&id=<desktopId>&n=<desktopNa
 | `t`   | one-time pairing nonce                            |
 | `k`   | 32-byte pairing secret, base64url without padding |
 
-The phone sends `POST /v1/sync/pair`:
+The phone makes an ephemeral X25519 key pair for this attempt and sends `POST /v1/sync/pair`:
 
 ```json
-{ "nonce": "<t>", "deviceName": "Pixel 8", "platform": "android", "proof": "<base64url>" }
+{
+  "nonce": "<t>",
+  "deviceName": "Pixel 8",
+  "platform": "android",
+  "publicKey": "<phone X25519 public key, base64url>",
+  "proof": "<base64url>"
+}
 ```
 
-`proof = HMAC-SHA256(k, "shiranami-sync/v1/pair\n" + nonce + "\n" + deviceName + "\n" + platform)`.
+```
+proof = HMAC-SHA256(k, "shiranami-sync/v2/pair\n" + nonce + "\n" + deviceName + "\n" + platform
+                       + "\n" + publicKey)
+```
 
-The desktop shows an Allow / Deny prompt (the request is held up to 120 s). On Allow it answers
-`PairResponse { deviceId, desktopId, desktopName, libraryId, protocolVersion, serverTime }` and closes the
-window, so one QR pairs one phone. Both sides then derive the device secret; it never crosses the wire:
+The proof shows the phone saw the QR, and covering `publicKey` stops anyone on the path from swapping in
+their own key. A key that is not 32 bytes, or a low-order key whose shared secret would be predictable,
+is a `400`.
+
+The desktop shows an Allow / Deny prompt (the request is held up to 120 s). On Allow it makes its own
+ephemeral key pair and answers
+`PairResponse { deviceId, publicKey, desktopId, desktopName, libraryId, protocolVersion, serverTime }`,
+`publicKey` being the desktop's, and closes the window, so one QR pairs one phone. Both sides then derive
+the device secret; it never crosses the wire:
 
 ```
-deviceSecret = HMAC-SHA256(k, "shiranami-sync/v1/device-secret\n" + deviceId)
+shared       = X25519(own private key, other side's public key)
+deviceSecret = HMAC-SHA256(shared, "shiranami-sync/v2/device-secret\n" + deviceId + "\n" + k
+                                   + "\n" + phonePublicKey + "\n" + desktopPublicKey)
 ```
+
+`k` is the `k=` text of the link and both keys are their base64url text. Both private keys are discarded
+once the secret is derived.
 
 The desktop stores it in `sync_peers` (SQLite); the phone should keep it in `expo-secure-store`.
 Pairing errors: `410 pairing_closed` (no window, expired, or a stale QR), `409 pairing_busy`,
@@ -108,13 +128,18 @@ file answers 200 with the whole new body instead of a mismatched 206. Errors oth
 ## Contract types
 
 Every body above is a Rust type in `src/wire.rs`, exported to `packages/contracts/src/generated/sync.ts`
-by the same `cargo test` run the drift guard diffs. The phone imports them, plus the link parser and the
-signing helpers, from `@shiranami/contracts/sync`, a subpath with no Tauri import.
+by the same `cargo test` run the drift guard diffs. The phone imports them, plus the link parser, the
+X25519 helpers (`generatePairingKeyPair`, `pairingSharedSecret`, on `@noble/curves`, pure JS) and the
+messages to HMAC, from `@shiranami/contracts/sync`, a subpath with no Tauri import. Shared test vectors
+(RFC 7748 keys) are asserted by `tests/contract_vectors.rs` and `packages/contracts/src/sync/sync.test.ts`.
 
 ## Versioning
 
 - The path carries the major version (`/v1`). A breaking change is `/v2`, served beside `/v1` for a while.
-- `hello.protocolVersion` / `minProtocolVersion` say what the desktop speaks.
+- `hello.protocolVersion` / `minProtocolVersion` say what the desktop speaks. Both are 2: version 2 added
+  the X25519 exchange to pairing (the link's `v=2`, the mDNS TXT `v=2`). Version 1, where the device
+  secret came from the QR alone, never shipped and is not accepted. The REST paths did not change, so
+  they stay `/v1`.
 - Additive features are announced as `capabilities`, not versions: a client checks for a capability before
   calling a route.
 
@@ -131,6 +156,11 @@ signing helpers, from `@shiranami/contracts/sync`, a subpath with no Tauri impor
 
 - The secret in the QR is only shown while the window is open and is never stored; only the derived
   per-device secret is.
+- Threat model for pairing: someone who photographs the QR **and** records the whole pairing exchange
+  still cannot compute the device secret, because it is keyed by an X25519 shared secret that needs one of
+  the two ephemeral private keys. Someone who has the QR and can actively intercept the phone's request
+  before it reaches the desktop could pair in its place; the Allow / Deny prompt (with the phone's name)
+  and the one-phone-per-QR window are the defence there, and TLS pinning in v1 closes it.
 - Revoking a device (from the desktop, or `DELETE /v1/sync/devices/self`) deletes its row, so its next
   request is a 404, and ends any audio stream it has open mid-file.
 - `db:backup:export` deletes `sync_peers` rows from the exported copy with `secure_delete` on and then
