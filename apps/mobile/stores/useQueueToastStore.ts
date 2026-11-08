@@ -24,11 +24,14 @@ interface QueueToastActions {
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
+let unwatch: (() => void) | null = null;
 let nextKey = 1;
 
 function clearTimer() {
   if (timer) clearTimeout(timer);
   timer = null;
+  unwatch?.();
+  unwatch = null;
 }
 
 const player = () => usePlayerStore.getState();
@@ -47,18 +50,33 @@ export const useQueueToastStore = create<QueueToastState & QueueToastActions>((s
   toast: null,
 
   playNext: track => {
+    get().dismiss();
     const playing = !!player().currentTrack;
     if (playing) player().playNext(track);
     else player().playFromList([track], 0);
-    get().dismiss();
+
+    // Undo only makes sense against the queue this swipe left behind. Once the
+    // queue is replaced or edited, or (when the swipe started playback) another
+    // song is on, the toast goes away instead of undoing something newer.
+    const created = player().queue;
+    const stillOurs = () =>
+      player().queue === created && (playing || player().currentTrack?.id === track.id);
+
     set({
       toast: {
         key: nextKey++,
         text: playing ? `Playing next: ${track.title}` : `Playing ${track.title}`,
-        undo: playing ? () => removeUpcoming(track.id) : () => player().clearQueue(),
+        undo: () => {
+          if (!stillOurs()) return;
+          if (playing) removeUpcoming(track.id);
+          else player().clearQueue();
+        },
       },
     });
     timer = setTimeout(() => get().dismiss(), UNDO_WINDOW_MS);
+    unwatch = usePlayerStore.subscribe(() => {
+      if (!stillOurs()) get().dismiss();
+    });
   },
 
   undo: () => {

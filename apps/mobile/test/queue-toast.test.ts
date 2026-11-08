@@ -107,3 +107,55 @@ describe('swipe to play next', () => {
     expect(toast().toast).toBeNull();
   });
 });
+
+describe('undo stays safe when things change after the swipe', () => {
+  it('a song started by the swipe: playing something else closes the toast and keeps it', () => {
+    toast().playNext(x);
+    player().playFromList([a, b], 0);
+
+    expect(toast().toast).toBeNull();
+    toast().undo();
+    expect(player().currentTrack?.id).toBe('a');
+    expect(queueIds()).toEqual(['a', 'b']);
+  });
+
+  it('a song started by the swipe: adding to the queue closes the toast', () => {
+    toast().playNext(x);
+    player().addToQueue([a]);
+
+    expect(toast().toast).toBeNull();
+    toast().undo();
+    expect(queueIds()).toEqual(['x', 'a']);
+    expect(player().currentTrack?.id).toBe('x');
+  });
+
+  it('a song queued next: replacing the queue closes the toast', () => {
+    player().playFromList([a, b], 0);
+    toast().playNext(x);
+    player().playFromList([c], 0);
+
+    expect(toast().toast).toBeNull();
+    toast().undo();
+    expect(queueIds()).toEqual(['c']);
+  });
+
+  it('a stale undo does nothing even if it is still held', () => {
+    toast().playNext(x);
+    const held = toast().toast!;
+    player().playFromList([a, b], 1);
+
+    held.undo();
+    expect(player().currentTrack?.id).toBe('b');
+    expect(queueIds()).toEqual(['a', 'b']);
+  });
+
+  it('progress and pausing leave the toast up', () => {
+    toast().playNext(x);
+    player().pause();
+    usePlayerStore.setState({ currentTime: 12 });
+
+    expect(toast().toast).not.toBeNull();
+    toast().undo();
+    expect(player().currentTrack).toBeNull();
+  });
+});
