@@ -63,7 +63,8 @@ async fn upgrading_from_0008_adds_the_column_and_index_and_keeps_every_row() {
         .fetch_one(&mut *conn)
         .await
         .expect("the ledger reads");
-    assert_eq!(version, 9);
+    // At least 0009; later additive migrations (0010 sync peers) run too.
+    assert!(version >= 9, "the upgrade reaches 0009, got {version}");
 
     let index: Option<String> = sqlx::query_scalar(
         "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_tracks_content_hash'",
