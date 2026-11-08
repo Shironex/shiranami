@@ -7,8 +7,13 @@ One way only (desktop to phone). Design: `docs/research/mobile-2026-11/lan-sync.
 
 - Off by default. The listener runs only while the user has turned "Sync with phone" on in Settings, and
   stops when they turn it off or quit. Nothing is persisted about the on/off state.
-- Binds every private IPv4 address the machine has (RFC 1918 and 169.254/16), one socket each, never
-  `0.0.0.0`, never loopback. Refuses to start without one. Ephemeral port.
+- Binds every private IPv4 address (RFC 1918 and 169.254/16) on a physical-looking interface, one
+  socket each, never `0.0.0.0`, never loopback. Refuses to start without one. Ephemeral port.
+- Skips VPN, overlay, container and VM interfaces even when their address is private: names starting
+  `utun`, `tun`, `tap`, `wg`, `docker`, `br-`, `veth`, `vboxnet`, `vmnet`, `virbr`, `zt`, `tailscale`,
+  `bridge`, `ipsec` or `ppp`, and Windows adapters named after Hyper-V, WSL, VirtualBox, VMware,
+  Tailscale, ZeroTier, WireGuard, OpenVPN or Docker. CGNAT space (`100.64.0.0/10`) never counts.
+- The address the OS uses for its default route is listed first in the QR.
 - Advertises `_shiranami._tcp.local.` over mDNS while running (TXT `v=1`, `id=<desktopId>`). A multicast
   failure is logged and ignored; the QR code is the primary path in v0.
 - Separate from `shiranami-serve` (the loopback media server). It reuses that crate's Range parser,
