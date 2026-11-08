@@ -50,29 +50,34 @@ export function useAppShortcuts(libraryLoaded: boolean): void {
 
   const pending = useRef<string | null>(null);
   const readyRef = useRef(false);
-  readyRef.current = ready;
-
   const depsRef = useRef<ShortcutDeps | null>(null);
-  depsRef.current = {
-    getLibrary: () => usePlayerStore.getState().library,
-    getLast: () => useLastPlayedStore.getState(),
-    openLibrary: () => router.navigate('/'),
-    openRadio: () => router.navigate('/radio'),
-    playTrack: (list, index, position) => {
-      const player = usePlayerStore.getState();
-      if (player.currentTrack?.id === list[index].id) {
-        player.play();
-        return;
-      }
-      player.playFromList(list, index);
-      seekWhenLoaded(list[index].id, position);
-    },
-    playShuffled: list => usePlayerStore.getState().playShuffled(list),
-    playStation: station => {
-      useRadioStore.getState().setCurrentStation(station.id);
-      usePlayerStore.getState().playFromList([stationTrack(station)], 0, 'Radio');
-    },
-  };
+
+  // Refs are written in an effect, not during render, so a discarded render
+  // never leaves them pointing at closures from UI that did not commit.
+  // Declared before the other effects so they read current values.
+  useEffect(() => {
+    readyRef.current = ready;
+    depsRef.current = {
+      getLibrary: () => usePlayerStore.getState().library,
+      getLast: () => useLastPlayedStore.getState(),
+      openLibrary: () => router.navigate('/'),
+      openRadio: () => router.navigate('/radio'),
+      playTrack: (list, index, position) => {
+        const player = usePlayerStore.getState();
+        if (player.currentTrack?.id === list[index].id) {
+          player.play();
+          return;
+        }
+        player.playFromList(list, index);
+        seekWhenLoaded(list[index].id, position);
+      },
+      playShuffled: list => usePlayerStore.getState().playShuffled(list),
+      playStation: station => {
+        useRadioStore.getState().setCurrentStation(station.id);
+        usePlayerStore.getState().playFromList([stationTrack(station)], 0, 'Radio');
+      },
+    };
+  });
 
   useEffect(() => {
     const handle = (id: string) => {
