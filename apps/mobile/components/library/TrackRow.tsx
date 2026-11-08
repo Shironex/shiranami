@@ -5,6 +5,7 @@ import { EqBars } from '@/components/ui/eq-bars';
 import { ListRow, RowMeta } from '@/components/ui/list-row';
 import { formatDuration } from '@/lib/format';
 import { colors } from '@/lib/theme';
+import { trackMeta } from '@/lib/track-meta';
 import type { Track } from '@/stores/usePlayerStore';
 
 interface TrackRowProps {
@@ -39,7 +40,7 @@ function DefaultEnd({
   );
 }
 
-/** A song in a list: art, title, artist, then eq bars or heart and duration. */
+/** A song in a list: art, title, artist and album, then eq bars or heart and duration. */
 function TrackRowInner({
   track,
   active,
@@ -53,7 +54,7 @@ function TrackRowInner({
     <ListRow
       art={<ArtTile title={track.title} artUri={track.albumArt} />}
       title={track.title}
-      meta={meta ?? track.artist}
+      meta={meta ?? trackMeta(track)}
       active={active}
       end={
         actions && !active ? null : <DefaultEnd track={track} active={active} playing={playing} />

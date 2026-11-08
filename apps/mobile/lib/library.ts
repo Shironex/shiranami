@@ -30,9 +30,11 @@ export function rowToTrack(row: TrackRow): Track {
   };
 }
 
-/** Every imported track, newest first. */
+/** Every track whose file is still there, newest first. */
 export async function loadLibrary(db: SQLiteDatabase): Promise<Track[]> {
-  const rows = await db.getAllAsync<TrackRow>('SELECT * FROM tracks ORDER BY created_at DESC');
+  const rows = await db.getAllAsync<TrackRow>(
+    'SELECT * FROM tracks WHERE missing = 0 ORDER BY created_at DESC'
+  );
   return rows.map(rowToTrack);
 }
 
