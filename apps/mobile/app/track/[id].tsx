@@ -7,7 +7,7 @@ import ListEnd from 'lucide-react-native/icons/list-end';
 import ListMinus from 'lucide-react-native/icons/list-minus';
 import ListPlus from 'lucide-react-native/icons/list-plus';
 import ListStart from 'lucide-react-native/icons/list-start';
-import Trash2 from 'lucide-react-native/icons/trash-2';
+import Trash from 'lucide-react-native/icons/trash';
 import { ArtTile } from '@/components/art/ArtTile';
 import type { IconComponent } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -112,7 +112,7 @@ export default function TrackActionsSheet() {
         onPress={done(() => toggleFavorite(track.id))}
       />
       <Action
-        icon={Trash2}
+        icon={Trash}
         label="Remove from library"
         color={colors.destructive}
         onPress={done(() => removeTrack(track))}
