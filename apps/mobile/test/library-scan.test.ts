@@ -9,6 +9,7 @@ import {
   planScan,
   READ_BATCH,
   scanLibrary,
+  withLibraryLock,
   type KnownRow,
   type LibraryDeps,
 } from '@/lib/library-scan';
@@ -397,5 +398,35 @@ describe('backfill and scan share one connection', () => {
     // Whatever the backfill left over, the scan hashed before it read the phone.
     const unhashed = await db.getAllAsync('SELECT id FROM tracks WHERE content_hash IS NULL');
     expect(unhashed).toEqual([]);
+  });
+
+  it('runs a desktop sync step only once a running scan is done', async () => {
+    const db = await freshDb();
+    const native = fakeNative(new Map(), []);
+    const order: string[] = [];
+    let release = () => {};
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    native.queryAudioAsync.mockImplementation(async () => {
+      order.push('scan');
+      await gate;
+      return [];
+    });
+    const scan = scanLibrary(db, { ...deps(native), native });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const step = withLibraryLock(async () => {
+      order.push('sync');
+      return 'written';
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(order).toEqual(['scan']);
+
+    release();
+    await scan;
+    expect(await step).toBe('written');
+    expect(order).toEqual(['scan', 'sync']);
+    // And a backfill asked for while nothing runs is free to go again.
+    expect(await backfillHashes(db, deps(native))).toBe(0);
   });
 });
