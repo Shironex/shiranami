@@ -15,7 +15,13 @@ How CI is wired and what to do when something fails.
 | `.github/workflows/mirror-issue-labels.yml`  | PR open / edit        | Copy labels from linked issues onto the PR              |
 | `.github/workflows/dependabot-automerge.yml` | Dependabot PR         | Auto-approve and `--auto` squash-merge patch updates    |
 
-`ci.yml` aggregates lint / typecheck / test / landing through a final `ci-result` job that fails if any required job failed or was cancelled. Skipped jobs (when paths-filter excludes them) do not fail the gate.
+`ci.yml` aggregates lint / typecheck / test / mobile / landing through a final `ci-result` job that fails if any required job failed or was cancelled. Skipped jobs (when paths-filter excludes them) do not fail the gate.
+
+## Mobile
+
+`apps/mobile` (Expo SDK 56) is a workspace package. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs its own typecheck and Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile typecheck` and `pnpm --filter @shiranami/mobile test`.
+
+React Native pins React to the exact version its renderer was built with (19.2.3 for SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps the two apart with a parent-scoped override (`'@shiranami/mobile>react'`), and `apps/mobile/metro.config.js` resolves every `react` import from the app itself, so Metro never picks up the web copy from pnpm's hidden hoist folder.
 
 ## Required checks
 
@@ -81,4 +87,3 @@ Third-party actions are pinned to commit SHAs with a trailing `# vX.Y.Z` comment
 ## Out of scope (today)
 
 - **Code signing / notarization.** Builds are unsigned. End users see Gatekeeper / SmartScreen warnings; the workaround is documented in the README.
-- **Mobile CI.** `apps/mobile` does not run lint or typecheck in CI yet — pending a React 19 upgrade on web.
