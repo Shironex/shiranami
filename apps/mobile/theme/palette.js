@@ -19,6 +19,10 @@ const palette = {
   nav: [0.115, 0.02, HUE],
   mini: [0.17, 0.028, HUE],
   sheet: [0.135, 0.022, HUE],
+  /** The fused dock (mini player plus tabs) and its raised selected tab. */
+  dock: [0.145, 0.024, HUE],
+  'dock-tab': [0.225, 0.04, HUE],
+  'dock-icon': [0.84, 0.08, HUE],
   'player-glow': [0.2, 0.045, HUE],
   'player-mid': [0.11, 0.025, HUE],
   /** Launcher icon and splash disk behind the mascot (app.json repeats the hex). */

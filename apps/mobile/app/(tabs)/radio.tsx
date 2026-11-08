@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, View } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { ScreenTitle } from '@/components/nav/ScreenTitle';
 import { StationRow } from '@/components/radio/StationRow';
+import { useDockInset } from '@/components/nav/Dock';
 import { Avatar } from '@/components/ui/avatar';
 import { ChipRow } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -15,6 +16,7 @@ import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useRadioStore } from '@/stores/useRadioStore';
 
 export default function RadioScreen() {
+  const bottomInset = useDockInset();
   const db = useSQLiteContext();
   const { items, favoriteIds } = useRadioView();
   const filter = useRadioStore(s => s.filter);
@@ -87,7 +89,7 @@ export default function RadioScreen() {
             />
           </View>
         }
-        contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: bottomInset }}
       />
     </View>
   );

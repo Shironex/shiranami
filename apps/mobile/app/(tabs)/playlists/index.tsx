@@ -4,6 +4,7 @@ import Animated from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import Plus from 'lucide-react-native/icons/plus';
 import { ArtTile } from '@/components/art/ArtTile';
+import { useDockInset } from '@/components/nav/Dock';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -17,6 +18,7 @@ import { colors } from '@/lib/theme';
 type Entry = ReturnType<typeof usePlaylists>[number];
 
 export default function PlaylistsScreen() {
+  const bottomInset = useDockInset();
   const router = useRouter();
   const entries = usePlaylists();
   const { scrollY, onScroll } = useWindowScroll();
@@ -52,7 +54,11 @@ export default function PlaylistsScreen() {
             <Button label="New playlist" icon={Plus} onPress={create} />
           </EmptyState>
         }
-        contentContainerStyle={{ paddingTop: topInset, paddingHorizontal: 4, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingTop: topInset,
+          paddingHorizontal: 4,
+          paddingBottom: bottomInset,
+        }}
       />
       <WindowHeader
         title="Playlists"

@@ -12,6 +12,7 @@ import { FirstRun } from '@/components/library/FirstRun';
 import { PlayShuffleRow } from '@/components/library/PlayShuffleRow';
 import { ScanProgress } from '@/components/library/ScanProgress';
 import { TrackRow } from '@/components/library/TrackRow';
+import { useDockInset } from '@/components/nav/Dock';
 import { Avatar } from '@/components/ui/avatar';
 import { ChipRow } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -49,6 +50,7 @@ function SortButton({ label, onPress }: { label: string; onPress: () => void }) 
 }
 
 export default function LibraryScreen() {
+  const bottomInset = useDockInset();
   const router = useRouter();
   const view = useLibraryView();
   const { importFiles, importing } = useLibraryActions();
@@ -166,7 +168,11 @@ export default function LibraryScreen() {
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: topInset, paddingHorizontal: 4, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingTop: topInset,
+          paddingHorizontal: 4,
+          paddingBottom: bottomInset,
+        }}
       />
       <WindowHeader
         title="Library"
