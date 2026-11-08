@@ -49,10 +49,12 @@ pub const AUTH_FAILURES_PER_MINUTE: u32 = 30;
 /// app's pool; a pool captured at start would keep reading the old file.
 pub type PoolSource = Arc<dyn Fn() -> SqlitePool + Send + Sync>;
 
-/// Called whenever [`SyncServer::status`] would answer differently (a pairing
-/// request arrived, a transfer started or ended, a device paired). The shell
-/// turns it into the `sync:status` event.
-pub type ChangeObserver = Arc<dyn Fn() + Send + Sync>;
+/// Called with the new status whenever [`SyncServer::status`] would answer
+/// differently (a pairing request arrived, a transfer started or ended, a
+/// device paired). The shell turns it into the `sync:status` event. Called
+/// with no lock held, from whichever task made the change, so it must only
+/// hand the value on.
+pub type ChangeObserver = Arc<dyn Fn(SyncStatus) + Send + Sync>;
 
 /// Which addresses to bind.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -109,7 +111,7 @@ impl SyncConfig {
             port: 0,
             advertise: true,
             require_approval: true,
-            on_change: Arc::new(|| {}),
+            on_change: Arc::new(|_| {}),
         }
     }
 }
@@ -163,7 +165,7 @@ pub(crate) struct Shared {
 
 impl Shared {
     pub(crate) fn notify(&self) {
-        (self.on_change)();
+        (self.on_change)(self.status());
     }
 
     pub(crate) fn hosts(&self) -> Vec<String> {
