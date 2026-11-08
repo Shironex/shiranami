@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import {
-  ChevronDown,
-  Heart,
-  Mic2,
-  Music2,
-  Pause,
-  Play,
-  Repeat,
-  Repeat1,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-} from 'lucide-react-native';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
+import Heart from 'lucide-react-native/icons/heart';
+import Mic2 from 'lucide-react-native/icons/mic-vocal';
+import Music2 from 'lucide-react-native/icons/eighth-note';
+import Pause from 'lucide-react-native/icons/pause';
+import Play from 'lucide-react-native/icons/play';
+import Repeat from 'lucide-react-native/icons/repeat';
+import Repeat1 from 'lucide-react-native/icons/repeat-1';
+import Shuffle from 'lucide-react-native/icons/shuffle';
+import SkipBack from 'lucide-react-native/icons/skip-back';
+import SkipForward from 'lucide-react-native/icons/skip-forward';
 import { LyricsPanel } from '@/components/player/LyricsPanel';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -46,6 +44,8 @@ export default function PlayerScreen() {
   const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
   const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const seek = usePlayerStore(s => s.seek);
+  const [barWidth, setBarWidth] = useState(0);
   const [showLyrics, setShowLyrics] = useState(false);
   const playScale = useSharedValue(1);
   const playStyle = useAnimatedStyle(() => ({
@@ -61,7 +61,15 @@ export default function PlayerScreen() {
     togglePlay();
   };
 
+  const isLive = currentTrack?.isLive ?? false;
+  const canSeek = !isLive && duration > 0 && barWidth > 0;
   const progress = duration > 0 ? currentTime / duration : 0;
+
+  const handleSeekPress = (event: GestureResponderEvent) => {
+    if (!canSeek) return;
+    const ratio = Math.min(Math.max(event.nativeEvent.locationX / barWidth, 0), 1);
+    seek(ratio * duration);
+  };
 
   if (!currentTrack) {
     return (
@@ -126,12 +134,27 @@ export default function PlayerScreen() {
 
         {/* Progress bar */}
         <View style={s.progressSection}>
-          <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: `${progress * 100}%` }]} />
-          </View>
+          <Pressable
+            onPress={handleSeekPress}
+            onLayout={e => setBarWidth(e.nativeEvent.layout.width)}
+            disabled={!canSeek}
+            hitSlop={{ top: 12, bottom: 12 }}
+            accessibilityRole="adjustable"
+            accessibilityLabel={isLive ? 'Live stream' : 'Seek'}
+          >
+            <View style={s.progressTrack} pointerEvents="none">
+              <View style={[s.progressFill, { width: isLive ? '100%' : `${progress * 100}%` }]} />
+            </View>
+          </Pressable>
           <View style={s.timeRow}>
-            <Text style={s.timeText}>{formatTime(currentTime)}</Text>
-            <Text style={s.timeText}>{formatTime(duration)}</Text>
+            {isLive ? (
+              <Text style={s.timeText}>Live</Text>
+            ) : (
+              <>
+                <Text style={s.timeText}>{formatTime(currentTime)}</Text>
+                <Text style={s.timeText}>{formatTime(duration)}</Text>
+              </>
+            )}
           </View>
         </View>
 

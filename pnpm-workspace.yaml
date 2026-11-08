@@ -1,8 +1,5 @@
 packages:
   - 'apps/*'
-  # Mobile excluded: it manages its own dependencies until it is ready for
-  # release (#403).
-  - '!apps/mobile'
   - 'packages/*'
 
 overrides:
@@ -36,6 +33,20 @@ overrides:
   lucide-react: ^1.16.0
   react: ^19.2.6
   react-dom: ^19.2.6
+  # Expo SDK 56 pins React 19.2.3 exactly (react-native 0.85.3 checks the
+  # renderer version at startup), so the floor above must not lift the mobile
+  # app. The parent selector wins over the bare `react` entry.
+  '@shiranami/mobile>react': 19.2.3
+  # @react-three/fiber (apps/landing) lists its React Native entry's packages
+  # as optional peers, and pnpm fills an optional peer whenever the package is
+  # anywhere in the graph. With apps/mobile in the workspace that gave landing
+  # its own react-native and expo instances built against React 19.3. Landing
+  # is web only, so those peers are removed for it.
+  '@react-three/fiber>expo': '-'
+  '@react-three/fiber>expo-asset': '-'
+  '@react-three/fiber>expo-file-system': '-'
+  '@react-three/fiber>expo-gl': '-'
+  '@react-three/fiber>react-native': '-'
   uuid: '>=11.1.1'
   tmp: 0.2.7
   shell-quote: 1.10.0
@@ -64,7 +75,10 @@ overrides:
   # resolves 8.3.5, which is under the 7 day release age gate that pnpm 10.9.0
   # does not enforce. Relax to a floor once 8.3.5 has aged.
   vite: 8.3.4
-  '@babel/core': '>=7.29.6'
+  # Bounded below 8.0.0: every consumer here (babel-preset-expo, react-native,
+  # jest, @sentry/bundler-plugins) declares the 7 line, and an unbounded floor
+  # resolved Babel 8 for all of them.
+  '@babel/core': '>=7.29.6 <8'
   find-my-way: '>=9.7.0'
   # astro (apps/landing) already resolves svgo's own patched release as of
   # the Phase 1 astro bump; floor kept at that patched version so a future
@@ -109,6 +123,10 @@ overrides:
   # nanoid@5 used directly in apps/server, hence the scoped `@3` syntax,
   # same pattern as brace-expansion above); DoS fix floor.
   'nanoid@3': '>=3.3.18'
+  # The floor above resolves nanoid 6 (ESM only) for every `^3` consumer.
+  # expo-router requires `nanoid/non-secure` from CommonJS, which Metro copes
+  # with but jest-expo cannot load, so the mobile router keeps the 3 line.
+  'expo-router>nanoid': '>=3.3.18 <4'
   # apps/landing's three.js stack: @react-three/drei pulls gainmap-js
   # (`^3.0.6`) and three-stdlib pulls draco3d (`^1.4.1`). Both had a burst of
   # releases in mid October 2026, under the 7 day release age gate that pnpm
@@ -116,6 +134,52 @@ overrides:
   # relax to floors once they have aged.
   '@monogrid/gainmap-js': 3.4.0
   draco3d: 1.5.7
+
+# Dependencies that packages use without declaring them. They only worked
+# through accidental hoisting; under pnpm's isolated linker Metro cannot bundle
+# without them. Drop an entry once the package declares the dependency itself.
+# - nativewind: the Tailwind compile (dist/tailwind/native.js) requires
+#   postcss. In watch mode the error is lost in a child process and Metro waits
+#   forever.
+# - react-native-worklets: its Babel plugin (loaded by reanimated) requires
+#   @babel/traverse, @babel/generator and @babel/types.
+# - @rn-primitives/*: the type declarations import React but the packages do
+#   not declare @types/react. TypeScript then walks up into pnpm's hidden
+#   hoist folder and picks the web app's @types/react, a second copy that
+#   breaks every `ref` prop in apps/mobile. The optional peer links the
+#   consumer's own copy instead.
+packageExtensions:
+  '@rn-primitives/portal':
+    peerDependencies:
+      '@types/react': '*'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+  '@rn-primitives/slot':
+    peerDependencies:
+      '@types/react': '*'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+  nativewind:
+    dependencies:
+      postcss: '^8.4.0'
+  react-native-worklets:
+    dependencies:
+      '@babel/generator': '^7.28.0'
+      '@babel/traverse': '^7.28.0'
+      '@babel/types': '^7.28.0'
+
+peerDependencyRules:
+  allowedVersions:
+    # The `react` override above also rewrites peer ranges to ^19.2.6, so
+    # every React Native package in apps/mobile reports its 19.2.3 as unmet.
+    # This also covers expo-router's web half, whose `react-dom` peer pulls the
+    # newest react-dom; the app is native only and nothing imports react-dom.
+    react: '19.2.3'
+    # Same split for the typings: expo-router's web half pulls the newest
+    # @types/react-dom, which asks for the web app's @types/react.
+    '@types/react-dom>@types/react': '19.2'
 
 onlyBuiltDependencies:
   - esbuild

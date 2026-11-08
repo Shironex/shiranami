@@ -3,15 +3,15 @@ import '@/global.css';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NAV_THEME } from '@/lib/theme';
-import { ThemeProvider } from '@react-navigation/native';
 import { PortalHost } from '@rn-primitives/portal';
 import { SQLiteProvider } from 'expo-sqlite';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { migrateDbIfNeeded } from '@/lib/db';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { startPlaybackService } from '@/lib/playback-service';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -35,6 +35,8 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+
+  useEffect(() => startPlaybackService(), []);
 
   const handleAppReady = useCallback(() => {
     SplashScreen.hideAsync();

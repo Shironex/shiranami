@@ -27,6 +27,7 @@ jobs:
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
       desktop: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' }}
+      mobile: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.mobile == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -74,6 +75,8 @@ jobs:
               - 'apps/server/**'
               - 'Dockerfile.server'
               - 'docker-compose.yml'
+            mobile:
+              - 'apps/mobile/**'
             landing:
               - 'apps/landing/**'
               - 'Dockerfile.landing'
@@ -82,7 +85,7 @@ jobs:
   lint:
     name: Lint
     needs: [changes]
-    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.landing == 'true'
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.landing == 'true' || needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -147,6 +150,29 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  # The Expo app has its own TypeScript and Jest setup (jest-expo, React
+  # Native's React), so it runs beside the root suites rather than inside them.
+  # Lint and format are covered by the Lint job above.
+  mobile:
+    name: Mobile
+    needs: [changes]
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Type check
+        run: pnpm --filter @shiranami/mobile typecheck
+
+      - name: Test
+        run: pnpm --filter @shiranami/mobile test
 
   test-storybook:
     name: Storybook Tests
@@ -312,7 +338,7 @@ jobs:
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test, test-storybook, mock-mode, size, e2e-tauri, landing]
+    needs: [lint, typecheck, test, mobile, test-storybook, mock-mode, size, e2e-tauri, landing]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

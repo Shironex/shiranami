@@ -201,7 +201,7 @@ export const AnimatedSplash = memo(AnimatedSplashInner);
 
 const s = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.background,
     zIndex: 100,
     alignItems: 'center',

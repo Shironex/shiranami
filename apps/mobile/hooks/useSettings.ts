@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
+import { env } from '@/lib/env';
 
 export interface AppSettings {
   showLabels: boolean;
@@ -8,7 +9,7 @@ export interface AppSettings {
 
 const DEFAULTS: AppSettings = {
   showLabels: true,
-  serverUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
+  serverUrl: env.apiUrl,
 };
 
 export function useSettings() {

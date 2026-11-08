@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { type LayoutChangeEvent, Platform, Pressable, StyleSheet, View } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/tabs';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -12,7 +12,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Library, Radio, Search, Settings } from 'lucide-react-native';
+import Library from 'lucide-react-native/icons/library';
+import Radio from 'lucide-react-native/icons/radio';
+import Search from 'lucide-react-native/icons/search';
+import Settings from 'lucide-react-native/icons/settings';
 import { Text } from '@/components/ui/text';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { colors } from '@/lib/theme';
@@ -385,7 +388,7 @@ const s = StyleSheet.create({
     borderRadius: 1,
   },
   pillTrack: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
   },
   pillContainer: {

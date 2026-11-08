@@ -9,7 +9,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Heart, Radio, Search, X } from 'lucide-react-native';
+import Heart from 'lucide-react-native/icons/heart';
+import Radio from 'lucide-react-native/icons/radio';
+import Search from 'lucide-react-native/icons/search';
+import X from 'lucide-react-native/icons/x';
 import type { Station } from 'radio-browser-api';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Text } from '@/components/ui/text';
@@ -44,7 +47,7 @@ export default function RadioScreen() {
     setFavoriteIds,
   } = useRadioStore();
 
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const playFromList = usePlayerStore(s => s.playFromList);
 
   // Load favorites from DB and top stations on mount
   useEffect(() => {
@@ -67,10 +70,11 @@ export default function RadioScreen() {
         duration: 0,
         filePath: station.urlResolved || station.url,
         albumArt: station.favicon || undefined,
+        isLive: true,
       };
-      setQueue([track], 0);
+      playFromList([track], 0);
     },
-    [setCurrentStation, setQueue]
+    [setCurrentStation, playFromList]
   );
 
   const handleToggleFavorite = useCallback(

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { env } from '@/lib/env';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -14,7 +15,7 @@ interface AppActions {
 
 export const useAppStore = create<AppState & AppActions>(set => ({
   themeMode: 'dark',
-  serverUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
+  serverUrl: env.apiUrl,
 
   setThemeMode: themeMode => set({ themeMode }),
   setServerUrl: serverUrl => set({ serverUrl }),

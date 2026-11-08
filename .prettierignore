@@ -26,6 +26,8 @@ crates/shiranami-downloader/fixtures/
 # not read .gitignore, so format:check trips over them in a used checkout).
 apps/landing/.astro/
 apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
 apps/mobile/expo-env.d.ts
 apps/server/src/generated/
 

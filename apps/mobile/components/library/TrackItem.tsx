@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Heart, Music2 } from 'lucide-react-native';
+import Heart from 'lucide-react-native/icons/heart';
+import Music2 from 'lucide-react-native/icons/eighth-note';
 import { Text } from '@/components/ui/text';
 import { colors } from '@/lib/theme';
 import type { Track } from '@/stores/usePlayerStore';

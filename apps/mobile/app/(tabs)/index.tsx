@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Library, Plus, SortAsc } from 'lucide-react-native';
+import Library from 'lucide-react-native/icons/library';
+import Plus from 'lucide-react-native/icons/plus';
+import SortAsc from 'lucide-react-native/icons/arrow-up-narrow-wide';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Text } from '@/components/ui/text';
 import { TrackItem } from '@/components/library/TrackItem';
@@ -26,7 +28,7 @@ export default function LibraryScreen() {
 
   const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const playFromList = usePlayerStore(s => s.playFromList);
   const setLibrary = usePlayerStore(s => s.setLibrary);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
 
@@ -74,9 +76,9 @@ export default function LibraryScreen() {
 
   const handlePlay = useCallback(
     (index: number) => {
-      setQueue(sorted, index);
+      playFromList(sorted, index);
     },
-    [sorted, setQueue]
+    [sorted, playFromList]
   );
 
   const handleFavorite = useCallback(
