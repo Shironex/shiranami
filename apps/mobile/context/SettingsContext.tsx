@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect } from 'react';
 import { useSettings, type AppSettings } from '@/hooks/useSettings';
-import { configureApi } from '@/lib/api';
+import { applyServerUrl } from '@/lib/api';
 
 interface SettingsContextValue {
   settings: AppSettings;
@@ -15,9 +15,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { loaded, settings } = value;
 
   // The API client starts on the build-time default; the saved server URL
-  // replaces it once settings load and again whenever the user edits it.
+  // replaces it once settings load and again whenever the user edits it. A
+  // half-typed or malformed URL is skipped, so the last valid one stays.
   useEffect(() => {
-    if (loaded) configureApi(settings.serverUrl);
+    if (loaded) applyServerUrl(settings.serverUrl);
   }, [loaded, settings.serverUrl]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

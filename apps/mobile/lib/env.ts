@@ -9,13 +9,22 @@ export interface AppEnv {
 
 const DEFAULT_API_URL = 'http://localhost:3000';
 
+/**
+ * Trims an http(s) URL and drops every trailing slash. Returns null when the
+ * value has no http(s) scheme or host, so callers decide how to fail.
+ */
+export function normalizeHttpUrl(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || !/^https?:\/\/[^\s/]+/.test(trimmed)) return null;
+  return trimmed.replace(/\/+$/, '');
+}
+
 function httpUrl(name: string, value: string | undefined, fallback: string): string {
   const trimmed = value?.trim();
   if (!trimmed) return fallback;
-  if (!/^https?:\/\/[^\s/]+/.test(trimmed)) {
-    throw new Error(`${name} must be an http(s) URL, got "${trimmed}".`);
-  }
-  return trimmed.replace(/\/+$/, '');
+  const url = normalizeHttpUrl(trimmed);
+  if (!url) throw new Error(`${name} must be an http(s) URL, got "${trimmed}".`);
+  return url;
 }
 
 function flag(name: string, value: string | undefined): boolean {

@@ -1,4 +1,4 @@
-import { readEnv } from '@/lib/env';
+import { normalizeHttpUrl, readEnv } from '@/lib/env';
 
 describe('readEnv', () => {
   it('falls back to defaults when nothing is set, with YouTube search off', () => {
@@ -27,5 +27,18 @@ describe('readEnv', () => {
     expect(() => readEnv({ EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH: 'yes' })).toThrow(
       'EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH must be "true" or "false"'
     );
+  });
+});
+
+describe('normalizeHttpUrl', () => {
+  it('trims and drops every trailing slash', () => {
+    expect(normalizeHttpUrl(' https://music.example.com/// ')).toBe('https://music.example.com');
+  });
+
+  it('returns null for a value without an http(s) scheme or host', () => {
+    expect(normalizeHttpUrl('10.0.2.2:3000')).toBeNull();
+    expect(normalizeHttpUrl('http://')).toBeNull();
+    expect(normalizeHttpUrl('   ')).toBeNull();
+    expect(normalizeHttpUrl(undefined)).toBeNull();
   });
 });

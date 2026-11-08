@@ -1,12 +1,24 @@
-import { env } from './env';
+import { env, normalizeHttpUrl } from './env';
 import type { SearchResult } from './types';
 
 let baseUrl = env.apiUrl;
 let apiKey = env.apiKey;
 
 export function configureApi(url: string, key?: string) {
-  baseUrl = url.replace(/\/$/, '');
+  baseUrl = url.replace(/\/+$/, '');
   if (key) apiKey = key;
+}
+
+/**
+ * Points the client at a server URL typed in Settings or read from storage.
+ * An invalid value (no http(s) scheme) is ignored, so the client keeps the
+ * last valid URL. Returns whether the URL was applied.
+ */
+export function applyServerUrl(value: string): boolean {
+  const url = normalizeHttpUrl(value);
+  if (!url) return false;
+  configureApi(url);
+  return true;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
