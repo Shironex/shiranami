@@ -111,4 +111,17 @@ describe('SwipeRow', () => {
     await fireEvent.press(screen.getByText('Snowfall'));
     expect(play).toHaveBeenCalledTimes(2);
   });
+
+  it('does nothing when the gesture is cancelled past the threshold', async () => {
+    await renderRow();
+    await gesture([
+      { state: State.BEGAN, translationX: 0 },
+      { state: State.ACTIVE, translationX: SWIPE_THRESHOLD / 2 },
+      { translationX: SWIPE_THRESHOLD + 30 },
+      { state: State.CANCELLED, translationX: SWIPE_THRESHOLD + 30 },
+    ]);
+    expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
+    expect(onPlayNext).not.toHaveBeenCalled();
+    expect(onAddToPlaylist).not.toHaveBeenCalled();
+  });
 });

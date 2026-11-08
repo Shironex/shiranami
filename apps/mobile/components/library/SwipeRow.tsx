@@ -102,9 +102,11 @@ export function SwipeRow({ onPlayNext, onAddToPlaylist, testID, children }: Swip
         if (next !== 0) runOnJS(tick)();
       }
     })
-    .onEnd(() => {
+    .onEnd((_event, success) => {
+      // A gesture taken away mid swipe (the list, a system back swipe) ends
+      // unsuccessfully; letting go only counts when the swipe itself finished.
       const side = armed.value;
-      if (side !== 0) runOnJS(release)(side);
+      if (success && side !== 0) runOnJS(release)(side);
     })
     .onFinalize(() => {
       armed.value = 0;
