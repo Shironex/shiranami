@@ -37,6 +37,16 @@ overrides:
   # renderer version at startup), so the floor above must not lift the mobile
   # app. The parent selector wins over the bare `react` entry.
   '@shiranami/mobile>react': 19.2.3
+  # @react-three/fiber (apps/landing) lists its React Native entry's packages
+  # as optional peers, and pnpm fills an optional peer whenever the package is
+  # anywhere in the graph. With apps/mobile in the workspace that gave landing
+  # its own react-native and expo instances built against React 19.3. Landing
+  # is web only, so those peers are removed for it.
+  '@react-three/fiber>expo': '-'
+  '@react-three/fiber>expo-asset': '-'
+  '@react-three/fiber>expo-file-system': '-'
+  '@react-three/fiber>expo-gl': '-'
+  '@react-three/fiber>react-native': '-'
   uuid: '>=11.1.1'
   tmp: 0.2.7
   shell-quote: 1.10.0
