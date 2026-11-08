@@ -1,3 +1,4 @@
+import type { SyncProgress } from '@/lib/sync-run';
 import type { SyncErrorCode } from '@/lib/sync-client';
 
 /** What the phone says about desktop sync. Plain English, no protocol words. */
@@ -117,3 +118,47 @@ export function formatBytes(bytes: number): string {
 /** The fixed line that says sync is one way in v0. */
 export const ONE_WAY_NOTE =
   'One way for now: songs, playlists and favorites come from the desktop to the phone. Changes on the phone stay on the phone.';
+
+/** "1,940" in the phone's locale. */
+const count = (value: number) => value.toLocaleString('en-US');
+
+/** "812 of 1,940 songs · 3.2 GB left", the library line of a running pull. */
+export function songsLine(progress: SyncProgress): string {
+  if (progress.songsTotal === 0) {
+    return progress.songsLinked
+      ? `${count(progress.songsLinked)} already on this phone, nothing to copy`
+      : 'Nothing new to copy';
+  }
+  const left = progress.bytesLeft > 0 ? ` · ${formatBytes(progress.bytesLeft)} left` : '';
+  return `${count(progress.songsDone)} of ${count(progress.songsTotal)} songs${left}`;
+}
+
+/** One line for Settings while a pull runs. */
+export function progressLine(progress: SyncProgress | null): string {
+  switch (progress?.stage) {
+    case undefined:
+    case 'connecting':
+      return 'Connecting';
+    case 'favorites':
+      return 'Bringing over favorites';
+    case 'playlists':
+      return 'Bringing over playlists';
+    case 'library':
+      return songsLine(progress);
+    case 'covers':
+      return `Covers ${progress.coversDone} of ${progress.coversTotal}`;
+    case 'done':
+      return 'Finishing';
+  }
+}
+
+/** 0 to 1 for the running pull's bar: songs carry nearly all the weight. */
+export function progressRatio(progress: SyncProgress | null): number {
+  if (!progress) return 0;
+  if (progress.stage === 'done') return 1;
+  if (progress.stage === 'covers') {
+    return 0.95 + 0.05 * (progress.coversTotal ? progress.coversDone / progress.coversTotal : 1);
+  }
+  if (progress.stage !== 'library') return 0;
+  return progress.songsTotal ? (0.95 * progress.songsDone) / progress.songsTotal : 0.95;
+}
