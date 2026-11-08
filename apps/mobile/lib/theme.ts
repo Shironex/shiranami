@@ -22,6 +22,7 @@ export const colors = {
   primary: generated.colors.primary,
   primaryForeground: generated.colors['primary-foreground'],
   primaryTint: generated.colors['primary-tint'],
+  primaryChip: generated.colors['primary-chip'],
   border: generated.colors.border,
   borderStrong: generated.colors['border-strong'],
   rail: generated.colors.rail,
