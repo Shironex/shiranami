@@ -11,6 +11,7 @@ const mockPlayer = {
   pause: jest.fn(),
   seekTo: jest.fn(() => Promise.resolve()),
   remove: jest.fn(),
+  setActiveForLockScreen: jest.fn(),
   addListener: jest.fn((_event: string, listener: StatusListener) => {
     mockPlayer.listener = listener;
     return { remove: jest.fn() };
@@ -20,6 +21,7 @@ const mockPlayer = {
 jest.mock('expo-audio', () => ({
   createAudioPlayer: jest.fn(() => mockPlayer),
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
+  requestNotificationPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
 }));
 
 const { createAudioPlayer, setAudioModeAsync } = jest.requireMock('expo-audio');
@@ -129,6 +131,36 @@ describe('playback service', () => {
     store().playFromList([track('a')], 0);
     emit({ error: 'Source error', playing: false });
     expect(store().error).toBe('Source error');
+  });
+
+  it('shows the track on the lock screen with seek buttons', () => {
+    store().playFromList([track('a', { albumArt: 'https://art/a.jpg' })], 0);
+    expect(mockPlayer.setActiveForLockScreen).toHaveBeenLastCalledWith(
+      true,
+      { title: 'a', artist: 'Artist', albumTitle: 'Album', artworkUrl: 'https://art/a.jpg' },
+      { isLiveStream: false, showSeekForward: true, showSeekBackward: true }
+    );
+  });
+
+  it('marks radio as live on the lock screen and hides seeking', () => {
+    store().playFromList([track('radio', { isLive: true, duration: 0 })], 0);
+    expect(mockPlayer.setActiveForLockScreen).toHaveBeenLastCalledWith(true, expect.anything(), {
+      isLiveStream: true,
+      showSeekForward: false,
+      showSeekBackward: false,
+    });
+  });
+
+  it('syncs a pause from the lock screen back into the store', () => {
+    store().playFromList([track('a')], 0);
+    emit({ playing: false, currentTime: 30 });
+    expect(store().isPlaying).toBe(false);
+  });
+
+  it('clears the lock screen when the queue is cleared', () => {
+    store().playFromList([track('a')], 0);
+    store().clearQueue();
+    expect(mockPlayer.setActiveForLockScreen).toHaveBeenLastCalledWith(false);
   });
 
   it('releases the player and stops driving it once stopped', () => {

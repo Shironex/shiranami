@@ -1,6 +1,9 @@
+import { Platform } from 'react-native';
 import {
   createAudioPlayer,
+  requestNotificationPermissionsAsync,
   setAudioModeAsync,
+  type AudioMetadata,
   type AudioPlayer,
   type AudioStatus,
 } from 'expo-audio';
@@ -29,6 +32,40 @@ function trackSource(track: Track) {
   return { uri: track.filePath, name: track.title };
 }
 
+export function lockScreenMetadata(track: Track): AudioMetadata {
+  return {
+    title: track.title,
+    artist: track.artist,
+    albumTitle: track.album || undefined,
+    artworkUrl: track.albumArt || undefined,
+  };
+}
+
+let notificationsRequested = false;
+
+/** Android 13+ hides the media notification until the user allows notifications. */
+function requestNotificationsOnce(): void {
+  if (notificationsRequested || Platform.OS !== 'android') return;
+  notificationsRequested = true;
+  requestNotificationPermissionsAsync().catch(() => undefined);
+}
+
+/**
+ * Shows the track on the lock screen and in the media notification. On Android
+ * this also starts the foreground service that keeps playback alive past the
+ * roughly three minute background limit. Play and pause there act on the
+ * player directly and flow back to the store through the status listener.
+ */
+function showOnLockScreen(audio: AudioPlayer, track: Track): void {
+  requestNotificationsOnce();
+  const live = track.isLive ?? false;
+  audio.setActiveForLockScreen(true, lockScreenMetadata(track), {
+    isLiveStream: live,
+    showSeekForward: !live,
+    showSeekBackward: !live,
+  });
+}
+
 /**
  * Creates the app's single audio player and connects it to the player store:
  * store actions drive the player, player status flows back into the store.
@@ -50,7 +87,10 @@ export function startPlaybackService(): () => void {
   const subscription = audio.addListener('playbackStatusUpdate', applyStatus);
 
   const detach = attachTransport({
-    load: track => audio.replace(trackSource(track)),
+    load: track => {
+      audio.replace(trackSource(track));
+      showOnLockScreen(audio, track);
+    },
     play: () => audio.play(),
     pause: () => audio.pause(),
     seekTo: seconds => {
@@ -58,6 +98,7 @@ export function startPlaybackService(): () => void {
     },
     stop: () => {
       audio.pause();
+      audio.setActiveForLockScreen(false);
       audio.replace(null);
     },
   });
