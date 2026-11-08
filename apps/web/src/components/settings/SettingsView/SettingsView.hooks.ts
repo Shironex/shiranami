@@ -24,6 +24,7 @@ import {
   CloudRain,
   MonitorCog,
   Keyboard,
+  Smartphone,
 } from 'lucide-react';
 import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
@@ -46,6 +47,7 @@ import { DiscordSection } from '@/components/settings/DiscordSection';
 import { PrivacySection } from '@/components/settings/PrivacySection';
 import { WeatherSection } from '@/components/settings/WeatherSection';
 import { ScrobbleSection } from '@/components/settings/ScrobbleSection';
+import { PhoneSyncSection } from '@/components/settings/PhoneSyncSection';
 import { ShortcutsSection } from '@/components/settings/ShortcutsSection';
 import { SystemSection } from '@/components/settings/SystemSection';
 import type {
@@ -193,6 +195,13 @@ const SECTIONS: ISettingsSectionEntry[] = [
     group: 'system',
   },
   {
+    id: 'phoneSync',
+    labelKey: 'phoneSyncNav',
+    subtitleKey: 'subtitles.phoneSync',
+    Icon: Smartphone,
+    group: 'system',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -242,6 +251,7 @@ const SECTION_PANEL: Record<ISettingsSection, ComponentType> = {
   system: SystemSection,
   shortcuts: ShortcutsSection,
   scrobble: ScrobbleSection,
+  phoneSync: PhoneSyncSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   privacy: PrivacySection,
