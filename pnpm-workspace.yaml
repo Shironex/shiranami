@@ -33,9 +33,9 @@ overrides:
   lucide-react: ^1.16.0
   react: ^19.2.6
   react-dom: ^19.2.6
-  # Expo SDK 56 pins React 19.2.3 exactly (react-native 0.85.3 checks the
-  # renderer version at startup), so the floor above must not lift the mobile
-  # app. The parent selector wins over the bare `react` entry.
+  # Expo SDK 57 pins React 19.2.3 exactly, as SDK 56 did (react-native 0.86.3
+  # checks the renderer version at startup), so the floor above must not lift
+  # the mobile app. The parent selector wins over the bare `react` entry.
   '@shiranami/mobile>react': 19.2.3
   # @react-three/fiber (apps/landing) lists its React Native entry's packages
   # as optional peers, and pnpm fills an optional peer whenever the package is
@@ -191,10 +191,11 @@ onlyBuiltDependencies:
 minimumReleaseAgeExclude:
   - '@noctcore/*'
 
-# expo-audio 56 drops next/previous from its Android media session. The patch
-# offers them for non-live tracks and emits a `lockScreenSkip` event that the
-# mobile playback service maps to the queue. expo-audio 58 has an official
-# version of this for AudioPlaylist only; drop the patch when the app moves to
-# an SDK whose expo-audio covers a single player with a JS queue.
+# expo-audio 56 and 57 drop next/previous from their Android media session (the
+# Android sources are unchanged between 56.0.13 and 57.0.5). The patch offers
+# them for non-live tracks and emits a `lockScreenSkip` event that the mobile
+# playback service maps to the queue. expo-audio 58 has an official version of
+# this for AudioPlaylist only; drop the patch when the app moves to an SDK whose
+# expo-audio covers a single player with a JS queue.
 patchedDependencies:
-  expo-audio@56.0.13: patches/expo-audio@56.0.13.patch
+  expo-audio@57.0.5: patches/expo-audio@57.0.5.patch
