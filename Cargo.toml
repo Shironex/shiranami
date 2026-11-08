@@ -348,7 +348,7 @@ sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 # `deflate` is the only compression method the evermeet and gyan.dev archives
 # use; the rest are decoders we would be exposing for no reason. Entry paths are
 # validated through `enclosed_name()`, which v1's PowerShell path could not do.
-zip = { version = "6", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 # `regex` is also used by the downloader's six ported patterns — the
 # version-segment scan, ffmpeg's version line, yt-dlp's `Destination:` and
 # `[download] N%` progress lines, the `__NEXT_DATA__` script tag, and the
