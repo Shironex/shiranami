@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import EllipsisVertical from 'lucide-react-native/icons/ellipsis-vertical';
 import Heart from 'lucide-react-native/icons/heart';
+import { RemovalToast } from '@/components/library/RemovalToast';
 import { Cover } from '@/components/player/Cover';
 import { PlayerActions } from '@/components/player/PlayerActions';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
@@ -121,6 +122,7 @@ export default function PlayerScreen() {
           <PlayerActions />
         </View>
       </ScrollView>
+      <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
     </View>
   );
 }

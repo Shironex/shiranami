@@ -9,3 +9,9 @@
 # `newline_style = "Unix"`, so a CRLF checkout makes `cargo fmt --check` fail on
 # every tracked file on Windows, for changes nobody made.
 *.rs text eol=lf
+
+# The mobile runtime version is a hash of the app files (see
+# apps/mobile/fingerprint.config.js). A CRLF checkout on Windows would hash
+# differently from the Linux EAS builders, and updates published from it would
+# never reach the installed builds.
+apps/mobile/** text=auto eol=lf
