@@ -296,3 +296,31 @@ describe('sleep timer hooks', () => {
     expect(transport.pause).toHaveBeenCalled();
   });
 });
+
+describe('output level', () => {
+  it('applies the store volume to the engine as soon as it attaches', () => {
+    expect(transport.setVolume).toHaveBeenCalledWith(store().volume);
+  });
+
+  it('applies the store volume before a loaded track starts playing', () => {
+    store().setVolume(0.6);
+    transport.setVolume.mockClear();
+    store().playFromList([a, b], 0);
+
+    expect(transport.setVolume).toHaveBeenCalledWith(0.6);
+    const setAt = transport.setVolume.mock.invocationCallOrder[0];
+    expect(setAt).toBeGreaterThan(transport.load.mock.invocationCallOrder[0]);
+    expect(setAt).toBeLessThan(transport.play.mock.invocationCallOrder[0]);
+  });
+
+  it('fades down from the store volume with no jump', () => {
+    store().playFromList([a], 0);
+    const engine = () => transport.setVolume.mock.lastCall?.[0] ?? Number.NaN;
+    const start = engine();
+    expect(start).toBe(store().volume);
+
+    store().setFade(0.99);
+    expect(engine()).toBeCloseTo(start * 0.99);
+    expect(start - engine()).toBeLessThan(0.01);
+  });
+});

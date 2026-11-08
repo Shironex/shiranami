@@ -115,9 +115,19 @@ export type PlayerStore = PlayerState & PlayerActions;
 
 let transport: PlayerTransport | null = null;
 
-/** Connects the audio engine. Returns a function that disconnects it. */
+/** Output level the engine should play at: the user volume times the sleep fade. */
+function outputLevel(state: Pick<PlayerState, 'volume' | 'fade'>): number {
+  return state.volume * state.fade;
+}
+
+/**
+ * Connects the audio engine. Returns a function that disconnects it. The
+ * engine starts at its own default level, so the store's level is applied
+ * right away and the two agree from the first sample.
+ */
 export function attachTransport(next: PlayerTransport): () => void {
   transport = next;
+  next.setVolume(outputLevel(usePlayerStore.getState()));
   return () => {
     if (transport === next) transport = null;
   };
@@ -185,6 +195,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     });
     if (track) {
       transport?.load(track);
+      transport?.setVolume(outputLevel(get()));
       transport?.play();
     } else {
       transport?.stop();
@@ -277,13 +288,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     setVolume: (volume: number) => {
       const next = Math.max(0, Math.min(1, volume));
       set({ volume: next, isMuted: false });
-      transport?.setVolume(next * get().fade);
+      transport?.setVolume(outputLevel(get()));
     },
     setFade: (level: number) => {
       const fade = Math.max(0, Math.min(1, level));
       if (fade === get().fade) return;
       set({ fade });
-      transport?.setVolume(get().volume * fade);
+      transport?.setVolume(outputLevel(get()));
     },
     setStopAfterCurrent: stopAfterCurrent => set({ stopAfterCurrent }),
     toggleMute: () => set(s => ({ isMuted: !s.isMuted })),

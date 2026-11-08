@@ -6,6 +6,7 @@ type StatusListener = (status: AudioStatus) => void;
 
 const mockPlayer = {
   listener: null as StatusListener | null,
+  volume: 1,
   replace: jest.fn(),
   play: jest.fn(),
   pause: jest.fn(),
@@ -77,6 +78,7 @@ const emit = (extra: Partial<AudioStatus> = {}) => mockPlayer.listener?.(status(
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlayer.listener = null;
+  mockPlayer.volume = 1;
   usePlayerStore.setState(initialState, true);
   startPlaybackService();
 });
@@ -90,6 +92,10 @@ describe('playback service', () => {
     expect(setAudioModeAsync).toHaveBeenCalledWith(
       expect.objectContaining({ shouldPlayInBackground: true, interruptionMode: 'doNotMix' })
     );
+  });
+
+  it('starts the player at the store volume, not its own default', () => {
+    expect(mockPlayer.volume).toBe(store().volume);
   });
 
   it('loads and plays the track the store picks', () => {
