@@ -1,11 +1,19 @@
 import type { AudioStatus } from 'expo-audio';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import { startPlaybackService, stopPlaybackService } from '@/lib/playback-service';
+import {
+  startPlaybackService,
+  stopPlaybackService,
+  type LockScreenSkip,
+} from '@/lib/playback-service';
 
 type StatusListener = (status: AudioStatus) => void;
+type SkipListener = (event: LockScreenSkip) => void;
+type Subscription = { remove: () => void };
 
 const mockPlayer = {
   listener: null as StatusListener | null,
+  skipListener: null as SkipListener | null,
+  skipRemove: jest.fn(),
   volume: 1,
   replace: jest.fn(),
   play: jest.fn(),
@@ -13,8 +21,12 @@ const mockPlayer = {
   seekTo: jest.fn(() => Promise.resolve()),
   remove: jest.fn(),
   setActiveForLockScreen: jest.fn(),
-  addListener: jest.fn((_event: string, listener: StatusListener) => {
-    mockPlayer.listener = listener;
+  addListener: jest.fn((event: string, listener: StatusListener | SkipListener): Subscription => {
+    if (event === 'lockScreenSkip') {
+      mockPlayer.skipListener = listener as SkipListener;
+      return { remove: mockPlayer.skipRemove };
+    }
+    mockPlayer.listener = listener as StatusListener;
     return { remove: jest.fn() };
   }),
 };
@@ -74,10 +86,12 @@ function status(extra: Partial<AudioStatus> = {}): AudioStatus {
 }
 
 const emit = (extra: Partial<AudioStatus> = {}) => mockPlayer.listener?.(status(extra));
+const skip = (direction: LockScreenSkip['direction']) => mockPlayer.skipListener?.({ direction });
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockPlayer.listener = null;
+  mockPlayer.skipListener = null;
   mockPlayer.volume = 1;
   usePlayerStore.setState(initialState, true);
   startPlaybackService();
@@ -148,12 +162,12 @@ describe('playback service', () => {
     expect(store().error).toBe('Source error');
   });
 
-  it('shows the track on the lock screen with seek buttons', () => {
+  it('shows the track on the lock screen without seek buttons, leaving room for next and previous', () => {
     store().playFromList([track('a', { albumArt: 'https://art/a.jpg' })], 0);
     expect(mockPlayer.setActiveForLockScreen).toHaveBeenLastCalledWith(
       true,
       { title: 'a', artist: 'Artist', albumTitle: 'Album', artworkUrl: 'https://art/a.jpg' },
-      { isLiveStream: false, showSeekForward: true, showSeekBackward: true }
+      { isLiveStream: false, showSeekForward: false, showSeekBackward: false }
     );
   });
 
@@ -164,6 +178,47 @@ describe('playback service', () => {
       showSeekForward: false,
       showSeekBackward: false,
     });
+  });
+
+  it('moves to the next track for a lock screen or headset next', () => {
+    const [a, b] = [track('a'), track('b')];
+    store().playFromList([a, b], 0);
+    skip('next');
+
+    expect(store().currentTrack?.id).toBe('b');
+    expect(mockPlayer.replace).toHaveBeenLastCalledWith(
+      expect.objectContaining({ uri: b.filePath })
+    );
+  });
+
+  it('goes back a track for previous near the start of a track', () => {
+    const [a, b] = [track('a'), track('b')];
+    store().playFromList([a, b], 1);
+    emit({ currentTime: 1 });
+    skip('previous');
+    expect(store().currentTrack?.id).toBe('a');
+  });
+
+  it('restarts the track for previous once it has played a while', () => {
+    const [a, b] = [track('a'), track('b')];
+    store().playFromList([a, b], 1);
+    emit({ currentTime: 60 });
+    skip('previous');
+
+    expect(store().currentTrack?.id).toBe('b');
+    expect(mockPlayer.seekTo).toHaveBeenLastCalledWith(0);
+  });
+
+  it('ignores next and previous during live radio', () => {
+    const radio = track('radio', { isLive: true, duration: 0 });
+    store().playFromList([radio, track('other-station', { isLive: true })], 0);
+    mockPlayer.replace.mockClear();
+    skip('next');
+    skip('previous');
+
+    expect(store().currentTrack?.id).toBe('radio');
+    expect(mockPlayer.replace).not.toHaveBeenCalled();
+    expect(mockPlayer.seekTo).not.toHaveBeenCalled();
   });
 
   it('syncs a pause from the lock screen back into the store', () => {
@@ -189,6 +244,7 @@ describe('playback service', () => {
     stopPlaybackService();
     expect(mockPlayer.remove).toHaveBeenCalled();
     expect(mockNoisy.remove).toHaveBeenCalled();
+    expect(mockPlayer.skipRemove).toHaveBeenCalled();
     store().playFromList([track('a')], 0);
     expect(mockPlayer.replace).not.toHaveBeenCalled();
   });
