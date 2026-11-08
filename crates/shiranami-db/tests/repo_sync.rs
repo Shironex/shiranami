@@ -110,3 +110,42 @@ async fn an_exported_copy_carries_no_sync_secrets() {
         "stripping leaves no WAL beside the export"
     );
 }
+
+#[tokio::test]
+async fn an_exported_copy_keeps_no_secret_bytes_in_free_pages() {
+    let mut fixture = fresh().await;
+    let mut marked = peer("1");
+    marked.device_id = "device-id-marker-6f1c".to_owned();
+    marked.secret = "secret-marker-9b2e4d7a".to_owned();
+    sync::insert_peer(fixture.conn(), &marked)
+        .await
+        .expect("insert");
+
+    let copy = fixture.sibling("raw.db");
+    backup::snapshot_to(fixture.conn(), &copy)
+        .await
+        .expect("snapshot");
+    let before = std::fs::read(&copy).expect("read the copy");
+    assert!(
+        contains(&before, b"secret-marker-9b2e4d7a"),
+        "the fixture really puts the secret in the copy"
+    );
+
+    sync::strip_credentials(&copy).await.expect("strip");
+
+    let after = std::fs::read(&copy).expect("read the stripped copy");
+    assert!(
+        !contains(&after, b"secret-marker-9b2e4d7a"),
+        "secret bytes remain"
+    );
+    assert!(
+        !contains(&after, b"device-id-marker-6f1c"),
+        "device id bytes remain"
+    );
+}
+
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
+}

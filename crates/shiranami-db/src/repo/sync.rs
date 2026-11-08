@@ -393,10 +393,22 @@ pub async fn strip_credentials(path: &Path) -> Result<()> {
     .map_err(failed("inspect the exported copy"))?;
 
     if has_table {
+        // A plain DELETE only unlinks the rows: the bundled SQLite leaves
+        // `secure_delete` off, so the ids and secrets would survive in free
+        // pages. Zero them on delete, then VACUUM to rebuild the file without
+        // any free page at all.
+        sqlx::query("PRAGMA secure_delete = ON")
+            .execute(&mut conn)
+            .await
+            .map_err(failed("enable secure delete on the copy"))?;
         sqlx::query("DELETE FROM sync_peers")
             .execute(&mut conn)
             .await
-            .map_err(failed("strip sync credentials from the exported copy"))?;
+            .map_err(failed("strip sync credentials from the copy"))?;
+        sqlx::query("VACUUM")
+            .execute(&mut conn)
+            .await
+            .map_err(failed("compact the copy"))?;
     }
 
     conn.close()
