@@ -306,3 +306,56 @@ fn the_result_shapes_are_v1s() {
         "v1's import result carries no path"
     );
 }
+
+/// A backup carrying paired phones must not add them: the import strips the
+/// staged copy before it replaces the live file.
+#[tokio::test]
+async fn importing_never_brings_paired_phones_along() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let state = state_over(dir.path()).await;
+    let live = live_database_path(&state);
+
+    let (_backup_dir, source) = a_library_file("Imported").await;
+    {
+        let opened = shiranami_db::open(&source).await.expect("open the backup");
+        let mut conn = opened.pool.acquire().await.expect("acquire");
+        shiranami_db::repo::sync::insert_peer(
+            &mut conn,
+            &shiranami_db::repo::sync::SyncPeer {
+                device_id: "smuggled".to_owned(),
+                name: "Attacker phone".to_owned(),
+                platform: "android".to_owned(),
+                secret: "c2VjcmV0".to_owned(),
+                created_at: "2026-11-08T10:00:00.000Z".to_owned(),
+                last_seen_at: None,
+            },
+        )
+        .await
+        .expect("plant a device");
+        drop(conn);
+        opened.pool.close().await;
+    }
+
+    let (swapped, reopened) = replace_library(source.clone(), live, state.pool()).await;
+    swapped.expect("the file swap succeeds");
+    let opened = reopened.expect("the database reopens");
+    state.install_pool(opened.pool).close().await;
+
+    let mut conn = state.conn().await.expect("a connection");
+    let peers = shiranami_db::repo::sync::list_peers(&mut conn)
+        .await
+        .expect("list");
+    assert!(peers.is_empty(), "no device survives an import");
+    drop(conn);
+    assert_eq!(titles(&state).await, vec!["Imported".to_owned()]);
+
+    // The user's own file is left exactly as it was.
+    let opened = shiranami_db::open(&source)
+        .await
+        .expect("reopen the backup");
+    let mut conn = opened.pool.acquire().await.expect("acquire");
+    let kept = shiranami_db::repo::sync::list_peers(&mut conn)
+        .await
+        .expect("list");
+    assert_eq!(kept.len(), 1, "the source file is never modified");
+}

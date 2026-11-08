@@ -255,6 +255,11 @@ pub async fn db_backup_import(
             // so the close below awaits an owned value rather than a borrow of
             // the state.
             state.install_pool(opened.pool).close().await;
+            // A running sync listener holds state about the library it served
+            // (transfers, a pairing window). Start it again over the new one.
+            if let Some(sync) = state.deferred().phone_sync.as_ref() {
+                sync.restart_if_running().await;
+            }
             tracing::info!(path = %source.display(), "imported a library");
             Ok(DbImportResult {
                 success: true,
@@ -343,8 +348,22 @@ async fn replace_library(
     // 3. Close the pool. Nothing may hold the file open while it is replaced.
     live_pool.close().await;
 
-    // 4 and 5. Swap the file in, then drop the sidecars describing the old one.
-    let swapped = swap_in(&source, &live);
+    // 4 and 5. Stage a copy, strip any paired-phone secrets from it, then swap
+    //    it in and drop the sidecars describing the old file. A backup must
+    //    never add a device that can pull this library over the LAN, so a
+    //    copy that cannot be stripped is refused before the overwrite.
+    let swapped = match stage(&source, &live) {
+        Ok(staged) => match shiranami_db::repo::sync::strip_credentials(&staged).await {
+            Ok(()) => commit_staged(&staged, &live),
+            Err(error) => {
+                remove_quietly(&staged);
+                Err(std::io::Error::other(format!(
+                    "could not strip sync devices from the backup: {error}"
+                )))
+            }
+        },
+        Err(error) => Err(error),
+    };
 
     // 6. Reopen either way — see the module docs.
     let reopened = shiranami_db::open(&live).await;
@@ -387,13 +406,12 @@ fn validated_path(raw: &str, what: &str) -> CommandResult<PathBuf> {
     Ok(path)
 }
 
-/// Copy `source` over `live` through a temp sibling, then drop the stale WAL
-/// sidecars.
+/// Copy `source` to the temp sibling of `live`, leaving `live` untouched.
 ///
 /// Synchronous: its only caller is [`replace_library`], which already runs on a
 /// blocking thread, so wrapping each `std::fs` call in its own `spawn_blocking`
 /// would be a thread hop per operation and no less blocking.
-fn swap_in(source: &Path, live: &Path) -> std::io::Result<()> {
+fn stage(source: &Path, live: &Path) -> std::io::Result<PathBuf> {
     let staged = staging_path(live);
     remove_quietly(&staged);
 
@@ -401,9 +419,13 @@ fn swap_in(source: &Path, live: &Path) -> std::io::Result<()> {
         remove_quietly(&staged);
         return Err(error);
     }
+    Ok(staged)
+}
 
-    if let Err(error) = std::fs::rename(&staged, live) {
-        remove_quietly(&staged);
+/// Rename the staged copy over `live`, then drop the stale WAL sidecars.
+fn commit_staged(staged: &Path, live: &Path) -> std::io::Result<()> {
+    if let Err(error) = std::fs::rename(staged, live) {
+        remove_quietly(staged);
         return Err(error);
     }
 

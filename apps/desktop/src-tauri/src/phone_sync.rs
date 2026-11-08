@@ -96,6 +96,20 @@ impl PhoneSync {
         Ok(server.start_pairing(shiranami_sync::PAIRING_TTL))
     }
 
+    /// Stop and start the listener if it runs, so nothing it holds (a
+    /// pairing window, transfers, per-device state) outlives the library it
+    /// was serving. Called after `db:backup:import`. A failed start leaves
+    /// sync off and says so in the emitted status.
+    pub async fn restart_if_running(&self) {
+        if self.running().await.is_none() {
+            return;
+        }
+        let _ = self.set_enabled(false).await;
+        if let Err(error) = self.set_enabled(true).await {
+            tracing::warn!(%error, "sync: could not restart the listener after an import");
+        }
+    }
+
     /// Stop on quit. Bounded by `shiranami_sync::server::SHUTDOWN_GRACE`.
     pub async fn shutdown(&self) {
         if let Some(server) = self.server.lock().await.take() {
