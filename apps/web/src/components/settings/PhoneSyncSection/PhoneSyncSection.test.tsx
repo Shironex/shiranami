@@ -5,7 +5,7 @@ import type { SyncApi } from '@shiranami/contracts';
 import type { SyncDevice, SyncStatus } from '@shiranami/contracts/bindings';
 
 import PhoneSyncSection from './PhoneSyncSection';
-import { formatCountdown } from './PhoneSyncSection.hooks';
+import { DEVICE_REFRESH_MS, formatCountdown } from './PhoneSyncSection.hooks';
 
 const OFF: SyncStatus = {
   running: false,
@@ -155,6 +155,36 @@ describe('PhoneSyncSection', () => {
     );
 
     expect(await screen.findByText('Sending Yoru to Pixel 9')).toBeInTheDocument();
+  });
+
+  it('re-reads the paired phones once for a burst of pushes', async () => {
+    const api = mockApi(ON);
+    render(<PhoneSyncSection />);
+    await screen.findByText('Listening on 192.168.1.20:53111');
+    expect(api.listDevices).toHaveBeenCalledTimes(1);
+
+    vi.useFakeTimers();
+    try {
+      const transfer = { deviceId: 'dev-1', deviceName: 'Pixel 9', trackId: 't1', title: 'Yoru' };
+      // A transfer starting and ending, then another starting.
+      act(() => pushStatus({ ...ON, transfers: [transfer] }));
+      act(() => pushStatus(ON));
+      act(() => pushStatus({ ...ON, transfers: [transfer] }));
+      expect(api.listDevices).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DEVICE_REFRESH_MS);
+      });
+      expect(api.listDevices).toHaveBeenCalledTimes(2);
+
+      act(() => pushStatus(ON));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(DEVICE_REFRESH_MS);
+      });
+      expect(api.listDevices).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('explains itself where the desktop bridge has no sync', () => {

@@ -18,6 +18,9 @@ const STOPPED: SyncStatus = {
   transfers: [],
 };
 
+/** Pushed statuses re-read the device list at most this often. */
+export const DEVICE_REFRESH_MS = 1000;
+
 /** `window.electronAPI.sync`, absent outside the Tauri shell. */
 function syncApi() {
   return typeof window === 'undefined' ? undefined : window.electronAPI?.sync;
@@ -60,11 +63,14 @@ export function usePhoneSyncSection(): IPhoneSyncSectionView {
     setDevices(await api.listDevices());
   }, [api]);
 
-  // Initial read, then the pushed status. Every push also re-reads the device
-  // list: an allowed pairing lands there, and the list is a handful of rows.
+  // Initial read, then the pushed status. Pushes also re-read the device list
+  // (a phone that revoked itself, `lastSeenAt`), but at most once per
+  // DEVICE_REFRESH_MS: every audio transfer pushes on start and on end. Allow
+  // and revoke from this section refresh the list right away themselves.
   useEffect(() => {
     if (!api) return undefined;
     let live = true;
+    let timer: number | undefined;
     void Promise.all([api.getStatus(), api.listDevices()]).then(([initial, paired]) => {
       if (!live) return;
       setStatus(initial);
@@ -72,13 +78,20 @@ export function usePhoneSyncSection(): IPhoneSyncSectionView {
     });
     const unsubscribe = api.onStatus(next => {
       setStatus(next);
-      void refreshDevices();
+      if (timer !== undefined) return;
+      timer = window.setTimeout(() => {
+        timer = undefined;
+        void api.listDevices().then(paired => {
+          if (live) setDevices(paired);
+        });
+      }, DEVICE_REFRESH_MS);
     });
     return () => {
       live = false;
+      window.clearTimeout(timer);
       unsubscribe();
     };
-  }, [api, refreshDevices]);
+  }, [api]);
 
   const run = useCallback(async (key: PhoneSyncBusy, action: () => Promise<void>) => {
     setBusy(key);
