@@ -160,6 +160,8 @@ shiranami-metadata = { workspace = true }
 shiranami-net = { workspace = true }
 shiranami-recommendation = { workspace = true }
 shiranami-serve = { workspace = true }
+# LAN sync v0: the opt-in phone listener, started from `sync:set-enabled`.
+shiranami-sync = { workspace = true }
 
 [dev-dependencies]
 # The reference namespaces are tested against the real state composition, which

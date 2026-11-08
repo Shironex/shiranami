@@ -210,6 +210,12 @@ events! {
     /// period, and the de-framer debounces it.
     RadioNowPlayingChanged = "radio:now-playing" => RadioNowPlaying;
 
+    /// LAN sync changed state (v2, no v1 counterpart): the listener started or
+    /// stopped, a phone is waiting for Allow / Deny, a transfer started or
+    /// ended. Carries the whole status so the settings section never has to
+    /// follow up with a read. See `crate::phone_sync`.
+    SyncStatusChanged = "sync:status" => shiranami_sync::SyncStatus;
+
     /// A `shiranami://` deep link arrived.
     ///
     /// The payload is the raw URL. v1 matched its scheme case-sensitively and
@@ -263,6 +269,7 @@ mod tests {
         "lyrics:save-progress",
         "radio:now-playing",
         "library:folders-changed",
+        "sync:status",
     ];
 
     #[test]

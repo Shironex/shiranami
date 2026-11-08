@@ -106,6 +106,11 @@ pub struct Deferred {
     /// it in `setup()` and shuts it down on `ExitRequested`.
     pub serve: Option<Arc<shiranami_serve::ServeHandle>>,
 
+    /// LAN sync v0: the phone listener's owner. Built at boot, **idle** until
+    /// the user switches "Sync with phone" on; nothing listens on the LAN
+    /// before that. See `crate::phone_sync`.
+    pub phone_sync: Option<Arc<crate::phone_sync::PhoneSync>>,
+
     /// The download queue's async driver — concurrency 3, pause/resume, batches,
     /// write-through to `download_queue`. Its state machine is pure and its
     /// effects are performed by this driver, which is why the shell holds the

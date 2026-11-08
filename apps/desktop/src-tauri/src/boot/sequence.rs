@@ -317,6 +317,12 @@ pub async fn finish(app: &AppHandle, preflight: &mut Preflight) -> Result<Booted
         e2e: preflight.e2e,
     });
     deferred.serve = Some(Arc::new(serve));
+    // Idle until the user turns it on; see `crate::phone_sync`.
+    deferred.phone_sync = Some(Arc::new(crate::phone_sync::PhoneSync::new(
+        app.clone(),
+        Arc::clone(&cache),
+        art_dir.clone(),
+    )));
     deferred.updater = crate::updater::build(app, preflight.e2e);
 
     // The OS media surface is built here rather than in `services` because it

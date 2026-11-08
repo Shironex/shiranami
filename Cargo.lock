@@ -5313,6 +5313,7 @@ dependencies = [
  "shiranami-net",
  "shiranami-recommendation",
  "shiranami-serve",
+ "shiranami-sync",
  "specta",
  "specta-serde",
  "specta-typescript",

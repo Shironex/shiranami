@@ -124,6 +124,8 @@ pub fn build(ingredients: &Ingredients) -> (Deferred, Handles) {
     let deferred = Deferred {
         // Started by `boot::sequence`; see the doc above.
         serve: None,
+        // Built by `boot::sequence` once the art directory is known.
+        phone_sync: None,
         downloads: Some(downloads),
         downloader: Some(downloader),
         scrobbler: build_scrobbler(ingredients.e2e, &ingredients.settings, &ingredients.http),
