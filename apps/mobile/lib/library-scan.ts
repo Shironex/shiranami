@@ -184,13 +184,22 @@ let activeJob: {
   done: Promise<unknown>;
 } | null = null;
 
-/** Stops a background backfill and waits until no library job runs. */
-async function waitForTurn(): Promise<void> {
+/**
+ * Stops a background backfill, waits until no library job runs, then claims
+ * the lock in the same continuation that saw it free. Waking up and claiming
+ * in two steps would let a second waiter on the same job slip in between.
+ */
+async function takeTurn<T>(
+  kind: 'scan' | 'sync',
+  stop: CancelToken,
+  job: () => Promise<T>
+): Promise<T> {
   while (activeJob) {
     const previous = activeJob;
     if (previous.kind === 'backfill') previous.stop.cancelled = true;
     await previous.done.catch(() => undefined);
   }
+  return runExclusive(kind, stop, job);
 }
 
 /**
@@ -200,8 +209,7 @@ async function waitForTurn(): Promise<void> {
  * outside the lock and only their database writes come through here.
  */
 export async function withLibraryLock<T>(job: () => Promise<T>): Promise<T> {
-  await waitForTurn();
-  return runExclusive('sync', { cancelled: false }, job);
+  return takeTurn('sync', { cancelled: false }, job);
 }
 
 /** A token that reads as cancelled when either the caller or the lock cancels it. */
@@ -323,9 +331,7 @@ export async function scanLibrary(
 ): Promise<ScanResult> {
   // Take over from a background backfill (it stops after its current batch),
   // or wait for an earlier scan or sync step to finish.
-  await waitForTurn();
-  const stop: CancelToken = { cancelled: false };
-  return runExclusive('scan', stop, () => runScan(db, deps, options));
+  return takeTurn('scan', { cancelled: false }, () => runScan(db, deps, options));
 }
 
 async function runScan(

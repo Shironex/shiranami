@@ -400,6 +400,28 @@ describe('backfill and scan share one connection', () => {
     expect(unhashed).toEqual([]);
   });
 
+  it('lets only one of several waiters take the lock when a job ends', async () => {
+    let running = 0;
+    let most = 0;
+    let release = () => {};
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const step = (wait?: Promise<void>) =>
+      withLibraryLock(async () => {
+        running++;
+        most = Math.max(most, running);
+        await (wait ?? new Promise(resolve => setTimeout(resolve, 1)));
+        running--;
+      });
+    const first = step(gate);
+    const waiters = [step(), step(), step()];
+    await new Promise(resolve => setTimeout(resolve, 0));
+    release();
+    await Promise.all([first, ...waiters]);
+    expect(most).toBe(1);
+  });
+
   it('runs a desktop sync step only once a running scan is done', async () => {
     const db = await freshDb();
     const native = fakeNative(new Map(), []);
