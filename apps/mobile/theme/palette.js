@@ -35,7 +35,8 @@ const palette = {
   'border-strong': [1, 0, 0, 0.18],
   rail: [1, 0, 0, 0.16],
   handle: [1, 0, 0, 0.28],
-  scrim: [0.05, 0.02, HUE, 0.82],
+  /** Base of photo scrims; the gradient stops add their own opacity. */
+  shade: [0.05, 0.02, HUE],
   veil: [0.03, 0.015, HUE, 0.6],
   favorite: [0.7, 0.18, 15],
   live: [0.7, 0.18, 25],

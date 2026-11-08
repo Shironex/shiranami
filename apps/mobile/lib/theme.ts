@@ -28,6 +28,8 @@ export const colors = {
   playerGlow: generated.colors['player-glow'],
   playerMid: generated.colors['player-mid'],
   switchTrack: generated.colors['switch-track'],
+  shade: generated.colors.shade,
+  handle: generated.colors.handle,
 } as const;
 
 export const fonts = {

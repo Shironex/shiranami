@@ -7,6 +7,7 @@ describe('pickKanji', () => {
     expect(pickKanji('Snowfall')).toEqual({ glyph: '雪', hue: '250' });
     expect(pickKanji('rain_on_window_v3')).toEqual({ glyph: '雨', hue: '220' });
     expect(pickKanji('Moonlit Walk').glyph).toBe('月');
+    expect(pickKanji('Chillhop Radio').glyph).toBe('葉');
   });
 
   it('takes the keyword that comes first in the title', () => {
