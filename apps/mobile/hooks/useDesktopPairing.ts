@@ -38,7 +38,10 @@ export function useDesktopPairing() {
       if (controller.current) return;
       const link = parsePairingLink(data.trim());
       if (!link) {
-        setState({ kind: 'scanning', wrongCode: true });
+        // The camera reports the same code every frame; re-render only once.
+        setState(prev =>
+          prev.kind === 'scanning' && prev.wrongCode ? prev : { kind: 'scanning', wrongCode: true }
+        );
         return;
       }
       const attempt = new AbortController();
