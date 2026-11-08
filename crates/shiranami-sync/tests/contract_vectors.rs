@@ -20,8 +20,14 @@ const SIGNATURE: &str = "DfqZEExPhEqSto3riLwed5Rxm5tSUJ5vpusk3uR5oVc";
 fn the_pairing_proof_and_device_secret_match_the_shared_vector() {
     let k = auth::unb64(SECRET).unwrap();
     assert_eq!(k, (0u8..32).collect::<Vec<_>>());
-    assert_eq!(auth::pair_proof(&k, "nonce-0001", "Pixel 9", "android"), PROOF);
-    assert_eq!(auth::b64(&auth::device_secret(&k, "dev-0001")), DEVICE_SECRET);
+    assert_eq!(
+        auth::pair_proof(&k, "nonce-0001", "Pixel 9", "android"),
+        PROOF
+    );
+    assert_eq!(
+        auth::b64(&auth::device_secret(&k, "dev-0001")),
+        DEVICE_SECRET
+    );
 }
 
 #[test]
@@ -67,7 +73,10 @@ fn the_typescript_mirror_carries_the_rust_constants() {
         format!("SYNC_AUTH_SCHEME = '{}';", auth::AUTH_SCHEME),
         format!("SYNC_MAX_SKEW_SECONDS = {};", auth::MAX_SKEW_SECS),
         format!("SYNC_PAIR_PROOF_CONTEXT = '{}';", auth::PAIR_PROOF_CONTEXT),
-        format!("SYNC_DEVICE_SECRET_CONTEXT = '{}';", auth::DEVICE_SECRET_CONTEXT),
+        format!(
+            "SYNC_DEVICE_SECRET_CONTEXT = '{}';",
+            auth::DEVICE_SECRET_CONTEXT
+        ),
         format!("SYNC_SERVICE_TYPE = '{service}';"),
         format!("SYNC_PAIR_LINK_PREFIX = '{PAIR_LINK_PREFIX}';"),
     ] {
