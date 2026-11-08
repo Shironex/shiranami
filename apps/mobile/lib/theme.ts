@@ -29,6 +29,7 @@ export const colors = {
   playerMid: generated.colors['player-mid'],
   switchTrack: generated.colors['switch-track'],
   shade: generated.colors.shade,
+  veil: generated.colors.veil,
   handle: generated.colors.handle,
 } as const;
 

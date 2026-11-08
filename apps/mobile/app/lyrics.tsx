@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import { ArtTile } from '@/components/art/ArtTile';
+import { Scrim } from '@/components/art/Scrim';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
@@ -14,6 +15,12 @@ import { useLyrics, type LyricLine } from '@/hooks/useLyrics';
 import { colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { usePlayerStore } from '@/stores/usePlayerStore';
+
+/** Lines fade out above the seek bar instead of being cut. */
+const BOTTOM_FADE = [
+  { at: 0, color: colors.background, opacity: 0 },
+  { at: 1, color: colors.background, opacity: 1 },
+] as const;
 
 const Line = memo(function Line({
   text,
@@ -129,6 +136,9 @@ export default function LyricsScreen() {
             />
           </View>
         )}
+        <View pointerEvents="none" className="absolute bottom-0 left-0 right-0 h-14">
+          <Scrim stops={BOTTOM_FADE} />
+        </View>
       </View>
 
       <View className="px-7 pt-2">
