@@ -7,6 +7,7 @@ import {
   type AudioPlayer,
   type AudioStatus,
 } from 'expo-audio';
+import { addBecomingNoisyListener } from '@/modules/audio-noisy';
 import { attachTransport, usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
 /** How often the player reports position, in milliseconds. */
@@ -103,7 +104,12 @@ export function startPlaybackService(): () => void {
     },
   });
 
+  // expo-audio keeps playing through the speaker when headphones are
+  // unplugged, so pause on Android's "becoming noisy" broadcast ourselves.
+  const removeNoisy = addBecomingNoisyListener(() => usePlayerStore.getState().pause());
+
   teardown = () => {
+    removeNoisy();
     detach();
     subscription.remove();
     audio.remove();

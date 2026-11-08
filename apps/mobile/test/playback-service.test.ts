@@ -24,6 +24,15 @@ jest.mock('expo-audio', () => ({
   requestNotificationPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true })),
 }));
 
+const mockNoisy = { listener: null as (() => void) | null, remove: jest.fn() };
+
+jest.mock('@/modules/audio-noisy', () => ({
+  addBecomingNoisyListener: jest.fn((listener: () => void) => {
+    mockNoisy.listener = listener;
+    return mockNoisy.remove;
+  }),
+}));
+
 const { createAudioPlayer, setAudioModeAsync } = jest.requireMock('expo-audio');
 
 const initialState = usePlayerStore.getState();
@@ -163,9 +172,17 @@ describe('playback service', () => {
     expect(mockPlayer.setActiveForLockScreen).toHaveBeenLastCalledWith(false);
   });
 
+  it('pauses when headphones are unplugged', () => {
+    store().playFromList([track('a')], 0);
+    mockNoisy.listener?.();
+    expect(store().isPlaying).toBe(false);
+    expect(mockPlayer.pause).toHaveBeenCalled();
+  });
+
   it('releases the player and stops driving it once stopped', () => {
     stopPlaybackService();
     expect(mockPlayer.remove).toHaveBeenCalled();
+    expect(mockNoisy.remove).toHaveBeenCalled();
     store().playFromList([track('a')], 0);
     expect(mockPlayer.replace).not.toHaveBeenCalled();
   });
