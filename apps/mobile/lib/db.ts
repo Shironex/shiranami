@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 type Migration = string[];
 
-const MIGRATIONS: Record<number, Migration> = {
+export const MIGRATIONS: Record<number, Migration> = {
   1: [
     // Tracks table
     `CREATE TABLE IF NOT EXISTS tracks (
@@ -88,6 +88,27 @@ const MIGRATIONS: Record<number, Migration> = {
     `CREATE INDEX IF NOT EXISTS idx_play_history_track_id ON play_history(track_id)`,
     `CREATE INDEX IF NOT EXISTS idx_play_history_played_at ON play_history(played_at)`,
     `CREATE INDEX IF NOT EXISTS idx_youtube_mappings_track_id ON youtube_mappings(track_id)`,
+  ],
+  // Phone library scan and content identity. Additive only, so it is instant on
+  // any library size: existing rows get NULL hashes, filled in the background
+  // after startup (lib/library-scan.ts `backfillHashes`), never during it.
+  2: [
+    // "a1:<hex sha256>", the same value the desktop stores for the same file
+    // (crates/shiranami-db/migrations/0009_track_content_hash.sql). Not unique
+    // in the schema, but the phone keeps one row per hash: import and scan
+    // skip or re-point instead of inserting a second.
+    `ALTER TABLE tracks ADD COLUMN content_hash TEXT`,
+    `ALTER TABLE tracks ADD COLUMN album_artist TEXT`,
+    // Size in bytes and MediaStore DATE_MODIFIED (seconds): a rescan re-reads
+    // a file only when one of them moved.
+    `ALTER TABLE tracks ADD COLUMN file_size INTEGER`,
+    `ALTER TABLE tracks ADD COLUMN file_modified INTEGER`,
+    // 'import' (a copy in app storage) or 'device' (a MediaStore content uri).
+    `ALTER TABLE tracks ADD COLUMN source TEXT NOT NULL DEFAULT 'import'`,
+    // Set when a rescan does not find the file. The row stays, with its
+    // favorite, plays and playlists, and comes back if the file does.
+    `ALTER TABLE tracks ADD COLUMN missing INTEGER NOT NULL DEFAULT 0`,
+    `CREATE INDEX IF NOT EXISTS idx_tracks_content_hash ON tracks(content_hash) WHERE content_hash IS NOT NULL`,
   ],
 };
 
