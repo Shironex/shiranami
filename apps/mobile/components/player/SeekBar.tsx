@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { formatDuration } from '@/lib/format';
+import { formatDuration, formatRemaining } from '@/lib/format';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 const STEP_SECONDS = 10;
@@ -89,7 +89,7 @@ export function SeekBar() {
           {formatDuration(ratio * duration)}
         </Text>
         <Text variant="meta" className="text-[13px]" style={{ fontVariant: ['tabular-nums'] }}>
-          {formatDuration(duration)}
+          {formatRemaining(ratio * duration, duration)}
         </Text>
       </View>
     </View>
