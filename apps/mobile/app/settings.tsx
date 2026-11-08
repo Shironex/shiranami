@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +5,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import { ArtTile } from '@/components/art/ArtTile';
+import { SettingsRow, SettingsValue } from '@/components/settings/SettingsRow';
 import { ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
 import { GroupLabel } from '@/components/ui/list-row';
@@ -22,22 +22,6 @@ const ART_OPTIONS: { value: PlaceholderArt; label: string }[] = [
   { value: 'photo', label: 'Photo' },
 ];
 const SAMPLE_TITLES = ['Snowfall', 'Midnight Rain', 'Coffee Break'];
-
-function Row({ label, hint, children }: { label: string; hint?: string; children?: ReactNode }) {
-  return (
-    <View className="min-h-16 flex-row items-center gap-4 px-6 py-3">
-      <View className="min-w-0 flex-1">
-        <Text variant="option">{label}</Text>
-        {!!hint && (
-          <Text variant="meta" className="mt-0.5">
-            {hint}
-          </Text>
-        )}
-      </View>
-      {children}
-    </View>
-  );
-}
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -58,14 +42,14 @@ export default function SettingsScreen() {
         contentContainerStyle={{ paddingTop: topInset, paddingBottom: insets.bottom + 32 }}
       >
         <GroupLabel className="px-6">Appearance</GroupLabel>
-        <Row label="Tab labels" hint="Names under the icons in the bottom bar">
+        <SettingsRow label="Tab labels" hint="Names under the icons in the bottom bar">
           <Switch
             value={settings.showLabels}
             onValueChange={value => update('showLabels', value)}
             accessibilityLabel="Tab labels"
           />
-        </Row>
-        <Row label="Placeholder art" hint="For songs and stations without a cover" />
+        </SettingsRow>
+        <SettingsRow label="Placeholder art" hint="For songs and stations without a cover" />
         <View className="flex-row items-center justify-between px-6 pb-2">
           <ChipRow
             options={ART_OPTIONS}
@@ -102,11 +86,9 @@ export default function SettingsScreen() {
         </View>
 
         <GroupLabel className="px-6 pt-8">About</GroupLabel>
-        <Row label="Version">
-          <Text variant="meta" style={{ fontVariant: ['tabular-nums'] }}>
-            {version}
-          </Text>
-        </Row>
+        <SettingsRow label="Version">
+          <SettingsValue>{version}</SettingsValue>
+        </SettingsRow>
       </Animated.ScrollView>
       <WindowHeader
         title="Settings"
