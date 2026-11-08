@@ -87,6 +87,12 @@ describe('useAppShortcuts', () => {
 
   it('does not replay the initial shortcut when the layout mounts again', async () => {
     mockQuick.initial = { id: 'radio' };
+    // The first mount consumes the cold-start shortcut (if no earlier test did),
+    // so this test does not depend on running after the cold-start one.
+    const first = await renderHook(() => useAppShortcuts(true));
+    await first.unmount();
+    mockNavigate.mockClear();
+
     await renderHook(() => useAppShortcuts(true));
     expect(mockNavigate).not.toHaveBeenCalled();
   });
