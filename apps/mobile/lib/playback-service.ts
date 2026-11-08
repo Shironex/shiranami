@@ -62,15 +62,51 @@ function requestNotificationsOnce(): void {
  * this also starts the foreground service that keeps playback alive past the
  * roughly three minute background limit. Play and pause there act on the
  * player directly and flow back to the store through the status listener.
+ *
+ * Next and previous come from our expo-audio patch for every non-live track.
+ * The seek buttons stay off: Android gives their slots priority over next and
+ * previous, and the lock screen scrubber still seeks. Live radio has neither.
  */
 function showOnLockScreen(audio: AudioPlayer, track: Track): void {
   requestNotificationsOnce();
-  const live = track.isLive ?? false;
   audio.setActiveForLockScreen(true, lockScreenMetadata(track), {
-    isLiveStream: live,
-    showSeekForward: !live,
-    showSeekBackward: !live,
+    isLiveStream: track.isLive ?? false,
+    showSeekForward: false,
+    showSeekBackward: false,
   });
+}
+
+/** Event our expo-audio patch emits for next and previous from outside the app. */
+export const LOCK_SCREEN_SKIP_EVENT = 'lockScreenSkip';
+
+export interface LockScreenSkip {
+  direction: 'next' | 'previous';
+}
+
+/**
+ * Moves through the queue for a next or previous press on the lock screen, the
+ * media notification or a Bluetooth or headset button. Live radio has no queue
+ * order to follow, so presses during a live stream are ignored (the patch
+ * already hides the buttons for it).
+ */
+export function applyLockScreenSkip(event: LockScreenSkip): void {
+  const store = usePlayerStore.getState();
+  if (store.currentTrack?.isLive) return;
+  if (event.direction === 'next') store.next();
+  else if (event.direction === 'previous') store.previous();
+}
+
+/** The patched event is not in expo-audio's typed event map. */
+function addSkipListener(audio: AudioPlayer, listener: (event: LockScreenSkip) => void) {
+  const emitter = audio as unknown as {
+    addListener(
+      event: typeof LOCK_SCREEN_SKIP_EVENT,
+      listener: (event: LockScreenSkip) => void
+    ): {
+      remove(): void;
+    };
+  };
+  return emitter.addListener(LOCK_SCREEN_SKIP_EVENT, listener);
 }
 
 /**
@@ -92,6 +128,7 @@ export function startPlaybackService(): () => void {
   const audio = createAudioPlayer(null, { updateInterval: STATUS_INTERVAL_MS });
   player = audio;
   const subscription = audio.addListener('playbackStatusUpdate', applyStatus);
+  const skipSubscription = addSkipListener(audio, applyLockScreenSkip);
 
   const detach = attachTransport({
     load: track => {
@@ -120,6 +157,7 @@ export function startPlaybackService(): () => void {
   teardown = () => {
     removeNoisy();
     detach();
+    skipSubscription.remove();
     subscription.remove();
     audio.remove();
   };
