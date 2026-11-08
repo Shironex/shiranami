@@ -118,7 +118,8 @@ pub(crate) fn limit(uri: &Uri, default: i64, max: i64) -> Result<i64, SyncError>
 ///
 /// Every failure is the same 404, and each one counts against the caller's
 /// address; an address over [`crate::server::AUTH_FAILURES_PER_MINUTE`] is
-/// refused before any work. A valid request from a device over its token
+/// refused before any work, with the same bare 404 so a prober learns nothing
+/// from being blocked either. A valid request from a device over its token
 /// bucket is a 429 instead, since it has already proven who it is.
 pub(crate) async fn authenticate(
     shared: &Shared,
@@ -130,7 +131,7 @@ pub(crate) async fn authenticate(
 ) -> Result<SyncPeer, SyncError> {
     let ip: IpAddr = peer_addr.ip();
     if shared.auth_failures.is_blocked(&ip) {
-        return Err(SyncError::RateLimited { retry_after: 60 });
+        return Err(SyncError::NotFound);
     }
     let refuse = |reason: &'static str| {
         shared.auth_failures.allow(&ip);

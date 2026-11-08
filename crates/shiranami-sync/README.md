@@ -69,7 +69,8 @@ sig = HMAC-SHA256(deviceSecret,
   phone correct for skew).
 - The query string is signed; `Range` and `If-Range` are not.
 - Unknown device, bad signature, stale `ts`, reused nonce, unknown route: **404 with an empty body**.
-- 30 failures per minute from one address: `429` for everything from it for the rest of the minute.
+- 30 failures per minute from one address: the same bare 404 for everything from it for the rest of
+  the minute, so being blocked looks like any other refusal.
 - Per device: 50 requests per second (burst 100), 4 concurrent audio downloads (`429 too_many_streams`).
 
 ## Endpoints (v0)

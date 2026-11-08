@@ -115,11 +115,9 @@ async fn an_address_that_keeps_failing_is_refused_outright() {
             404
         );
     }
-    let blocked = phone.get("/v1/sync/hello").await;
-    assert_eq!(
-        blocked.status, 429,
-        "even a valid request waits out the block"
-    );
+    // Even a valid request waits out the block, and the block itself looks
+    // like every other refusal.
+    assert_bare_404(&phone.get("/v1/sync/hello").await, "a blocked address");
 }
 
 #[tokio::test(flavor = "multi_thread")]
