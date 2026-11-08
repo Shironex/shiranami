@@ -312,7 +312,9 @@ pub async fn playlists_snapshot(conn: &mut SqliteConnection) -> Result<Vec<Playl
             Ok(PlaylistSnapshot {
                 track_ids: by_playlist.remove(&id).unwrap_or_default(),
                 id,
-                name: row.try_get("name").map_err(failed("read a playlist name"))?,
+                name: row
+                    .try_get("name")
+                    .map_err(failed("read a playlist name"))?,
                 description: row
                     .try_get("description")
                     .map_err(failed("read a playlist description"))?,
