@@ -43,7 +43,7 @@ shiranami-sync = { path = "crates/shiranami-sync" }
 # own row here rather than in a leaf crate, so versions stay unified.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2.11", features = ["tray-icon", "image-png"] }
+tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
 tauri-build = "2"
 tauri-plugin-single-instance = "2.4"
 thiserror = "2"
@@ -440,7 +440,7 @@ fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 # remote-command surface as the primary route and v1 registered these four
 # accelerators on Windows/Linux only). `autostart` writes the OS login item
 # behind `media_controls::AutostartBackend`.
-tauri-plugin-updater = "2.10"
+tauri-plugin-updater = "2.14"
 tauri-plugin-deep-link = "2.4"
 tauri-plugin-os = "2.3"
 tauri-plugin-global-shortcut = "2.3"
