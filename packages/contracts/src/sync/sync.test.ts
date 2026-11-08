@@ -6,14 +6,19 @@ import {
   SYNC_PAIR_LINK_PREFIX,
   SYNC_ROUTES,
   authorizationHeader,
+  deriveDeviceSecret,
   deviceSecretMessage,
   fromBase64Url,
   generatePairingKeyPair,
   pairProofMessage,
+  pairRequestProof,
   pairResponseMessage,
   pairingPublicKey,
   pairingSharedSecret,
   parsePairingLink,
+  randomRequestNonce,
+  sha256Hex,
+  signRequest,
   signingPayload,
   toBase64Url,
   verifyPairResponse,
@@ -135,6 +140,40 @@ describe('signing', () => {
     expect(authorizationHeader('dev-0001', 1762600000, 'abcdefghijklmnop', signature)).toBe(
       `SNM1 dev=dev-0001,ts=1762600000,n=abcdefghijklmnop,sig=${SIGNATURE}`
     );
+  });
+
+  it('computes the shared vectors with the bundled helpers', () => {
+    expect(pairRequestProof(SECRET, 'nonce-0001', 'Pixel 9', 'android', PHONE_PUBLIC)).toBe(PROOF);
+    expect(
+      deriveDeviceSecret({
+        secretKey: hex(PHONE_PRIVATE),
+        phonePublicKey: PHONE_PUBLIC,
+        desktopPublicKey: DESKTOP_PUBLIC,
+        deviceId: 'dev-0001',
+        pairingSecret: SECRET,
+      })
+    ).toBe(DEVICE_SECRET);
+    expect(sha256Hex('')).toBe(EMPTY_BODY_SHA256);
+    expect(sha256Hex(new Uint8Array([1, 2, 3]))).toBe(
+      createHash('sha256')
+        .update(Buffer.from([1, 2, 3]))
+        .digest('hex')
+    );
+    expect(
+      signRequest(DEVICE_SECRET, 'dev-0001', {
+        method: 'GET',
+        pathAndQuery: `${SYNC_ROUTES.manifest}?limit=2`,
+        ts: 1762600000,
+        nonce: 'abcdefghijklmnop',
+        bodySha256Hex: EMPTY_BODY_SHA256,
+      })
+    ).toBe(`SNM1 dev=dev-0001,ts=1762600000,n=abcdefghijklmnop,sig=${SIGNATURE}`);
+  });
+
+  it('makes request nonces in the allowed alphabet, never twice', () => {
+    const first = randomRequestNonce();
+    expect(first).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(randomRequestNonce()).not.toBe(first);
   });
 
   it('escapes path segments in the parameterised routes', () => {
