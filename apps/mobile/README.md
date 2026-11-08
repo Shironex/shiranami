@@ -7,7 +7,7 @@ There is no emulator workflow, by choice. Everything below targets a real phone.
 ## Prerequisites
 
 - Node `>=22.23.0` and pnpm 10.9 (`packageManager` in the root `package.json`).
-- Android Studio, for its bundled JDK 21 and the Android SDK. Point `JAVA_HOME` at that JDK (on macOS: `/Applications/Android Studio.app/Contents/jbr/Contents/Home`).
+- Android Studio, for its bundled JDK 21 and the Android SDK. Point `JAVA_HOME` at that JDK (on macOS: `/Applications/Android Studio.app/Contents/jbr/Contents/Home`) and `ANDROID_HOME` at the SDK directory (on macOS: `~/Library/Android/sdk`), or a direct Gradle build fails with `SDK location not found`.
 - `adb` from the SDK `platform-tools` on your `PATH`.
 - A phone with USB debugging on. Check it with `adb devices`.
 - Optional: an Expo account with access to the `shirone-dev` owner, for EAS builds.
@@ -22,10 +22,10 @@ Install a development client on the phone once (below), then:
 
 ```bash
 adb reverse tcp:8081 tcp:8081
-pnpm dev:mobile
+pnpm dev:mobile    # from the repo root
 ```
 
-`pnpm dev:mobile` runs `expo start -c` in `apps/mobile` (cache cleared on every start). Open the dev client on the phone and it loads the bundle from Metro. JS and style changes hot reload. A change to `app.json`, a config plugin, a native dependency or `modules/audio-noisy` needs a new native build.
+`pnpm dev:mobile` runs `expo start -c` in `apps/mobile` (cache cleared on every start). Open the dev client on the phone: its launcher lists the detected Metro server (tap it) or you can scan the QR code from the terminal. Over USB only, enter `http://localhost:8081` in the launcher, which `adb reverse` forwards to the computer. JS and style changes hot reload. A change to `app.json`, a config plugin, a native dependency or `modules/audio-noisy` needs a new native build.
 
 ## Build and install a debug dev client locally
 
@@ -68,13 +68,20 @@ Copy `apps/mobile/.env.example` to `apps/mobile/.env.local` (ignored by git):
 - `EXPO_PUBLIC_API_KEY`: value for the `x-shiranami-key` header, if the server wants one.
 - `EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH`: `true` or `false`, off for v0.1.
 
-`EXPO_PUBLIC_*` values are inlined into the bundle and readable by anyone with the app, so no secrets. Restart Metro after a change (`pnpm dev:mobile` already clears the cache). `lib/env.ts` validates them at startup.
+`EXPO_PUBLIC_*` values are inlined into the bundle and readable by anyone with the app, so no secrets. Restart Metro after a change (`pnpm dev:mobile` already clears the cache).
+
+`.env.local` only reaches local Metro. EAS builds do not upload it, so set the same names in the matching EAS environment (each profile in `eas.json` names one) or the build falls back to the defaults:
+
+````bash
+cd apps/mobile
+pnpm eas env:create --environment preview --name EXPO_PUBLIC_API_URL --value http://192.168.1.20:3000 --visibility plaintext
+``` `lib/env.ts` validates them at startup.
 
 ## Test audio on the phone
 
 ```bash
 adb push track.mp3 /sdcard/Music/
-```
+````
 
 Then import it from the app's file picker. If it does not show up, put it in `/sdcard/Download/` instead. `adb shell ls /sdcard/Music` confirms the push.
 
@@ -82,7 +89,7 @@ Then import it from the app's file picker. If it does not show up, put it in `/s
 
 ```bash
 adb logcat ReactNativeJS:V '*:S'      # JS console output and errors
-adb logcat | grep -i com.shiranami    # everything from the app, including native crashes
+adb logcat -b crash                   # native crash headers and backtraces, unfiltered
 adb logcat -c                         # clear the buffer first
 ```
 
