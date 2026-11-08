@@ -269,6 +269,20 @@ describe('runSync', () => {
     });
   });
 
+  it('finishes the pull when a cover cannot be fetched', async () => {
+    const { db, deps, saved } = await setup();
+    deps.saveArt = async (_client, hash) => {
+      if (hash === 'art-d1') throw new Error('HTTP 404');
+      return `file:///art/${hash}.jpg`;
+    };
+    const summary = await runSync(db, PEER, DEVICE_SECRET, deps);
+    expect(summary).toMatchObject({ downloaded: 2, failed: 0 });
+    const art = new Map((await loadLibrary(db)).map(t => [t.id, t.albumArt]));
+    expect(art.get('d1')).toBeUndefined();
+    expect(art.get('d2')).toBe('file:///art/art-d2.jpg');
+    expect(saved).toHaveLength(1);
+  });
+
   it('downloads nothing the second time', async () => {
     const { db, deps, files } = await setup();
     await runSync(db, PEER, DEVICE_SECRET, deps);

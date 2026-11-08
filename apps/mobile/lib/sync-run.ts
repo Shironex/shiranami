@@ -285,10 +285,11 @@ async function pullCovers(
           desktopIds.map(desktopId => ({ desktopId, uri }))
         )
       );
-    } catch (error) {
-      const syncError = asSyncError(error, signal);
-      if (FATAL.includes(syncError.code)) throw syncError;
-      // A missing cover leaves the placeholder art; the next sync tries again.
+    } catch {
+      // Only a cancel stops here: the songs are in, and a cover that fails
+      // (gone on the desktop, a dropped request) keeps the placeholder art
+      // until the next sync tries again.
+      if (signal?.aborted) throw new SyncError('cancelled');
     }
     report({ coversDone: ++done });
   }
