@@ -31,6 +31,7 @@
     "expo-font": "56.0.7",
     "expo-haptics": "~56.0.3",
     "expo-linking": "~56.0.19",
+    "expo-quick-actions": "6.0.2",
     "expo-router": "~56.2.22",
     "expo-splash-screen": "~56.0.16",
     "expo-sqlite": "~56.0.6",
