@@ -194,6 +194,14 @@ export async function applyArtwork(
   });
 }
 
+/**
+ * Ids per `IN (...)` query. SQLite caps bind parameters per statement (999 on
+ * older builds), and a desktop can send tens of thousands of plays.
+ */
+const SQL_CHUNK = 500;
+
+const placeholders = (values: unknown[]) => values.map(() => '?').join(', ');
+
 export interface MergeCounts {
   favorites: number;
   playlists: number;
@@ -212,12 +220,10 @@ export async function mergeFavorites(
 ): Promise<number> {
   const rowIds = desktopTrackIds.map(id => ids.get(id)).filter((id): id is string => !!id);
   await db.withTransactionAsync(async () => {
-    for (let start = 0; start < rowIds.length; start += 500) {
-      const slice = rowIds.slice(start, start + 500);
+    for (let start = 0; start < rowIds.length; start += SQL_CHUNK) {
+      const slice = rowIds.slice(start, start + SQL_CHUNK);
       await db.runAsync(
-        `UPDATE tracks SET is_favorite = 1 WHERE is_favorite = 0 AND id IN (${slice
-          .map(() => '?')
-          .join(', ')})`,
+        `UPDATE tracks SET is_favorite = 1 WHERE is_favorite = 0 AND id IN (${placeholders(slice)})`,
         slice
       );
     }
@@ -275,14 +281,15 @@ export async function mergeHistory(
   entries: HistoryEntry[],
   ids: Map<string, string>
 ): Promise<number> {
-  const known = new Set(
-    (
-      await db.getAllAsync<{ id: string }>(
-        `SELECT id FROM play_history WHERE id IN (${entries.map(() => '?').join(', ') || "''"})`,
-        entries.map(entry => entry.id)
-      )
-    ).map(row => row.id)
-  );
+  const known = new Set<string>();
+  for (let start = 0; start < entries.length; start += SQL_CHUNK) {
+    const slice = entries.slice(start, start + SQL_CHUNK).map(entry => entry.id);
+    const rows = await db.getAllAsync<{ id: string }>(
+      `SELECT id FROM play_history WHERE id IN (${placeholders(slice)})`,
+      slice
+    );
+    for (const row of rows) known.add(row.id);
+  }
   let added = 0;
   await db.withTransactionAsync(async () => {
     for (const entry of entries) {

@@ -205,6 +205,24 @@ describe('applyManifest and the merges', () => {
     expect(plays).toEqual([{ played_at: '2026-11-07 21:04:05', played_seconds: 0 }]);
   });
 
+  it('merges more plays than SQLite takes bind parameters in one statement', async () => {
+    const db = await freshDb();
+    await applyManifest(db, [track('d1')]);
+    const ids = await loadDesktopIds(db);
+    // SQLite's default cap is 32766 parameters per statement.
+    const entries = Array.from({ length: 33000 }, (_, i) => ({
+      id: `h${i}`,
+      trackId: 'd1',
+      playedAt: '2026-11-07T21:04:05Z',
+      playedSeconds: 60,
+      completionRatio: 0.5,
+      completed: false,
+      source: 'library',
+    }));
+    expect(await mergeHistory(db, entries, ids)).toBe(33000);
+    expect(await mergeHistory(db, entries.slice(0, 600), ids)).toBe(0);
+  });
+
   it('sets a cover only on rows that have none', async () => {
     const db = await freshDb();
     await applyManifest(db, [track('d1'), track('d2')]);
