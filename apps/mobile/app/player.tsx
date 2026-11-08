@@ -19,7 +19,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
-import { hasAlbum } from '@/lib/albums';
+import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
 import { PEEK_CARD_MIN_HEIGHT, peekCardRoom } from '@/lib/up-next';
@@ -81,15 +81,16 @@ function TrackMetaLine({ track, onOpen }: { track: Track; onOpen: (href: MetaHre
     ),
   ];
   if (hasAlbum(track)) {
+    const album = normalizeAlbumTitle(track.album);
     parts.push(
       ' · ',
       <MetaLink
         key="album"
-        label={track.album}
+        label={album}
         onPress={() =>
           onOpen({
             pathname: '/album/[title]',
-            params: { title: track.album, artist: track.artist },
+            params: { title: album, artist: track.artist },
           })
         }
       />

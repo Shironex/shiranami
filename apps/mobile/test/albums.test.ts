@@ -1,4 +1,4 @@
-import { albumMeta, findAlbum, groupAlbums, hasAlbum } from '@/lib/albums';
+import { albumMeta, findAlbum, groupAlbums, hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
 import type { Track } from '@/stores/usePlayerStore';
 
 const t = (id: string, extra: Partial<Track> = {}): Track => ({
@@ -38,6 +38,22 @@ describe('albums', () => {
     const library = [t('a'), t('x', { artist: 'Other' })];
     expect(findAlbum(library, 'Kingdom in Blue', 'Kupla')?.tracks.map(x => x.id)).toEqual(['a']);
     expect(findAlbum(library, 'Missing', 'Kupla')).toBeNull();
+  });
+
+  it('finds an album whose tag has stray spaces, whichever side has them', () => {
+    const library = [t('a', { album: '  Kingdom in Blue ' }), t('b')];
+    const [album] = groupAlbums(library);
+    expect(album.title).toBe('Kingdom in Blue');
+    expect(album.tracks.map(x => x.id)).toEqual(['a', 'b']);
+    // The player links with the raw tag of the song that is playing.
+    const raw = library[0].album;
+    expect(findAlbum(library, raw, 'Kupla')?.tracks.map(x => x.id)).toEqual(['a', 'b']);
+    expect(findAlbum(library, normalizeAlbumTitle(raw), 'Kupla')?.key).toBe(album.key);
+  });
+
+  it('normalizes album names the same way everywhere', () => {
+    expect(normalizeAlbumTitle('  Hiraeth\t')).toBe('Hiraeth');
+    expect(normalizeAlbumTitle(undefined)).toBe('');
   });
 
   it('knows an untagged album', () => {

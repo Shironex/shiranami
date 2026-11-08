@@ -12,9 +12,17 @@ export interface Album {
   year?: number;
 }
 
+/**
+ * An album name as albums are grouped and looked up: tags often carry stray
+ * spaces, so every side (grouping, links, lookup) compares this form.
+ */
+export function normalizeAlbumTitle(title: string | null | undefined): string {
+  return title?.trim() ?? '';
+}
+
 /** True when the track names a real album (not the scan's fallback). */
 export function hasAlbum(track: Track): boolean {
-  const album = track.album?.trim();
+  const album = normalizeAlbumTitle(track.album);
   return !!album && album !== UNKNOWN_ALBUM;
 }
 
@@ -33,7 +41,7 @@ export function groupAlbums(tracks: Track[]): Album[] {
   const byKey = new Map<string, Album>();
   for (const track of tracks) {
     if (!hasAlbum(track)) continue;
-    const title = track.album.trim();
+    const title = normalizeAlbumTitle(track.album);
     const artist = track.artist || UNKNOWN_ARTIST;
     const key = albumKey(title, artist);
     const album = byKey.get(key) ?? { key, title, artist, tracks: [] };
@@ -49,7 +57,8 @@ export function groupAlbums(tracks: Track[]): Album[] {
 
 /** One album by its names, or null when no track belongs to it any more. */
 export function findAlbum(tracks: Track[], title: string, artist: string): Album | null {
-  return groupAlbums(tracks.filter(t => t.artist === artist)).find(a => a.title === title) ?? null;
+  const wanted = normalizeAlbumTitle(title);
+  return groupAlbums(tracks.filter(t => t.artist === artist)).find(a => a.title === wanted) ?? null;
 }
 
 /** "2019 · 8 songs, 19 min"; the year only when the tags have one. */
