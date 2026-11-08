@@ -1,4 +1,5 @@
 import '@/global.css';
+import '@/lib/crypto-polyfill';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -87,6 +88,8 @@ export default function RootLayout() {
                   options={{ presentation: 'fullScreenModal', animation: 'fade' }}
                 />
                 <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="sync" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="sync-pair" options={{ animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="sleep" options={SHEET} />
                 <Stack.Screen
                   name="queue"

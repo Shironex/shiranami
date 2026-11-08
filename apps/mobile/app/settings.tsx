@@ -15,6 +15,7 @@ import { ArtTile } from '@/components/art/ArtTile';
 import { ScanProgress } from '@/components/library/ScanProgress';
 import { Button } from '@/components/ui/button';
 import { AppUpdateRows } from '@/components/settings/AppUpdateRows';
+import { DesktopSyncRows } from '@/components/settings/DesktopSyncRows';
 import { SettingsGroup, SettingsRow } from '@/components/settings/SettingsRow';
 import { IconButton } from '@/components/ui/icon-button';
 import { Switch } from '@/components/ui/switch';
@@ -96,6 +97,8 @@ export default function SettingsScreen() {
             />
           </SettingsRow>
         </SettingsGroup>
+
+        <DesktopSyncRows />
 
         <SettingsGroup title="Playback and look">
           <SettingsRow label="Tab labels" hint="Names under the icons in the dock" icon={Palette}>

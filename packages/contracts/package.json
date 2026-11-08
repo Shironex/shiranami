@@ -13,6 +13,7 @@
       "require": "./dist/index.js"
     },
     "./sync": {
+      "react-native": "./src/sync/index.ts",
       "types": "./dist/sync/index.d.ts",
       "import": "./dist/sync/index.js",
       "require": "./dist/sync/index.js"

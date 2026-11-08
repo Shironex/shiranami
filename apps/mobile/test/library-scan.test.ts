@@ -9,6 +9,7 @@ import {
   planScan,
   READ_BATCH,
   scanLibrary,
+  withLibraryLock,
   type KnownRow,
   type LibraryDeps,
 } from '@/lib/library-scan';
@@ -99,7 +100,7 @@ describe('migration 2', () => {
       missing: 0,
     });
     const versions = await db.getAllAsync<{ version: number }>('SELECT version FROM _migrations');
-    expect(versions.map(v => v.version)).toEqual([1, 2]);
+    expect(versions.map(v => v.version)).toEqual([1, 2, 3]);
   });
 });
 
@@ -397,5 +398,57 @@ describe('backfill and scan share one connection', () => {
     // Whatever the backfill left over, the scan hashed before it read the phone.
     const unhashed = await db.getAllAsync('SELECT id FROM tracks WHERE content_hash IS NULL');
     expect(unhashed).toEqual([]);
+  });
+
+  it('lets only one of several waiters take the lock when a job ends', async () => {
+    let running = 0;
+    let most = 0;
+    let release = () => {};
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    const step = (wait?: Promise<void>) =>
+      withLibraryLock(async () => {
+        running++;
+        most = Math.max(most, running);
+        await (wait ?? new Promise(resolve => setTimeout(resolve, 1)));
+        running--;
+      });
+    const first = step(gate);
+    const waiters = [step(), step(), step()];
+    await new Promise(resolve => setTimeout(resolve, 0));
+    release();
+    await Promise.all([first, ...waiters]);
+    expect(most).toBe(1);
+  });
+
+  it('runs a desktop sync step only once a running scan is done', async () => {
+    const db = await freshDb();
+    const native = fakeNative(new Map(), []);
+    const order: string[] = [];
+    let release = () => {};
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    native.queryAudioAsync.mockImplementation(async () => {
+      order.push('scan');
+      await gate;
+      return [];
+    });
+    const scan = scanLibrary(db, { ...deps(native), native });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const step = withLibraryLock(async () => {
+      order.push('sync');
+      return 'written';
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(order).toEqual(['scan']);
+
+    release();
+    await scan;
+    expect(await step).toBe('written');
+    expect(order).toEqual(['scan', 'sync']);
+    // And a backfill asked for while nothing runs is free to go again.
+    expect(await backfillHashes(db, deps(native))).toBe(0);
   });
 });
