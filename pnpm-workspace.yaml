@@ -190,3 +190,11 @@ onlyBuiltDependencies:
 # exclusion; newer pnpm releases read both.
 minimumReleaseAgeExclude:
   - '@noctcore/*'
+
+# expo-audio 56 drops next/previous from its Android media session. The patch
+# offers them for non-live tracks and emits a `lockScreenSkip` event that the
+# mobile playback service maps to the queue. expo-audio 58 has an official
+# version of this for AudioPlaylist only; drop the patch when the app moves to
+# an SDK whose expo-audio covers a single player with a JS queue.
+patchedDependencies:
+  expo-audio@56.0.13: patches/expo-audio@56.0.13.patch
