@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
+  useAnimatedProps,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -56,7 +57,11 @@ interface WindowHeaderProps {
   actions?: ReactNode;
   /** Top left, for pushed screens. */
   leading?: ReactNode;
+  /** Bottom right, over the photo: the round Play and Shuffle. Fades as the window collapses. */
+  footer?: ReactNode;
   photo?: ThemePhotoName;
+  /** A cover to show instead of a theme photo (artist pages). */
+  imageUri?: string;
   focusX?: number;
   focusY?: number;
 }
@@ -72,7 +77,9 @@ export function WindowHeader({
   scrollY,
   actions,
   leading,
+  footer,
   photo = 'lofi-night',
+  imageUri,
   focusX = 70,
   focusY = 38,
 }: WindowHeaderProps) {
@@ -111,6 +118,14 @@ export function WindowHeader({
   const subtitleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, COLLAPSE_DISTANCE * 0.6], [1, 0], Extrapolation.CLAMP),
   }));
+  const footerStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, COLLAPSE_DISTANCE * 0.5], [1, 0], Extrapolation.CLAMP),
+  }));
+  // Faded out, the buttons stop taking taps meant for the slim bar.
+  const footerProps = useAnimatedProps(() => ({
+    pointerEvents: (scrollY.value > COLLAPSE_DISTANCE * 0.45 ? 'none' : 'box-none') as
+      'none' | 'box-none',
+  }));
 
   return (
     <View
@@ -120,7 +135,16 @@ export function WindowHeader({
     >
       <Animated.View style={[styles.frame, frameStyle]}>
         <Animated.View style={[styles.photo, photoStyle]}>
-          <ThemePhoto photo={photo} x={focusX} y={focusY} className="flex-1" />
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              accessibilityIgnoresInvertColors
+              resizeMode="cover"
+              style={StyleSheet.absoluteFill}
+            />
+          ) : (
+            <ThemePhoto photo={photo} x={focusX} y={focusY} className="flex-1" />
+          )}
         </Animated.View>
         <Scrim stops={SCRIM} />
         <Animated.View style={[styles.title, titleStyle]}>
@@ -135,6 +159,11 @@ export function WindowHeader({
             </Animated.View>
           )}
         </Animated.View>
+        {footer && (
+          <Animated.View style={[styles.footer, footerStyle]} animatedProps={footerProps}>
+            {footer}
+          </Animated.View>
+        )}
         {leading && <View className="absolute left-2.5 top-2.5">{leading}</View>}
         {actions && (
           <View className="absolute right-2.5 top-2.5 flex-row items-center gap-1">{actions}</View>
@@ -155,4 +184,5 @@ const styles = StyleSheet.create({
   },
   photo: { position: 'absolute', left: 0, right: 0, top: 0, height: WINDOW_EXPANDED },
   title: { position: 'absolute', left: 20, right: 96, bottom: 16, transformOrigin: 'left bottom' },
+  footer: { position: 'absolute', right: 14, bottom: 14, flexDirection: 'row', gap: 8 },
 });

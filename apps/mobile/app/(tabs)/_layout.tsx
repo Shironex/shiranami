@@ -20,7 +20,7 @@ export default function TabsLayout() {
           tabBar={props => <Dock {...props} onHeight={setDockHeight} />}
           screenOptions={{ headerShown: false }}
         >
-          <Tabs.Screen name="index" options={{ title: 'Library' }} />
+          <Tabs.Screen name="(library)" options={{ title: 'Library' }} />
           <Tabs.Screen name="playlists" options={{ title: 'Playlists' }} />
           <Tabs.Screen name="radio" options={{ title: 'Radio' }} />
           {/* YouTube search is out of scope for v0.1; the screen stays in the

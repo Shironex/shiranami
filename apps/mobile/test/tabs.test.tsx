@@ -36,7 +36,7 @@ async function renderTabs() {
   await renderRouter(
     {
       '(tabs)/_layout': TabsLayout,
-      '(tabs)/index': placeholder('Library'),
+      '(tabs)/(library)/index': placeholder('Library'),
       '(tabs)/search': placeholder('Search'),
       '(tabs)/radio': placeholder('Radio'),
       '(tabs)/playlists/index': placeholder('Playlists'),
