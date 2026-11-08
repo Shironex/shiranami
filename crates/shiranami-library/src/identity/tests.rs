@@ -414,3 +414,67 @@ fn an_empty_file_still_has_an_identity() {
 
     assert!(hash_of(dir.path(), "empty.mp3", &[]).starts_with(SCHEME));
 }
+
+/// The `a1` value of one fixture per container shape, pinned byte for byte.
+///
+/// The Android app computes the same hash in Kotlin
+/// (`apps/mobile/modules/audio-library`, `ContentHash.kt`) so a file hashes
+/// alike on the phone and on the desktop. Its unit test builds these same
+/// fixtures and asserts these same values, so a change to the sampling here
+/// fails here first and is then made on both sides under a new scheme.
+#[test]
+fn golden_values_shared_with_the_android_port() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let mut ogg = b"OggS".to_vec();
+    ogg.extend(noise(200_000, 8));
+    let fixtures: [(&str, Vec<u8>, &str); 8] = [
+        (
+            "mp3-small.mp3",
+            mp3(&noise(1_000, 1), 100, &[id3v1("t")]),
+            "a1:b57fd2a7bed0c53da151da0c13927009b01f4e80575a952aaae172509dcec92c",
+        ),
+        (
+            "mp3-large.mp3",
+            mp3(&noise(400_000, 2), 2_048, &[apev2(64), id3v1("t")]),
+            "a1:a69fe935670a1a8bc9ca3b4f009dc27ac58490c12e094ca93dfa58abe2c9bbcc",
+        ),
+        (
+            "flac.flac",
+            flac(&noise(500_000, 3), 200, 1_000),
+            "a1:1cfe53cdf2fbaf57dbd76439e3af500e2f08c8e19d2f66b5037a512594100b85",
+        ),
+        (
+            "wav.wav",
+            wav(&noise(300_001, 4), 50),
+            "a1:488f9e49523bd35c29e2545b125600c407de8f37e1871eedeacfc76d948a630b",
+        ),
+        (
+            "m4a.m4a",
+            m4a(&noise(400_000, 5), 300, true),
+            "a1:b0341411322aaa9c6cbcc3353c80cda2f6141b9e6a03466b6433c6ae0063f8e1",
+        ),
+        (
+            "fragmented.m4a",
+            fragmented_m4a(&[&noise(100_000, 6), &noise(250_000, 7)], 64),
+            "a1:ee6078d995ed4212335b83b5ea11b96fabfad23a5933bb5dba81a4eb1ebf2103",
+        ),
+        (
+            "ogg.ogg",
+            ogg,
+            "a1:9bc4a72a7f4ef1523854770c6bc35d9dca64bf9b43e6beb3e36b0b0b6d131242",
+        ),
+        (
+            "empty.mp3",
+            Vec::new(),
+            "a1:5fb8f4d16b546abf1ab984ca306507b6d9b432448f6aa69eea24101f6140025e",
+        ),
+    ];
+    let mismatched: Vec<String> = fixtures
+        .into_iter()
+        .filter_map(|(name, bytes, expected)| {
+            let hash = hash_of(dir.path(), name, &bytes);
+            (hash != expected).then(|| format!("{name}: {hash}"))
+        })
+        .collect();
+    assert!(mismatched.is_empty(), "{mismatched:#?}");
+}
