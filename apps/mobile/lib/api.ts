@@ -1,7 +1,8 @@
+import { env } from './env';
 import type { SearchResult } from './types';
 
-let baseUrl = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-let apiKey = process.env.EXPO_PUBLIC_API_KEY ?? '';
+let baseUrl = env.apiUrl;
+let apiKey = env.apiKey;
 
 export function configureApi(url: string, key?: string) {
   baseUrl = url.replace(/\/$/, '');
