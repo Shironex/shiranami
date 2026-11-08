@@ -31,7 +31,7 @@ async function iconNodes(name) {
 }
 
 function toSvgElement([tag, attrs]) {
-  const { key, ...rest } = attrs;
+  const { key: _key, ...rest } = attrs;
   const props = Object.entries(rest)
     .map(([k, v]) => `${k}="${v}"`)
     .join(' ');
