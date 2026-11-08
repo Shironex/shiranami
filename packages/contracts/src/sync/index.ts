@@ -13,6 +13,8 @@
 // mirrored from the Rust crate and pinned by a test there.
 
 import { x25519 } from '@noble/curves/ed25519.js';
+import { hmac } from '@noble/hashes/hmac.js';
+import { sha256 } from '@noble/hashes/sha2.js';
 
 export type * from '../generated/sync';
 
@@ -30,6 +32,9 @@ export const SYNC_MAX_SKEW_SECONDS = 120;
 
 /** Domain separator of the pairing proof. */
 export const SYNC_PAIR_PROOF_CONTEXT = 'shiranami-sync/v2/pair';
+
+/** Domain separator for the desktop's proof over its pairing response. */
+export const SYNC_PAIR_RESPONSE_CONTEXT = 'shiranami-sync/v2/pair-response';
 
 /** Domain separator of the device secret derivation. */
 export const SYNC_DEVICE_SECRET_CONTEXT = 'shiranami-sync/v2/device-secret';
@@ -135,6 +140,42 @@ export function pairProofMessage(
   phonePublicKey: string
 ): string {
   return `${SYNC_PAIR_PROOF_CONTEXT}\n${nonce}\n${deviceName}\n${platform}\n${phonePublicKey}`;
+}
+
+/**
+ * The message whose HMAC under the QR secret is `PairResponse.keyProof`:
+ * the device id the desktop minted and both public keys.
+ */
+export function pairResponseMessage(
+  deviceId: string,
+  phonePublicKey: string,
+  desktopPublicKey: string
+): string {
+  return `${SYNC_PAIR_RESPONSE_CONTEXT}\n${deviceId}\n${phonePublicKey}\n${desktopPublicKey}`;
+}
+
+/**
+ * Check `PairResponse.keyProof` before deriving the device secret. Only the
+ * desktop that showed the QR knows its secret, so a desktop key swapped in on
+ * the way back fails here. `pairingSecret` is the `k=` text of the link.
+ * Refuse the pairing when this returns `false`.
+ */
+export function verifyPairResponse(
+  pairingSecret: string,
+  phonePublicKey: string,
+  response: { deviceId: string; publicKey: string; keyProof: string }
+): boolean {
+  const key = fromBase64Url(pairingSecret);
+  const proof = fromBase64Url(response.keyProof);
+  if (!key || proof?.length !== 32) return false;
+  const message = new TextEncoder().encode(
+    pairResponseMessage(response.deviceId, phonePublicKey, response.publicKey)
+  );
+  const expected = hmac(sha256, key, message);
+  // Constant time over the fixed 32 bytes.
+  let difference = 0;
+  for (let i = 0; i < 32; i++) difference |= (expected[i] ?? 0) ^ (proof[i] ?? 0);
+  return difference === 0;
 }
 
 /**

@@ -10,11 +10,13 @@ import {
   fromBase64Url,
   generatePairingKeyPair,
   pairProofMessage,
+  pairResponseMessage,
   pairingPublicKey,
   pairingSharedSecret,
   parsePairingLink,
   signingPayload,
   toBase64Url,
+  verifyPairResponse,
 } from './index';
 
 // The same literals are asserted by crates/shiranami-sync/tests/contract_vectors.rs,
@@ -27,6 +29,7 @@ const PHONE_PUBLIC = 'hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo';
 const DESKTOP_PUBLIC = '3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08';
 const SHARED = '4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742';
 const PROOF = 'viAAzEqSCV0va7LtCeoa647zZcs-C0cc5pbIDSF4fSs';
+const KEY_PROOF = 'VdwbK1YiGfGj8J9oGYM1h15ys2YBY4qNODzpvlb6Nno';
 const DEVICE_SECRET = 'R_T6TkxtTqk6KHHqxANdfbYs5MLiuZIJZvjiCB_Y8ew';
 const SIGNATURE = 'qNUAzd9-_dlTBPKaWs2NP3q9LXVmauiBLGeZGzOSGkY';
 const LINK = `${SYNC_PAIR_LINK_PREFIX}v=2&h=192.168.1.20%2C10.0.0.5&p=53111&id=desk-1&n=Studio+PC&t=nonce-0001&k=${SECRET}`;
@@ -83,6 +86,22 @@ describe('signing', () => {
     expect(
       hmac(shared, deviceSecretMessage('dev-0001', SECRET, PHONE_PUBLIC, DESKTOP_PUBLIC))
     ).toBe(DEVICE_SECRET);
+  });
+
+  it('matches the shared desktop key proof and verifies it', () => {
+    expect(hmac(SECRET, pairResponseMessage('dev-0001', PHONE_PUBLIC, DESKTOP_PUBLIC))).toBe(
+      KEY_PROOF
+    );
+    const response = { deviceId: 'dev-0001', publicKey: DESKTOP_PUBLIC, keyProof: KEY_PROOF };
+    expect(verifyPairResponse(SECRET, PHONE_PUBLIC, response)).toBe(true);
+    // A key swapped in on the way back, or a proof made for another phone key.
+    expect(verifyPairResponse(SECRET, PHONE_PUBLIC, { ...response, publicKey: PHONE_PUBLIC })).toBe(
+      false
+    );
+    expect(verifyPairResponse(SECRET, DESKTOP_PUBLIC, response)).toBe(false);
+    expect(verifyPairResponse(SECRET, PHONE_PUBLIC, { ...response, keyProof: 'short' })).toBe(
+      false
+    );
   });
 
   it('refuses a low-order or malformed desktop key', () => {
