@@ -6,6 +6,7 @@ import { BottomNav } from '@/components/nav/BottomNav';
 import { RemovalToast } from '@/components/library/RemovalToast';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { MiniPlayer } from '@/components/player/MiniPlayer';
+import { useAppShortcuts } from '@/hooks/useAppShortcuts';
 import { useInitialData } from '@/hooks/useInitialData';
 import { env } from '@/lib/env';
 import { colors } from '@/lib/theme';
@@ -25,7 +26,8 @@ function BottomFade() {
 }
 
 export default function TabsLayout() {
-  useInitialData();
+  const libraryLoaded = useInitialData();
+  useAppShortcuts(libraryLoaded);
   const [barHeight, setBarHeight] = useState(0);
   return (
     <View className="flex-1 bg-background">
