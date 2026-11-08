@@ -1,4 +1,4 @@
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,6 +19,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { useDesktopSync } from '@/hooks/useDesktopSync';
+import { useForgetDesktop } from '@/hooks/useForgetDesktop';
 import { useNow } from '@/hooks/useNow';
 import { countLabel } from '@/lib/format';
 import {
@@ -92,28 +93,10 @@ export default function SyncScreen() {
   const insets = useSafeAreaInsets();
   const topInset = useWindowInset();
   const { scrollY, onScroll } = useWindowScroll();
-  const { peer, running, progress, error, last, syncNow, cancel, forget } = useDesktopSync();
+  const { peer, running, progress, error, last, syncNow, cancel } = useDesktopSync();
   const now = useNow(30000);
   const name = peer?.desktopName ?? 'your desktop';
-
-  const confirmForget = () =>
-    Alert.alert(`Forget ${name}?`, 'The songs it brought over stay on this phone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Forget',
-        style: 'destructive',
-        onPress: async () => {
-          const told = await forget();
-          if (!told) {
-            Alert.alert(
-              'Forgotten on this phone',
-              `${name} could not be reached. Remove this phone under Sync with phone on the desktop too.`
-            );
-          }
-          router.back();
-        },
-      },
-    ]);
+  const confirmForget = useForgetDesktop(name, () => router.back());
 
   return (
     <View className="flex-1 bg-background">
