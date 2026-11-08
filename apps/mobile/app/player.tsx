@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type GestureResponderEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
@@ -44,6 +44,8 @@ export default function PlayerScreen() {
   const toggleShuffle = usePlayerStore(s => s.toggleShuffle);
   const cycleRepeatMode = usePlayerStore(s => s.cycleRepeatMode);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
+  const seek = usePlayerStore(s => s.seek);
+  const [barWidth, setBarWidth] = useState(0);
   const [showLyrics, setShowLyrics] = useState(false);
   const playScale = useSharedValue(1);
   const playStyle = useAnimatedStyle(() => ({
@@ -59,7 +61,15 @@ export default function PlayerScreen() {
     togglePlay();
   };
 
+  const isLive = currentTrack?.isLive ?? false;
+  const canSeek = !isLive && duration > 0 && barWidth > 0;
   const progress = duration > 0 ? currentTime / duration : 0;
+
+  const handleSeekPress = (event: GestureResponderEvent) => {
+    if (!canSeek) return;
+    const ratio = Math.min(Math.max(event.nativeEvent.locationX / barWidth, 0), 1);
+    seek(ratio * duration);
+  };
 
   if (!currentTrack) {
     return (
@@ -124,12 +134,27 @@ export default function PlayerScreen() {
 
         {/* Progress bar */}
         <View style={s.progressSection}>
-          <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: `${progress * 100}%` }]} />
-          </View>
+          <Pressable
+            onPress={handleSeekPress}
+            onLayout={e => setBarWidth(e.nativeEvent.layout.width)}
+            disabled={!canSeek}
+            hitSlop={{ top: 12, bottom: 12 }}
+            accessibilityRole="adjustable"
+            accessibilityLabel={isLive ? 'Live stream' : 'Seek'}
+          >
+            <View style={s.progressTrack} pointerEvents="none">
+              <View style={[s.progressFill, { width: isLive ? '100%' : `${progress * 100}%` }]} />
+            </View>
+          </Pressable>
           <View style={s.timeRow}>
-            <Text style={s.timeText}>{formatTime(currentTime)}</Text>
-            <Text style={s.timeText}>{formatTime(duration)}</Text>
+            {isLive ? (
+              <Text style={s.timeText}>Live</Text>
+            ) : (
+              <>
+                <Text style={s.timeText}>{formatTime(currentTime)}</Text>
+                <Text style={s.timeText}>{formatTime(duration)}</Text>
+              </>
+            )}
           </View>
         </View>
 

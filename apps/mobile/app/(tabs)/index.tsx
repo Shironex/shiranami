@@ -28,7 +28,7 @@ export default function LibraryScreen() {
 
   const library = usePlayerStore(s => s.library);
   const currentTrack = usePlayerStore(s => s.currentTrack);
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const playFromList = usePlayerStore(s => s.playFromList);
   const setLibrary = usePlayerStore(s => s.setLibrary);
   const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
 
@@ -76,9 +76,9 @@ export default function LibraryScreen() {
 
   const handlePlay = useCallback(
     (index: number) => {
-      setQueue(sorted, index);
+      playFromList(sorted, index);
     },
-    [sorted, setQueue]
+    [sorted, playFromList]
   );
 
   const handleFavorite = useCallback(

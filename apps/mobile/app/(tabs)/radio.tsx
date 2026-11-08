@@ -47,7 +47,7 @@ export default function RadioScreen() {
     setFavoriteIds,
   } = useRadioStore();
 
-  const setQueue = usePlayerStore(s => s.setQueue);
+  const playFromList = usePlayerStore(s => s.playFromList);
 
   // Load favorites from DB and top stations on mount
   useEffect(() => {
@@ -70,10 +70,11 @@ export default function RadioScreen() {
         duration: 0,
         filePath: station.urlResolved || station.url,
         albumArt: station.favicon || undefined,
+        isLive: true,
       };
-      setQueue([track], 0);
+      playFromList([track], 0);
     },
-    [setCurrentStation, setQueue]
+    [setCurrentStation, playFromList]
   );
 
   const handleToggleFavorite = useCallback(
