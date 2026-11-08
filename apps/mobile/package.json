@@ -9,7 +9,7 @@
     "android:prebuild": "expo prebuild --platform android --clean",
     "android:release": "expo run:android --variant release",
     "eas": "pnpm dlx eas-cli@24.8.0",
-    "fingerprint": "expo-updates runtimeversion:resolve --platform android",
+    "runtime-version": "expo-updates runtimeversion:resolve --platform android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check:expo": "node scripts/expo-doctor.js",
