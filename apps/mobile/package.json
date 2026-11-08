@@ -66,6 +66,13 @@
       "exclude": [
         "typescript"
       ]
+    },
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "react-native-track-player"
+        ]
+      }
     }
   }
 }
