@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import ArrowLeft from 'lucide-react-native/icons/arrow-left';
 import { ArtTile } from '@/components/art/ArtTile';
+import { AppUpdateRows } from '@/components/settings/AppUpdateRows';
 import { SettingsRow, SettingsValue } from '@/components/settings/SettingsRow';
 import { ChipRow } from '@/components/ui/chip';
 import { IconButton } from '@/components/ui/icon-button';
@@ -89,6 +90,7 @@ export default function SettingsScreen() {
         <SettingsRow label="Version">
           <SettingsValue>{version}</SettingsValue>
         </SettingsRow>
+        <AppUpdateRows />
       </Animated.ScrollView>
       <WindowHeader
         title="Settings"
