@@ -79,6 +79,8 @@ interface PlayerActions {
   next: () => void;
   previous: () => void;
   seek: (time: number) => void;
+  /** Seeks relative to the current position, clamped to the start and the duration. */
+  seekBy: (seconds: number) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   setLibrary: (tracks: Track[]) => void;
@@ -265,6 +267,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       const target = duration > 0 ? Math.min(time, duration) : time;
       set({ currentTime: target });
       transport?.seekTo(target);
+    },
+
+    seekBy: (seconds: number) => {
+      const { currentTime } = get();
+      get().seek(Math.max(0, currentTime + seconds));
     },
 
     setVolume: (volume: number) => {

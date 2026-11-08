@@ -5,6 +5,7 @@ import { formatDuration } from '@/lib/format';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 const STEP_SECONDS = 10;
+const SEEK_ACTIONS = [{ name: 'increment' }, { name: 'decrement' }];
 
 function clamp01(value: number) {
   return Math.min(1, Math.max(0, value));
@@ -20,12 +21,17 @@ export function SeekBar() {
   const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
   const seek = usePlayerStore(s => s.seek);
+  const seekBy = usePlayerStore(s => s.seekBy);
   const [width, setWidth] = useState(0);
   const [dragRatio, setDragRatio] = useState<number | null>(null);
 
   if (isLive) {
     return (
-      <View className="h-[45px] flex-row items-center gap-2">
+      <View
+        className="h-[45px] flex-row items-center gap-2"
+        accessible
+        accessibilityLabel="Live stream"
+      >
         <View className="h-2 w-2 rounded-full bg-live" />
         <Text variant="label" className="text-soft-foreground">
           Live
@@ -58,14 +64,17 @@ export function SeekBar() {
         accessibilityRole="adjustable"
         accessibilityLabel="Seek"
         accessibilityValue={{
+          min: 0,
+          max: Math.round(duration),
+          now: Math.round(Math.min(currentTime, duration)),
           text: `${formatDuration(currentTime)} of ${formatDuration(duration)}`,
         }}
-        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-        onAccessibilityAction={e =>
-          seek(
-            currentTime + (e.nativeEvent.actionName === 'increment' ? STEP_SECONDS : -STEP_SECONDS)
-          )
-        }
+        accessibilityActions={duration > 0 ? SEEK_ACTIONS : undefined}
+        onAccessibilityAction={e => {
+          if (duration <= 0) return;
+          if (e.nativeEvent.actionName === 'increment') seekBy(STEP_SECONDS);
+          else if (e.nativeEvent.actionName === 'decrement') seekBy(-STEP_SECONDS);
+        }}
       >
         <View pointerEvents="none" className="h-1 rounded-full bg-rail">
           <View className="h-full rounded-full bg-primary" style={{ width: `${ratio * 100}%` }} />

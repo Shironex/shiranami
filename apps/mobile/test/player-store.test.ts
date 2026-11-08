@@ -245,6 +245,16 @@ describe('queue edits', () => {
     store().seek(500);
     expect(transport.seekTo).toHaveBeenLastCalledWith(180);
   });
+
+  it('seeks relative to the position, clamped to the start and the duration', () => {
+    store().playFromList([a], 0);
+    store().seek(5);
+    store().seekBy(-10);
+    expect(transport.seekTo).toHaveBeenLastCalledWith(0);
+    store().seek(175);
+    store().seekBy(10);
+    expect(transport.seekTo).toHaveBeenLastCalledWith(180);
+  });
 });
 
 describe('play and shuffle buttons', () => {
