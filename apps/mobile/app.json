@@ -31,6 +31,13 @@
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
@@ -63,14 +70,6 @@
           "enableBackgroundPlayback": true,
           "recordAudioAndroid": false,
           "microphonePermission": false
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": false,
-          "savePhotosPermission": false,
-          "isAccessMediaLocationEnabled": false
         }
       ],
       [
