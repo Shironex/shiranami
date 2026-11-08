@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
+import { QueueToast } from '@/components/library/QueueToast';
 import { RemovalToast } from '@/components/library/RemovalToast';
 import { Dock, DockHeightProvider } from '@/components/nav/Dock';
 import { OfflineBanner } from '@/components/OfflineBanner';
@@ -30,6 +31,7 @@ export default function TabsLayout() {
           </Tabs.Protected>
         </Tabs>
         <RemovalToast bottom={dockHeight + 8} />
+        <QueueToast bottom={dockHeight + 8} />
       </View>
     </DockHeightProvider>
   );

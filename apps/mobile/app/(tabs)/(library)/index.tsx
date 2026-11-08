@@ -142,6 +142,7 @@ export default function LibraryScreen() {
         case 'track':
           return (
             <TrackRow
+              swipeable
               track={item.track}
               active={item.track.id === currentTrackId}
               playing={isPlaying}
