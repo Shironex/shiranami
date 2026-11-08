@@ -10,6 +10,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
+import java.util.UUID
 
 /** Longest side of a saved cover, in pixels: sharp on the full player, small on disk. */
 private const val ART_MAX_SIDE = 512
@@ -171,13 +172,16 @@ class TrackReader(private val context: Context) {
 
       artDir.mkdirs()
       // Written beside the target and renamed, so a half-written cover is never picked up.
-      val partial = File(artDir, "$name.part")
+      // The temp name is unique: two files with one hash may be read at the same time.
+      val partial = File(artDir, "$name.${UUID.randomUUID()}.part")
       FileOutputStream(partial).use { out -> scaled.compress(Bitmap.CompressFormat.JPEG, ART_QUALITY, out) }
       if (scaled !== decoded) scaled.recycle()
       decoded.recycle()
+      // rename(2) replaces an existing target atomically; if another thread won
+      // the race in some other way, its cover is the same picture.
       if (!partial.renameTo(target)) {
         partial.delete()
-        return null
+        if (!target.exists()) return null
       }
       Uri.fromFile(target).toString()
     } catch (_: Exception) {
