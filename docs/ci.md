@@ -23,6 +23,38 @@ How CI is wired and what to do when something fails.
 
 React Native pins React to the exact version its renderer was built with (19.2.3 for SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps the two apart with a parent-scoped override (`'@shiranami/mobile>react'`), and `apps/mobile/metro.config.js` resolves every `react` import from the app itself, so Metro never picks up the web copy from pnpm's hidden hoist folder.
 
+## Releasing mobile
+
+Builds and over the air updates run on EAS (project `shirone-dev/shiranami`), not in GitHub Actions. Run every command from `apps/mobile`; `pnpm eas` is the pinned `eas-cli`, and `requireCommit` in `eas.json` wants a clean tree.
+
+**Build or update?** An update (EAS Update) replaces only the JavaScript bundle and assets of an installed build. Anything native needs a new build: a new or bumped native package, a config plugin, `android.permissions`, `expo-build-properties`, the local `modules/audio-noisy` module, an Expo SDK bump.
+
+The runtime version is the project fingerprint (`runtimeVersion: { policy: "fingerprint" }`), so this is checked for you: an update only reaches builds with the same fingerprint. `pnpm fingerprint` prints the current one; compare its `runtimeVersion` with the one on the build page in the EAS dashboard. If they differ, the change needs a build. `fingerprint.config.js` keeps the hash the same on the Mac, Windows and the EAS Linux builders (it drops pnpm's per-OS store folder names and the `scripts` block), and `.gitattributes` checks the app out with LF endings everywhere. pnpm patches to native packages are not hashed by content; build after adding one.
+
+| Profile       | Channel      | Output          | Gets updates            |
+| ------------- | ------------ | --------------- | ----------------------- |
+| `development` | none         | dev client APK  | no, loads JS from Metro |
+| `preview`     | `preview`    | APK (internal)  | yes                     |
+| `production`  | `production` | AAB (Play)      | yes                     |
+
+```sh
+# New build (native change, or the first build with expo-updates)
+pnpm eas build --profile preview --platform android
+
+# JavaScript only: publish to the preview channel
+pnpm eas update --channel preview --environment preview --message "fix queue order"
+
+# Promote a tested preview update to production
+pnpm eas update:republish --channel preview --destination-channel production --message "fix queue order"
+
+# Undo: pick an earlier update or the bundle embedded in the build
+pnpm eas update:rollback
+```
+
+`--environment` is required and must match the profile, otherwise the update is bundled with other `EXPO_PUBLIC_*` values than the build. Installed apps check for an update on launch without waiting (`fallbackToCacheTimeout: 0`), download it in the background and run it on the next launch: close and reopen the app twice. Settings > About shows the running channel and update id, and has a manual check with a restart button (hidden in dev builds).
+
+Free plan limits (monthly): 15 Android builds with low queue priority and a 45 minute timeout; 1,000 update monthly active users as a hard cap, 100 GiB update bandwidth, 20 GiB storage. Builds run out first. Code signing for updates needs a paid plan and is not used.
+
 ## Required checks
 
 Branch protection requires the individual jobs to pass — not just `ci-result`. When adding a new required job, run it on a few PRs first to confirm it stays green; only then add it to branch protection. New jobs introduced in this PR are intentionally **not** required yet.
