@@ -19,7 +19,7 @@ How CI is wired and what to do when something fails.
 
 ## Mobile
 
-`apps/mobile` (Expo SDK 56) is a workspace package. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs its own typecheck and Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile typecheck` and `pnpm --filter @shiranami/mobile test`.
+`apps/mobile` (Expo SDK 56) is a workspace package; the device and dev build flow is in `apps/mobile/README.md`. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs its own typecheck and Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile typecheck` and `pnpm --filter @shiranami/mobile test`.
 
 React Native pins React to the exact version its renderer was built with (19.2.3 for SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps the two apart with a parent-scoped override (`'@shiranami/mobile>react'`), and `apps/mobile/metro.config.js` resolves every `react` import from the app itself, so Metro never picks up the web copy from pnpm's hidden hoist folder.
 
