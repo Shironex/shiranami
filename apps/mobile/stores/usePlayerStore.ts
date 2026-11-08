@@ -19,6 +19,12 @@ export interface Track {
   addedAt?: string;
 }
 
+/** A queue slot taken out by `removeTracks`, so an undo can put it back. */
+export interface RemovedQueueEntry {
+  index: number;
+  track: Track;
+}
+
 export type RepeatMode = 'off' | 'all' | 'one';
 
 /**
@@ -86,6 +92,14 @@ interface PlayerActions {
   setLibrary: (tracks: Track[]) => void;
   addToLibrary: (tracks: Track[]) => void;
   removeFromLibrary: (trackIds: string[]) => void;
+  /**
+   * Takes songs out of the library and the queue. When the playing song is one
+   * of them, playback moves to the next song that is left, or stops if none is.
+   * Returns the queue slots it removed.
+   */
+  removeTracks: (trackIds: string[]) => RemovedQueueEntry[];
+  /** Puts back slots from `removeTracks`, at their old positions, without touching playback. */
+  restoreQueueEntries: (entries: RemovedQueueEntry[]) => void;
   /** Plays `tracks[startIndex]` and queues the rest of the list after it. */
   playFromList: (tracks: Track[], startIndex?: number, source?: string) => void;
   /** Turns shuffle on and plays the list from a random track. */
@@ -304,6 +318,55 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     removeFromLibrary: (trackIds: string[]) => {
       const ids = new Set(trackIds);
       set(s => ({ library: s.library.filter(t => !ids.has(t.id)) }));
+    },
+
+    removeTracks: (trackIds: string[]) => {
+      const ids = new Set(trackIds);
+      const { queue, queueIndex, currentTrack, repeatMode, isPlaying } = get();
+      const removed: RemovedQueueEntry[] = [];
+      queue.forEach((track, index) => {
+        if (ids.has(track.id)) removed.push({ index, track });
+      });
+      const keep = (t: Track) => !ids.has(t.id);
+      const newQueue = queue.filter(keep);
+      set(s => ({ library: s.library.filter(keep), originalQueue: s.originalQueue.filter(keep) }));
+
+      if (!currentTrack || !ids.has(currentTrack.id)) {
+        // The playing song stays; only its position moves up by what left before it.
+        const before = removed.filter(e => e.index < queueIndex).length;
+        set({ queue: newQueue, queueIndex: queueIndex < 0 ? queueIndex : queueIndex - before });
+        return removed;
+      }
+
+      // Songs that left before the playing one shift the next one down.
+      const nextAt = queue.slice(0, queueIndex).filter(keep).length;
+      if (nextAt < newQueue.length) {
+        set({ queue: newQueue });
+        startAt(newQueue, nextAt);
+        if (!isPlaying) get().pause();
+      } else if (repeatMode === 'all' && newQueue.length > 0) {
+        set({ queue: newQueue });
+        startAt(newQueue, 0);
+        if (!isPlaying) get().pause();
+      } else {
+        get().clearQueue();
+      }
+      return removed;
+    },
+
+    restoreQueueEntries: (entries: RemovedQueueEntry[]) => {
+      const { currentTrack } = get();
+      if (!currentTrack || entries.length === 0) return;
+      const queue = [...get().queue];
+      let queueIndex = get().queueIndex;
+      const restored: Track[] = [];
+      for (const { index, track } of [...entries].sort((a, b) => a.index - b.index)) {
+        const at = Math.min(index, queue.length);
+        queue.splice(at, 0, track);
+        if (at <= queueIndex) queueIndex += 1;
+        restored.push(track);
+      }
+      set(s => ({ queue, queueIndex, originalQueue: [...s.originalQueue, ...restored] }));
     },
 
     playFromList: (tracks: Track[], startIndex = 0, source = 'Library') => {
