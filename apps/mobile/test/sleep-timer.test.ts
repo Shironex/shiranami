@@ -49,6 +49,15 @@ describe('sleep timer store', () => {
     duration: 144,
     filePath: 'file:///t.mp3',
   };
+  const radio = {
+    id: 'r',
+    title: 'Night Radio',
+    artist: 'Station',
+    album: '',
+    duration: 0,
+    filePath: 'https://radio.example/stream',
+    isLive: true,
+  };
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -110,6 +119,37 @@ describe('sleep timer store', () => {
     expect(player().isPlaying).toBe(false);
     timer().check();
     expect(timer().endOfTrack).toBe(false);
+  });
+
+  it('end of song: does not start while a live stream plays', () => {
+    player().playFromList([radio], 0);
+    timer().startEndOfTrack(true);
+    expect(timer().endOfTrack).toBe(false);
+    expect(player().stopAfterCurrent).toBe(false);
+    expect(player().fade).toBe(1);
+  });
+
+  it('end of song: never mutes a live stream that is reported with no duration', () => {
+    timer().startEndOfTrack(true);
+    player().playFromList([radio], 0);
+    player()._syncPlayback({ isPlaying: true, isBuffering: false, currentTime: 0, duration: 0 });
+    timer().check();
+    expect(player().fade).toBe(1);
+    expect(transport.setVolume).not.toHaveBeenLastCalledWith(0);
+  });
+
+  it('end of song: switching to radio mid-fade turns the timer off and restores the volume', () => {
+    timer().startEndOfTrack(true);
+    player()._syncPlayback({ isPlaying: true, isBuffering: false, currentTime: 84, duration: 144 });
+    timer().check();
+    expect(player().fade).toBeCloseTo(0.25);
+
+    player().playFromList([radio], 0);
+    timer().check();
+    expect(timer().endOfTrack).toBe(false);
+    expect(player().stopAfterCurrent).toBe(false);
+    expect(player().fade).toBe(1);
+    expect(transport.setVolume).toHaveBeenLastCalledWith(player().volume);
   });
 
   it('ticks on its own interval', () => {

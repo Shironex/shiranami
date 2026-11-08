@@ -69,6 +69,8 @@ export const useSleepTimerStore = create<SleepTimerStore>((set, get) => ({
   },
 
   startEndOfTrack: fade => {
+    // A live stream never ends, so there is no end to wait for.
+    if (usePlayerStore.getState().currentTrack?.isLive) return;
     usePlayerStore.getState().setStopAfterCurrent(true);
     set({ endsAt: null, endOfTrack: true, fade });
     startTicking();
@@ -89,8 +91,17 @@ export const useSleepTimerStore = create<SleepTimerStore>((set, get) => ({
 
     if (endOfTrack) {
       // The player clears the flag when it pauses at the end of the track.
-      if (!player.stopAfterCurrent) {
+      // The track it was waiting for is gone when a live stream took over:
+      // radio never ends, so the timer would never fire and only hold the
+      // fade down. Turn it off, which restores the volume.
+      if (!player.stopAfterCurrent || player.currentTrack?.isLive) {
         get().cancel();
+        return;
+      }
+      // Without a known length there is nothing to fade towards yet.
+      if (player.duration <= 0) {
+        player.setFade(1);
+        set({ remaining: 0 });
         return;
       }
       const remaining = Math.max(0, (player.duration - player.currentTime) * 1000);

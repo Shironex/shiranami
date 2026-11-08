@@ -9,6 +9,7 @@ import { useNow } from '@/hooks/useNow';
 import { useSleepLabel } from '@/hooks/useSleepLabel';
 import { formatClock } from '@/lib/format';
 import { SLEEP_PRESETS } from '@/lib/sleep-timer';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 import { useSleepTimerStore } from '@/stores/useSleepTimerStore';
 
 type Choice = number | 'end';
@@ -23,13 +24,16 @@ export default function SleepSheet() {
   const start = useSleepTimerStore(s => s.start);
   const startEndOfTrack = useSleepTimerStore(s => s.startEndOfTrack);
   const cancel = useSleepTimerStore(s => s.cancel);
+  // Radio has no end, so "End of this song" is not offered while it plays.
+  const live = usePlayerStore(s => s.currentTrack?.isLive ?? false);
   const [choice, setChoice] = useState<Choice>(30);
   const [fade, setFade] = useState(savedFade);
 
   const close = () => router.back();
   const onStart = () => {
-    if (choice === 'end') startEndOfTrack(fade);
-    else start(choice, fade);
+    if (choice === 'end') {
+      if (!live) startEndOfTrack(fade);
+    } else start(choice, fade);
     close();
   };
 
@@ -79,11 +83,13 @@ export default function SleepSheet() {
             onPress={() => setChoice(preset.minutes)}
           />
         ))}
-        <SheetOption
-          label="End of this song"
-          selected={choice === 'end'}
-          onPress={() => setChoice('end')}
-        />
+        {!live && (
+          <SheetOption
+            label="End of this song"
+            selected={choice === 'end'}
+            onPress={() => setChoice('end')}
+          />
+        )}
       </View>
       <SheetDivider />
       <View className="min-h-16 flex-row items-center justify-between px-6">
