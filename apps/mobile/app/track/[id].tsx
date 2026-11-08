@@ -45,7 +45,10 @@ export default function TrackActionsSheet() {
   const db = useSQLiteContext();
   const insets = useSafeAreaInsets();
   const track = usePlayerStore(s => s.library.find(t => t.id === id));
-  const hasQueue = usePlayerStore(s => !!s.currentTrack && !s.currentTrack.isLive);
+  // Queue actions only make sense while songs play, and not for the one playing.
+  const canQueue = usePlayerStore(
+    s => !!s.currentTrack && !s.currentTrack.isLive && s.currentTrack.id !== id
+  );
   const toggleFavorite = useToggleFavorite();
 
   if (!track) return <View className="h-24 bg-sheet" />;
@@ -71,7 +74,7 @@ export default function TrackActionsSheet() {
         </View>
       </View>
       <View className="mx-6 mb-2 h-px bg-border" />
-      {hasQueue && (
+      {canQueue && (
         <>
           <Action
             icon={ListStart}

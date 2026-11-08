@@ -5,6 +5,7 @@ import X from 'lucide-react-native/icons/x';
 import { TrackRow } from '@/components/library/TrackRow';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
@@ -69,7 +70,7 @@ export default function QueueSheet() {
   return (
     <Sheet
       title="Up next"
-      subtitle={`From ${source}`}
+      subtitle={rows.length ? `From ${source}` : undefined}
       fill
       action={
         upNext > 0 ? (
@@ -82,6 +83,9 @@ export default function QueueSheet() {
         renderItem={renderItem}
         keyExtractor={item => `${item.track.id}-${item.index}`}
         contentContainerStyle={{ paddingHorizontal: 8 }}
+        ListEmptyComponent={
+          <EmptyState title="Nothing queued" body="Play a song or a list to fill the queue." />
+        }
         ListFooterComponent={
           upNext === 0 ? (
             <Text variant="bodyMuted" className="px-4 py-6 text-center">

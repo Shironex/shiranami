@@ -1,5 +1,6 @@
 import subset from '../assets/fonts/ShipporiMincho_700Bold.glyphs.json';
 import { KANJI_GLYPHS, pickKanji } from '@/lib/kanji';
+import { pickPhotoCrop } from '@/lib/photos';
 import { TILE_HUES } from '@/lib/tiles';
 
 describe('pickKanji', () => {
@@ -47,5 +48,18 @@ describe('pickKanji', () => {
 describe('kanji font subset', () => {
   it('holds every glyph a tile can show (run scripts/subset-kanji-font.sh)', () => {
     expect(subset.glyphs).toBe(KANJI_GLYPHS);
+  });
+});
+
+describe('pickPhotoCrop', () => {
+  it('follows the kanji to a matching scene', () => {
+    expect(pickPhotoCrop('Snowfall').photo).toBe('snow');
+    expect(pickPhotoCrop('Sakura Trees').photo).toBe('wisteria');
+  });
+
+  it('keeps titles without a scene on a night photo', () => {
+    for (const title of ['Aruarian Dance', 'Quiet Hours', 'Box Lofi', 'Monday Loop']) {
+      expect(['lofi-night', 'snow']).toContain(pickPhotoCrop(title).photo);
+    }
   });
 });

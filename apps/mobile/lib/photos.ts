@@ -1,5 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import { hashString } from '@/lib/hash';
+import { pickKanji } from '@/lib/kanji';
 
 export type ThemePhotoName = 'lofi-night' | 'snow' | 'summer' | 'sunset' | 'wisteria';
 
@@ -27,7 +28,26 @@ export const THEME_PHOTOS: Record<ThemePhotoName, ThemePhotoAsset> = {
   },
 };
 
-const PHOTO_NAMES = Object.keys(THEME_PHOTOS) as ThemePhotoName[];
+/** Scenes a title can ask for through its kanji; the daylight ones only this way. */
+const PHOTO_BY_GLYPH: Partial<Record<string, ThemePhotoName>> = {
+  雪: 'snow',
+  星: 'snow',
+  夕: 'sunset',
+  夏: 'summer',
+  波: 'summer',
+  水: 'summer',
+  川: 'summer',
+  雲: 'summer',
+  風: 'summer',
+  桜: 'wisteria',
+  花: 'wisteria',
+  春: 'wisteria',
+  葉: 'wisteria',
+  森: 'wisteria',
+};
+
+/** Everything else gets a night scene: the app is for listening in the dark. */
+const NIGHT_PHOTOS: readonly ThemePhotoName[] = ['lofi-night', 'snow'];
 
 /** A photo plus the point (in percent) a crop centers on. */
 export interface PhotoCrop {
@@ -37,13 +57,15 @@ export interface PhotoCrop {
 }
 
 /**
- * A small crop of one theme photo for a track without art, stable per title.
- * Points stay away from the edges, where the photos are mostly frame.
+ * A crop of one theme photo for a track without art, stable per title. The
+ * scene follows the title's kanji (snow for "Snowfall"), otherwise a night
+ * one. Points stay away from the edges, where the photos are mostly frame.
  */
 export function pickPhotoCrop(seed: string): PhotoCrop {
   const hash = hashString(seed.toLowerCase());
+  const asked = PHOTO_BY_GLYPH[pickKanji(seed).glyph];
   return {
-    photo: PHOTO_NAMES[hash % PHOTO_NAMES.length],
+    photo: asked ?? NIGHT_PHOTOS[hash % NIGHT_PHOTOS.length],
     x: 12 + ((hash >>> 4) % 77),
     y: 18 + ((hash >>> 12) % 65),
   };

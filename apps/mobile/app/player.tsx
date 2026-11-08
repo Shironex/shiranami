@@ -14,6 +14,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
+import { stationMeta } from '@/lib/radio';
 import { colors } from '@/lib/theme';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
@@ -94,7 +95,7 @@ export default function PlayerScreen() {
               {track.title}
             </Text>
             <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[16px]">
-              {track.artist}
+              {live && radio.station ? stationMeta(radio.station) : track.artist}
             </Text>
           </View>
           {(!live || radio.station) && (

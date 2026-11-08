@@ -82,7 +82,7 @@ export default function SettingsScreen() {
         <GroupLabel className="px-6 pt-8">Server</GroupLabel>
         <View className="px-6 pt-1">
           <Text variant="meta" className="mb-2">
-            Used for search and streaming. Your library works without it.
+            Optional. Your library and radio work without it.
           </Text>
           <TextInput
             value={serverUrl}
