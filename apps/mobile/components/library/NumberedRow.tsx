@@ -37,41 +37,43 @@ export const NumberedRow = memo(function NumberedRow({
       onPlayNext={() => swipe.playNext(track)}
       onAddToPlaylist={() => swipe.addToPlaylist(track)}
     >
-      <ListRow
-        art={
-          <View className="h-10 w-6 items-center justify-center">
-            {active ? (
-              <EqBars playing={playing} />
-            ) : (
-              <Text
-                variant="meta"
-                className="text-[14px]"
-                style={{ fontVariant: ['tabular-nums'] }}
-              >
-                {String(number)}
-              </Text>
-            )}
-          </View>
-        }
-        title={track.title}
-        active={active}
-        end={
-          <>
-            {track.isFavorite && (
-              <Heart
-                size={18}
-                color={colors.favorite}
-                fill={colors.favorite}
-                accessibilityLabel="Favorite"
-              />
-            )}
-            {track.duration > 0 && <RowMeta>{formatDuration(track.duration)}</RowMeta>}
-          </>
-        }
-        onPress={onPress}
-        onLongPress={onLongPress}
-        accessibilityHint={onLongPress ? 'Long press for more' : undefined}
-      />
+      {guard => (
+        <ListRow
+          art={
+            <View className="h-10 w-6 items-center justify-center">
+              {active ? (
+                <EqBars playing={playing} />
+              ) : (
+                <Text
+                  variant="meta"
+                  className="text-[14px]"
+                  style={{ fontVariant: ['tabular-nums'] }}
+                >
+                  {String(number)}
+                </Text>
+              )}
+            </View>
+          }
+          title={track.title}
+          active={active}
+          end={
+            <>
+              {track.isFavorite && (
+                <Heart
+                  size={18}
+                  color={colors.favorite}
+                  fill={colors.favorite}
+                  accessibilityLabel="Favorite"
+                />
+              )}
+              {track.duration > 0 && <RowMeta>{formatDuration(track.duration)}</RowMeta>}
+            </>
+          }
+          onPress={guard(onPress)}
+          onLongPress={onLongPress && guard(onLongPress)}
+          accessibilityHint={onLongPress ? 'Long press for more' : undefined}
+        />
+      )}
     </SwipeRow>
   );
 });

@@ -56,7 +56,7 @@ function TrackRowInner({
   swipeable,
 }: TrackRowProps) {
   const swipe = useSwipeQueue();
-  const row = (
+  const renderRow = (press: () => void, longPress?: () => void) => (
     <ListRow
       art={<ArtTile title={track.title} artUri={track.albumArt} />}
       title={track.title}
@@ -66,18 +66,18 @@ function TrackRowInner({
         actions && !active ? null : <DefaultEnd track={track} active={active} playing={playing} />
       }
       actions={active ? undefined : actions}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      onPress={press}
+      onLongPress={longPress}
       accessibilityHint={onLongPress ? 'Long press for more' : undefined}
     />
   );
-  if (!swipeable) return row;
+  if (!swipeable) return renderRow(onPress, onLongPress);
   return (
     <SwipeRow
       onPlayNext={() => swipe.playNext(track)}
       onAddToPlaylist={() => swipe.addToPlaylist(track)}
     >
-      {row}
+      {guard => renderRow(guard(onPress), onLongPress && guard(onLongPress))}
     </SwipeRow>
   );
 }

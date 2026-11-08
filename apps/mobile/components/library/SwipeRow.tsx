@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, useRef, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -42,8 +42,17 @@ interface SwipeRowProps {
   /** Swipe left: pick a playlist for the song. */
   onAddToPlaylist?: () => void;
   testID?: string;
-  children: ReactNode;
+  /**
+   * Renders the row. Wrap its onPress (and onLongPress) in `guard`, so the
+   * press that ends a swipe never also plays the song.
+   */
+  children: (guard: SwipeGuard) => ReactNode;
 }
+
+/** Wraps a press handler so it does nothing when the touch was a swipe. */
+export type SwipeGuard = <A extends unknown[]>(
+  handler?: (...args: A) => void
+) => (...args: A) => void;
 
 /**
  * A row that queues its song with a short swipe. The colour under the row
@@ -55,6 +64,20 @@ export function SwipeRow({ onPlayNext, onAddToPlaylist, testID, children }: Swip
   // -1 armed to add to a playlist, 1 armed to play next, 0 neither.
   const armed = useSharedValue(0);
   const canLeft = !!onAddToPlaylist;
+  // Set once the pan takes the touch, cleared when the next touch begins.
+  // The tap a platform may still deliver after the swipe is then ignored,
+  // whether or not the gesture handler cancelled it.
+  const swiped = useRef(false);
+  const markSwiped = useCallback((value: boolean) => {
+    swiped.current = value;
+  }, []);
+  const guard = useCallback<SwipeGuard>(
+    handler =>
+      (...args) => {
+        if (!swiped.current) handler?.(...args);
+      },
+    []
+  );
 
   const release = (side: number) => {
     if (side === 1) onPlayNext();
@@ -64,6 +87,12 @@ export function SwipeRow({ onPlayNext, onAddToPlaylist, testID, children }: Swip
   const pan = Gesture.Pan()
     .activeOffsetX([-ACTIVATE_X, ACTIVATE_X])
     .failOffsetY([-FAIL_Y, FAIL_Y])
+    .onBegin(() => {
+      runOnJS(markSwiped)(false);
+    })
+    .onStart(() => {
+      runOnJS(markSwiped)(true);
+    })
     .onUpdate(e => {
       const t = canLeft ? e.translationX : Math.max(0, e.translationX);
       x.value = dragOffset(t);
@@ -118,7 +147,7 @@ export function SwipeRow({ onPlayNext, onAddToPlaylist, testID, children }: Swip
         </Animated.View>
       )}
       <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.row, rowStyle]}>{children}</Animated.View>
+        <Animated.View style={[styles.row, rowStyle]}>{children(guard)}</Animated.View>
       </GestureDetector>
     </View>
   );
