@@ -125,7 +125,10 @@ export function useLibraryView() {
     let items: LibraryItem[];
 
     if (filter === 'history') {
-      const entries = history.filter(entry => matches(entry.track, query));
+      const inLibrary = new Set(library.map(t => t.id));
+      const entries = history.filter(
+        entry => inLibrary.has(entry.track.id) && matches(entry.track, query)
+      );
       tracks = entries.map(entry => entry.track);
       items = trackItems(
         tracks,

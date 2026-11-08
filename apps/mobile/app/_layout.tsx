@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { migrateDbIfNeeded } from '@/lib/db';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { useRemovalLifecycle } from '@/hooks/useRemovalLifecycle';
 import { startPlaybackService } from '@/lib/playback-service';
 
 export { ErrorBoundary } from 'expo-router';
@@ -50,6 +51,7 @@ export default function RootLayout() {
   const fontsReady = useAppFonts();
 
   useEffect(() => startPlaybackService(), []);
+  useRemovalLifecycle();
 
   const handleAppReady = useCallback(() => {
     SplashScreen.hideAsync();

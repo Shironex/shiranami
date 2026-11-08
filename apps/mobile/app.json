@@ -65,6 +65,25 @@
       ],
       "expo-sqlite",
       [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "shortcut_play": {
+              "foregroundImage": "./assets/images/shortcuts/shortcut-play.png",
+              "backgroundColor": "#1c1c42"
+            },
+            "shortcut_radio": {
+              "foregroundImage": "./assets/images/shortcuts/shortcut-radio.png",
+              "backgroundColor": "#1c1c42"
+            },
+            "shortcut_shuffle": {
+              "foregroundImage": "./assets/images/shortcuts/shortcut-shuffle.png",
+              "backgroundColor": "#1c1c42"
+            }
+          }
+        }
+      ],
+      [
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
@@ -88,6 +107,14 @@
         }
       ]
     ],
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a4dc1d83-4979-4ae8-b0ed-1650233b0bdf",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "experiments": {
       "typedRoutes": true
     },
