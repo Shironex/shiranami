@@ -137,6 +137,80 @@ const EMPTY: Record<Exclude<LibraryFilter, 'all'>, { title: string; body: string
   artists: { title: 'No artists yet', body: 'Artists come from the names of imported files.' },
 };
 
+export interface LibraryViewInput {
+  library: Track[];
+  albums: Album[];
+  history: HistoryEntry[];
+  filter: LibraryFilter;
+  sort: LibrarySort;
+  query: string;
+}
+
+export interface LibraryView {
+  /** The songs listed as rows, in order (empty on the Albums and Artists views). */
+  tracks: Track[];
+  items: LibraryItem[];
+  /**
+   * What Play and Shuffle on the window take: the songs behind what is on
+   * screen. Empty when nothing is shown, so an empty view never plays the
+   * whole library.
+   */
+  playable: Track[];
+}
+
+/** The rows of one Library view, and the songs its Play and Shuffle take. */
+export function buildLibraryView({
+  library,
+  albums,
+  history,
+  filter,
+  sort,
+  query,
+}: LibraryViewInput): LibraryView {
+  let tracks: Track[] = [];
+  let playable: Track[];
+  let items: LibraryItem[];
+
+  if (filter === 'history') {
+    const inLibrary = new Set(library.map(t => t.id));
+    const entries = history.filter(
+      entry => inLibrary.has(entry.track.id) && matches(entry.track, query)
+    );
+    tracks = entries.map(entry => entry.track);
+    playable = tracks;
+    items = trackItems(tracks, index => parseSqlTime(entries[index].playedAt), PLAYED_LABELS, 'h-');
+  } else if (filter === 'artists') {
+    playable = library.filter(track => matches(track, query));
+    items = artistItems(playable);
+  } else if (filter === 'albums') {
+    const q = query.trim().toLowerCase();
+    const shown = albums.filter(
+      a => !q || a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
+    );
+    playable = shown.flatMap(album => album.tracks);
+    items = albumItems(shown);
+  } else {
+    const base = filter === 'favorites' ? library.filter(t => t.isFavorite) : library;
+    tracks = sortTracks(
+      base.filter(t => matches(t, query)),
+      sort
+    );
+    playable = tracks;
+    items =
+      sort === 'recent'
+        ? trackItems(tracks, index => parseSqlTime(tracks[index].addedAt), ADDED_LABELS, '')
+        : letterItems(tracks, sort === 'title' ? t => t.title : t => t.artist);
+  }
+
+  if (items.length === 0 && filter !== 'all') {
+    const empty = query
+      ? { title: 'No matches', body: `Nothing here matches "${query.trim()}".` }
+      : EMPTY[filter];
+    items = [{ type: 'empty', key: 'empty', ...empty }];
+  }
+  return { tracks, items, playable };
+}
+
 /**
  * Everything the Library tab shows, derived from the store and SQLite: the
  * chip filter, sort and text filter, flattened into rows.
@@ -158,51 +232,10 @@ export function useLibraryView() {
 
   const albums = useMemo(() => groupAlbums(library), [library]);
 
-  const view = useMemo(() => {
-    let tracks: Track[] = [];
-    let items: LibraryItem[];
-
-    if (filter === 'history') {
-      const inLibrary = new Set(library.map(t => t.id));
-      const entries = history.filter(
-        entry => inLibrary.has(entry.track.id) && matches(entry.track, query)
-      );
-      tracks = entries.map(entry => entry.track);
-      items = trackItems(
-        tracks,
-        index => parseSqlTime(entries[index].playedAt),
-        PLAYED_LABELS,
-        'h-'
-      );
-    } else if (filter === 'artists') {
-      items = artistItems(library.filter(track => matches(track, query)));
-    } else if (filter === 'albums') {
-      const q = query.trim().toLowerCase();
-      items = albumItems(
-        albums.filter(
-          a => !q || a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
-        )
-      );
-    } else {
-      const base = filter === 'favorites' ? library.filter(t => t.isFavorite) : library;
-      tracks = sortTracks(
-        base.filter(t => matches(t, query)),
-        sort
-      );
-      items =
-        sort === 'recent'
-          ? trackItems(tracks, index => parseSqlTime(tracks[index].addedAt), ADDED_LABELS, '')
-          : letterItems(tracks, sort === 'title' ? t => t.title : t => t.artist);
-    }
-
-    if (items.length === 0 && filter !== 'all') {
-      const empty = query
-        ? { title: 'No matches', body: `Nothing here matches "${query.trim()}".` }
-        : EMPTY[filter];
-      items = [{ type: 'empty', key: 'empty', ...empty }];
-    }
-    return { tracks, items };
-  }, [library, albums, history, filter, sort, query]);
+  const view = useMemo(
+    () => buildLibraryView({ library, albums, history, filter, sort, query }),
+    [library, albums, history, filter, sort, query]
+  );
 
   return {
     ...view,

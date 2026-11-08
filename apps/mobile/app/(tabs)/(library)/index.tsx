@@ -88,7 +88,6 @@ export default function LibraryScreen() {
   const topInset = useWindowInset();
   const [searching, setSearching] = useState(false);
 
-  const library = usePlayerStore(s => s.library);
   const currentTrackId = usePlayerStore(s => s.currentTrack?.id);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const playFromList = usePlayerStore(s => s.playFromList);
@@ -172,8 +171,8 @@ export default function LibraryScreen() {
   const sort = sortable ? (
     <SortButton label={SORT_LABELS[view.sort]} onPress={view.cycleSort} />
   ) : null;
-  // Play and Shuffle on the window take the list on screen, or the whole library.
-  const playable = tracks.length > 0 ? tracks : library;
+  // Play and Shuffle take the songs behind what is on screen, and stay off when that is empty.
+  const { playable } = view;
 
   const header = (
     <View className="px-3 pb-1">
