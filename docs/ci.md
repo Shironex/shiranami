@@ -19,7 +19,7 @@ How CI is wired and what to do when something fails.
 
 ## Mobile
 
-`apps/mobile` (Expo SDK 56) is a workspace package. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs `expo-doctor`, a typecheck and the Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile check:expo`, `... typecheck` and `... test`.
+`apps/mobile` (Expo SDK 56) is a workspace package; the device and dev build flow is in `apps/mobile/README.md`. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs `expo-doctor`, a typecheck and the Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile check:expo`, `... typecheck` and `... test`.
 
 `expo-doctor` is pinned as a devDependency and run through `apps/mobile/scripts/expo-doctor.js`, which fails on every failed check except the Hermes V1 memory regression check. That one has no config switch and is only fixed by Expo SDK 57, so it is tolerated by name until the upgrade (remove the entry from `KNOWN_FAILURES` then). Some checks call Expo's API and the React Native Directory, so a network blip can fail the job; rerun it.
 
