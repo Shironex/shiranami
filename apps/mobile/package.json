@@ -12,7 +12,7 @@
     "runtime-version": "expo-updates runtimeversion:resolve --platform android",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check:expo": "node scripts/expo-doctor.js",
+    "check:expo": "expo-doctor",
     "test": "jest",
     "tokens": "node scripts/gen-colors.js"
   },
