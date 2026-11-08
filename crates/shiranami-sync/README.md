@@ -12,7 +12,10 @@ One way only (desktop to phone). Design: `docs/research/mobile-2026-11/lan-sync.
 - Skips VPN, overlay, container and VM interfaces even when their address is private: names starting
   `utun`, `tun`, `tap`, `wg`, `docker`, `br-`, `veth`, `vboxnet`, `vmnet`, `virbr`, `zt`, `tailscale`,
   `bridge`, `ipsec` or `ppp`, and Windows adapters named after Hyper-V, WSL, VirtualBox, VMware,
-  Tailscale, ZeroTier, WireGuard, OpenVPN or Docker. CGNAT space (`100.64.0.0/10`) never counts.
+  Tailscale, ZeroTier, WireGuard, OpenVPN or Docker, and any point-to-point interface. CGNAT space
+  (`100.64.0.0/10`) never counts. Windows adapter names are friendly names the user or a VPN client
+  can set, so a full-tunnel VPN adapter with an unusual name and a private address may still be listed
+  there; the phone only pairs with what it reaches.
 - The address the OS uses for its default route is listed first in the QR.
 - Advertises `_shiranami._tcp.local.` over mDNS while running (TXT `v=2`, `id=<desktopId>`). A multicast
   failure is logged and ignored; the QR code is the primary path in v0.

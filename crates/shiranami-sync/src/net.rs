@@ -108,7 +108,8 @@ fn rank(mut found: Vec<Ipv4Addr>, preferred: Option<Ipv4Addr>) -> Vec<Ipv4Addr> 
 pub fn private_ipv4_addresses() -> std::io::Result<Vec<Ipv4Addr>> {
     let found: Vec<Ipv4Addr> = if_addrs::get_if_addrs()?
         .into_iter()
-        .filter(|interface| !is_virtual_interface(&interface.name))
+        // Point-to-point links are tunnels (VPNs, PPP), never the Wi-Fi a phone is on.
+        .filter(|interface| !interface.is_p2p() && !is_virtual_interface(&interface.name))
         .filter_map(|interface| match interface.ip() {
             IpAddr::V4(ip) if is_private_lan(ip) => Some(ip),
             _ => None,
