@@ -368,14 +368,32 @@ pub async fn history_page(
 
 /// Delete every paired-device secret from the database file at `path`.
 ///
-/// Run against an exported backup copy (never the live file) so a backup a
-/// user shares is not a sync credential. A file without the table (an export
-/// from before migration `0010` ran) is left alone. Opens the file in
-/// rollback-journal mode so no `-wal` sibling is left next to the export.
+/// Runs on an exported copy (so a backup the user shares is not a sync
+/// credential) and on a staged import (so a backup can never add a paired
+/// device). Never on the live file. A file without the table (an export from
+/// before migration `0010`) has nothing to strip.
+///
+/// An imported file is attacker-controlled, so the schema is checked before
+/// the delete and the result after it:
+///
+/// - `sync_peers` must be absent or a plain table. A view or a virtual table
+///   of that name is refused: migration `0010` uses `IF NOT EXISTS` and would
+///   leave it in place.
+/// - Every trigger whose SQL names `sync_peers` is dropped. That covers an
+///   `AFTER DELETE` trigger that re-inserts the rows and a trigger on another
+///   table that writes into `sync_peers` later. The app's own triggers (the
+///   FTS sync in `0004`) never mention it, so they are kept.
+/// - After the delete and `VACUUM`, the table must be empty.
+///
+/// The delete runs with `secure_delete` on and is followed by `VACUUM`, so
+/// the removed ids and secrets do not survive in free pages. Opens the file in
+/// rollback-journal mode so no `-wal` sibling is left next to it.
 ///
 /// # Errors
 ///
-/// [`crate::DbError::Query`] if the file cannot be opened or the delete fails.
+/// [`crate::DbError::UnsafeBackup`] for a crafted schema or rows that
+/// survived, [`crate::DbError::Query`] if the file cannot be opened or a
+/// statement fails.
 pub async fn strip_credentials(path: &Path) -> Result<()> {
     let mut conn = SqliteConnectOptions::new()
         .filename(path)
@@ -383,36 +401,80 @@ pub async fn strip_credentials(path: &Path) -> Result<()> {
         .journal_mode(SqliteJournalMode::Delete)
         .connect()
         .await
-        .map_err(failed("open the exported copy"))?;
+        .map_err(failed("open the database copy"))?;
 
-    let has_table: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sync_peers')",
-    )
-    .fetch_one(&mut conn)
-    .await
-    .map_err(failed("inspect the exported copy"))?;
+    let result = strip_on(&mut conn).await;
+    let closed = conn
+        .close()
+        .await
+        .map_err(failed("close the database copy"));
+    result.and(closed)
+}
 
-    if has_table {
-        // A plain DELETE only unlinks the rows: the bundled SQLite leaves
-        // `secure_delete` off, so the ids and secrets would survive in free
-        // pages. Zero them on delete, then VACUUM to rebuild the file without
-        // any free page at all.
-        sqlx::query("PRAGMA secure_delete = ON")
-            .execute(&mut conn)
+async fn strip_on(conn: &mut sqlx::SqliteConnection) -> Result<()> {
+    let objects: Vec<(String, Option<String>)> =
+        sqlx::query_as("SELECT type, sql FROM sqlite_master WHERE lower(name) = 'sync_peers'")
+            .fetch_all(&mut *conn)
             .await
-            .map_err(failed("enable secure delete on the copy"))?;
-        sqlx::query("DELETE FROM sync_peers")
-            .execute(&mut conn)
-            .await
-            .map_err(failed("strip sync credentials from the copy"))?;
-        sqlx::query("VACUUM")
-            .execute(&mut conn)
-            .await
-            .map_err(failed("compact the copy"))?;
+            .map_err(failed("inspect the database copy"))?;
+    let mut has_table = false;
+    for (kind, sql) in &objects {
+        let plain_table = kind == "table"
+            && sql.as_deref().is_some_and(|sql| {
+                sql.trim_start()
+                    .get(..12)
+                    .is_some_and(|head| head.eq_ignore_ascii_case("CREATE TABLE"))
+            });
+        if !plain_table {
+            return Err(crate::DbError::UnsafeBackup {
+                reason: "sync_peers is not a plain table",
+            });
+        }
+        has_table = true;
     }
 
-    conn.close()
+    let triggers: Vec<String> = sqlx::query_scalar(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' \
+         AND lower(sql) LIKE '%sync_peers%'",
+    )
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(failed("list triggers in the database copy"))?;
+    for name in triggers {
+        let drop = format!("DROP TRIGGER IF EXISTS \"{}\"", name.replace('"', "\"\""));
+        sqlx::query(sqlx::AssertSqlSafe(drop))
+            .execute(&mut *conn)
+            .await
+            .map_err(failed("drop a trigger from the database copy"))?;
+    }
+
+    if !has_table {
+        return Ok(());
+    }
+    // A plain DELETE only unlinks the rows: the bundled SQLite leaves
+    // `secure_delete` off, so the ids and secrets would survive in free
+    // pages. Zero them on delete, then VACUUM to rebuild the file without any
+    // free page at all.
+    sqlx::query("PRAGMA secure_delete = ON")
+        .execute(&mut *conn)
         .await
-        .map_err(failed("close the exported copy"))?;
+        .map_err(failed("enable secure delete on the copy"))?;
+    sqlx::query("DELETE FROM sync_peers")
+        .execute(&mut *conn)
+        .await
+        .map_err(failed("strip sync credentials from the copy"))?;
+    sqlx::query("VACUUM")
+        .execute(&mut *conn)
+        .await
+        .map_err(failed("compact the copy"))?;
+    let left: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sync_peers")
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(failed("count what is left in the copy"))?;
+    if left != 0 {
+        return Err(crate::DbError::UnsafeBackup {
+            reason: "paired devices survived the strip",
+        });
+    }
     Ok(())
 }

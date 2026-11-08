@@ -149,3 +149,131 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
         .windows(needle.len())
         .any(|window| window == needle)
 }
+
+/// Snapshot the fixture to `name` and run `sql` against the copy, standing in
+/// for a backup file someone crafted.
+async fn crafted(fixture: &mut activity::Fixture, name: &str, sql: &str) -> std::path::PathBuf {
+    use sqlx::Connection as _;
+    let copy = fixture.sibling(name);
+    backup::snapshot_to(fixture.conn(), &copy)
+        .await
+        .expect("snapshot");
+    let mut raw = sqlx::SqliteConnection::connect_with(
+        &sqlx::sqlite::SqliteConnectOptions::new().filename(&copy),
+    )
+    .await
+    .expect("open the copy");
+    sqlx::raw_sql(sqlx::AssertSqlSafe(sql.to_owned()))
+        .execute(&mut raw)
+        .await
+        .expect("craft the copy");
+    raw.close().await.expect("close");
+    copy
+}
+
+async fn scalar(path: &std::path::Path, sql: &'static str) -> i64 {
+    use sqlx::Connection as _;
+    let mut raw = sqlx::SqliteConnection::connect_with(
+        &sqlx::sqlite::SqliteConnectOptions::new().filename(path),
+    )
+    .await
+    .expect("open");
+    sqlx::query_scalar(sql)
+        .fetch_one(&mut raw)
+        .await
+        .expect("query")
+}
+
+#[tokio::test]
+async fn a_trigger_that_reinserts_deleted_peers_is_dropped() {
+    let mut fixture = fresh().await;
+    sync::insert_peer(fixture.conn(), &peer("1"))
+        .await
+        .expect("insert");
+    let copy = crafted(
+        &mut fixture,
+        "reinsert.db",
+        "CREATE TRIGGER keep_alive AFTER DELETE ON sync_peers BEGIN \
+           INSERT INTO sync_peers VALUES \
+             (old.device_id, old.name, old.platform, old.secret, old.created_at, NULL); \
+         END;",
+    )
+    .await;
+
+    sync::strip_credentials(&copy).await.expect("strip");
+
+    assert_eq!(scalar(&copy, "SELECT COUNT(*) FROM sync_peers").await, 0);
+    assert_eq!(
+        scalar(
+            &copy,
+            "SELECT COUNT(*) FROM sqlite_master WHERE name = 'keep_alive'"
+        )
+        .await,
+        0,
+        "the trigger is gone"
+    );
+}
+
+#[tokio::test]
+async fn a_view_named_sync_peers_is_refused() {
+    let mut fixture = fresh().await;
+    let copy = crafted(
+        &mut fixture,
+        "view.db",
+        "DROP TABLE sync_peers; \
+         CREATE VIEW sync_peers AS SELECT 'smuggled' AS device_id, 'Phone' AS name, \
+           'android' AS platform, 'c2VjcmV0' AS secret, '2026-01-01' AS created_at, \
+           NULL AS last_seen_at;",
+    )
+    .await;
+
+    let refused = sync::strip_credentials(&copy).await;
+    assert!(
+        matches!(refused, Err(shiranami_db::DbError::UnsafeBackup { .. })),
+        "{refused:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_trigger_elsewhere_that_writes_peers_later_is_dropped() {
+    let mut fixture = fresh().await;
+    let copy = crafted(
+        &mut fixture,
+        "later.db",
+        "CREATE TRIGGER plant AFTER INSERT ON tracks BEGIN \
+           INSERT INTO Sync_Peers VALUES \
+             ('smuggled', 'Phone', 'android', 'c2VjcmV0', '2026-01-01', NULL); \
+         END;",
+    )
+    .await;
+    let app_triggers = scalar(
+        &copy,
+        "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger' AND name != 'plant'",
+    )
+    .await;
+    assert!(app_triggers > 0, "the app schema has triggers of its own");
+
+    sync::strip_credentials(&copy).await.expect("strip");
+
+    // What the import does next: open it as the library and keep using it.
+    let opened = shiranami_db::open(&copy).await.expect("open");
+    {
+        let mut conn = opened.pool.acquire().await.expect("acquire");
+        exec(
+            &mut conn,
+            "INSERT INTO tracks (id, file_path, title) VALUES ('t', '/m/a.mp3', 'A')",
+        )
+        .await;
+        assert!(sync::list_peers(&mut conn).await.expect("list").is_empty());
+    }
+    opened.pool.close().await;
+    assert_eq!(
+        scalar(
+            &copy,
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'trigger'"
+        )
+        .await,
+        app_triggers,
+        "only the planted trigger was dropped"
+    );
+}

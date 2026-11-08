@@ -119,6 +119,16 @@ pub enum DbError {
         /// chose. It goes in the message, never in `details` — see below.
         path: String,
     },
+
+    /// A backup's schema was crafted to keep paired-phone credentials alive
+    /// through [`crate::repo::sync::strip_credentials`]: `sync_peers` is not a
+    /// plain table, or rows survived the strip. Refused rather than repaired,
+    /// since a legitimate export never looks like this.
+    #[error("the backup cannot be used safely: {reason}")]
+    UnsafeBackup {
+        /// What was wrong with it.
+        reason: &'static str,
+    },
 }
 
 impl WireError for DbError {
