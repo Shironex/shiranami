@@ -1,10 +1,11 @@
-import { memo, useEffect, useRef } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import { ArtTile } from '@/components/art/ArtTile';
 import { Scrim } from '@/components/art/Scrim';
+import { LyricRow } from '@/components/player/LyricRow';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
@@ -13,7 +14,6 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useLyrics, type LyricLine } from '@/hooks/useLyrics';
 import { colors } from '@/lib/theme';
-import { cn } from '@/lib/utils';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 /** Lines fade out above the seek bar instead of being cut. */
@@ -21,37 +21,6 @@ const BOTTOM_FADE = [
   { at: 0, color: colors.background, opacity: 0 },
   { at: 1, color: colors.background, opacity: 1 },
 ] as const;
-
-const Line = memo(function Line({
-  text,
-  state,
-  onPress,
-}: {
-  text: string;
-  state: 'past' | 'now' | 'next';
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : 'text'}
-      accessibilityHint={onPress ? 'Plays from this line' : undefined}
-      className="rounded-lg px-1 py-[11px] active:bg-border"
-    >
-      <Text
-        className={cn(
-          state === 'now'
-            ? 'font-display text-[24px] leading-[31px] tracking-[-0.24px]'
-            : 'font-display-medium text-[20px] leading-[28px] tracking-[-0.2px]'
-        )}
-        style={{ opacity: state === 'now' ? 1 : state === 'past' ? 0.45 : 0.6 }}
-      >
-        {text}
-      </Text>
-    </Pressable>
-  );
-});
 
 /** Lyrics full screen: synced lines follow the song, tap a line to jump there. */
 export default function LyricsScreen() {
@@ -110,7 +79,7 @@ export default function LyricsScreen() {
             data={lyrics.synced}
             keyExtractor={(_, i) => String(i)}
             renderItem={({ item, index }) => (
-              <Line
+              <LyricRow
                 text={item.text}
                 state={index === active ? 'now' : index < active ? 'past' : 'next'}
                 onPress={() => seek(item.time)}
@@ -124,7 +93,7 @@ export default function LyricsScreen() {
           <FlatList
             data={plain}
             keyExtractor={(_, i) => String(i)}
-            renderItem={({ item }) => <Line text={item || ' '} state="next" />}
+            renderItem={({ item }) => <LyricRow text={item || ' '} state="next" />}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 28, paddingVertical: 40 }}
           />
