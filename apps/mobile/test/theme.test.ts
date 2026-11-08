@@ -18,6 +18,16 @@ describe('color tokens', () => {
   });
 });
 
+describe('icon and splash colors', () => {
+  it('app.json repeats the token hex values (it cannot import them)', () => {
+    const splash = appConfig.expo.plugins.find(
+      entry => Array.isArray(entry) && entry[0] === 'expo-splash-screen'
+    ) as [string, { backgroundColor: string }] | undefined;
+    expect(appConfig.expo.android.adaptiveIcon.backgroundColor).toBe(generated.colors.icon);
+    expect(splash?.[1].backgroundColor).toBe(generated.colors.background);
+  });
+});
+
 describe('embedded fonts', () => {
   const plugin = appConfig.expo.plugins.find(
     (entry): entry is [string, { fonts: string[] }] =>

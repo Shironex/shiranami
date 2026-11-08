@@ -21,6 +21,8 @@ const palette = {
   sheet: [0.135, 0.022, HUE],
   'player-glow': [0.2, 0.045, HUE],
   'player-mid': [0.11, 0.025, HUE],
+  /** Launcher icon and splash disk behind the mascot (app.json repeats the hex). */
+  icon: [0.25, 0.07, HUE],
   foreground: [0.93, 0.01, HUE],
   'soft-foreground': [0.86, 0.015, HUE],
   'muted-foreground': [0.7, 0.02, HUE],

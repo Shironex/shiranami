@@ -8,11 +8,6 @@
     "scheme": "shiranami",
     "platforms": ["android", "ios"],
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#110f1a"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.shiranami.mobile",
@@ -25,8 +20,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#110f1a"
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png",
+        "backgroundColor": "#1c1c42"
       },
+      "icon": "./assets/images/icon.png",
       "package": "com.shiranami.mobile",
       "permissions": [
         "android.permission.READ_MEDIA_AUDIO",
@@ -38,6 +35,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#010105"
+        }
+      ],
       [
         "expo-font",
         {
