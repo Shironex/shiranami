@@ -11,6 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { migrateDbIfNeeded } from '@/lib/db';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { startPlaybackService } from '@/lib/playback-service';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -34,6 +35,8 @@ function ReadySignal({ onReady }: { onReady: () => void }) {
 export default function RootLayout() {
   const [appReady, setAppReady] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+
+  useEffect(() => startPlaybackService(), []);
 
   const handleAppReady = useCallback(() => {
     SplashScreen.hideAsync();
