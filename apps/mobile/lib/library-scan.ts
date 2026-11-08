@@ -178,8 +178,31 @@ async function readInBatches<T>(
  * The one library job that may run: expo-sqlite has a single connection, so a
  * backfill and a scan running together would open overlapping transactions.
  */
-let activeJob: { kind: 'backfill' | 'scan'; stop: CancelToken; done: Promise<unknown> } | null =
-  null;
+let activeJob: {
+  kind: 'backfill' | 'scan' | 'sync';
+  stop: CancelToken;
+  done: Promise<unknown>;
+} | null = null;
+
+/** Stops a background backfill and waits until no library job runs. */
+async function waitForTurn(): Promise<void> {
+  while (activeJob) {
+    const previous = activeJob;
+    if (previous.kind === 'backfill') previous.stop.cancelled = true;
+    await previous.done.catch(() => undefined);
+  }
+}
+
+/**
+ * Runs one desktop sync write step under the library lock, so it never opens
+ * a transaction over a scan's or a backfill's. Like a scan it stops a
+ * backfill and waits for anything else. Keep each step short: downloads run
+ * outside the lock and only their database writes come through here.
+ */
+export async function withLibraryLock<T>(job: () => Promise<T>): Promise<T> {
+  await waitForTurn();
+  return runExclusive('sync', { cancelled: false }, job);
+}
 
 /** A token that reads as cancelled when either the caller or the lock cancels it. */
 function eitherToken(caller: CancelToken | undefined, stop: CancelToken): CancelToken {
@@ -191,7 +214,7 @@ function eitherToken(caller: CancelToken | undefined, stop: CancelToken): Cancel
 }
 
 async function runExclusive<T>(
-  kind: 'backfill' | 'scan',
+  kind: 'backfill' | 'scan' | 'sync',
   stop: CancelToken,
   job: () => Promise<T>
 ): Promise<T> {
@@ -299,12 +322,8 @@ export async function scanLibrary(
   options: ScanOptions = {}
 ): Promise<ScanResult> {
   // Take over from a background backfill (it stops after its current batch),
-  // or wait for an earlier scan to finish.
-  while (activeJob) {
-    const previous = activeJob;
-    if (previous.kind === 'backfill') previous.stop.cancelled = true;
-    await previous.done.catch(() => undefined);
-  }
+  // or wait for an earlier scan or sync step to finish.
+  await waitForTurn();
   const stop: CancelToken = { cancelled: false };
   return runExclusive('scan', stop, () => runScan(db, deps, options));
 }

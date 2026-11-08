@@ -99,7 +99,7 @@ describe('migration 2', () => {
       missing: 0,
     });
     const versions = await db.getAllAsync<{ version: number }>('SELECT version FROM _migrations');
-    expect(versions.map(v => v.version)).toEqual([1, 2]);
+    expect(versions.map(v => v.version)).toEqual([1, 2, 3]);
   });
 });
 

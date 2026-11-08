@@ -110,6 +110,19 @@ export const MIGRATIONS: Record<number, Migration> = {
     `ALTER TABLE tracks ADD COLUMN missing INTEGER NOT NULL DEFAULT 0`,
     `CREATE INDEX IF NOT EXISTS idx_tracks_content_hash ON tracks(content_hash) WHERE content_hash IS NOT NULL`,
   ],
+  // LAN sync with the desktop (lib/sync-library.ts). Additive only. Rows the
+  // sync adds use source 'desktop': a copy in the app's tracks folder, missing
+  // until its audio has downloaded.
+  3: [
+    // The desktop's track id. Rows the sync created use it as their own id too;
+    // a row that already existed and matched by content hash keeps its id and
+    // only gains this link.
+    `ALTER TABLE tracks ADD COLUMN desktop_id TEXT`,
+    // The audio route's ETag (`fileVersion`) of the copy on the phone, so a
+    // changed file on the desktop is downloaded again.
+    `ALTER TABLE tracks ADD COLUMN desktop_version TEXT`,
+    `CREATE INDEX IF NOT EXISTS idx_tracks_desktop_id ON tracks(desktop_id) WHERE desktop_id IS NOT NULL`,
+  ],
 };
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
