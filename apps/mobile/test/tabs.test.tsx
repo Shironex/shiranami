@@ -20,6 +20,7 @@ jest.mock('@/context/SettingsContext', () => ({
   }),
 }));
 
+jest.mock('@/hooks/useInitialData', () => ({ useInitialData: () => {} }));
 jest.mock('@/components/OfflineBanner', () => ({ OfflineBanner: () => null }));
 jest.mock('@/components/player/MiniPlayer', () => ({ MiniPlayer: () => null }));
 
@@ -37,7 +38,7 @@ async function renderTabs() {
       '(tabs)/index': placeholder('Library'),
       '(tabs)/search': placeholder('Search'),
       '(tabs)/radio': placeholder('Radio'),
-      '(tabs)/settings': placeholder('Settings'),
+      '(tabs)/playlists/index': placeholder('Playlists'),
     },
     { initialUrl: '/' }
   );
@@ -50,6 +51,7 @@ describe('tabs', () => {
 
     expect(screen.getByText('Library screen')).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Library' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Playlists' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Radio' })).toBeTruthy();
     expect(screen.queryByRole('tab', { name: 'Search' })).toBeNull();
   });

@@ -1,0 +1,69 @@
+import { memo, type ReactNode } from 'react';
+import Heart from 'lucide-react-native/icons/heart';
+import { ArtTile } from '@/components/art/ArtTile';
+import { EqBars } from '@/components/ui/eq-bars';
+import { ListRow, RowMeta } from '@/components/ui/list-row';
+import { formatDuration } from '@/lib/format';
+import { colors } from '@/lib/theme';
+import type { Track } from '@/stores/usePlayerStore';
+
+interface TrackRowProps {
+  track: Track;
+  active: boolean;
+  playing: boolean;
+  onPress: () => void;
+  onLongPress?: () => void;
+  /** Buttons beside the row (queue: play next, remove); they replace the heart and duration. */
+  actions?: ReactNode;
+  meta?: string;
+}
+
+function DefaultEnd({
+  track,
+  active,
+  playing,
+}: Pick<TrackRowProps, 'track' | 'active' | 'playing'>) {
+  if (active) return <EqBars playing={playing} />;
+  return (
+    <>
+      {track.isFavorite && (
+        <Heart
+          size={18}
+          color={colors.favorite}
+          fill={colors.favorite}
+          accessibilityLabel="Favorite"
+        />
+      )}
+      {track.duration > 0 && <RowMeta>{formatDuration(track.duration)}</RowMeta>}
+    </>
+  );
+}
+
+/** A song in a list: art, title, artist, then eq bars or heart and duration. */
+function TrackRowInner({
+  track,
+  active,
+  playing,
+  onPress,
+  onLongPress,
+  actions,
+  meta,
+}: TrackRowProps) {
+  return (
+    <ListRow
+      art={<ArtTile title={track.title} artUri={track.albumArt} />}
+      title={track.title}
+      meta={meta ?? track.artist}
+      active={active}
+      end={
+        actions && !active ? null : <DefaultEnd track={track} active={active} playing={playing} />
+      }
+      actions={active ? undefined : actions}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      accessibilityHint={onLongPress ? 'Long press for more' : undefined}
+    />
+  );
+}
+
+export const TrackRow = memo(TrackRowInner);

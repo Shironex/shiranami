@@ -1,257 +1,183 @@
-import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Library from 'lucide-react-native/icons/library';
-import Plus from 'lucide-react-native/icons/plus';
-import SortAsc from 'lucide-react-native/icons/arrow-up-narrow-wide';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useCallback, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import ArrowUpDown from 'lucide-react-native/icons/arrow-up-down';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import Search from 'lucide-react-native/icons/search';
+import X from 'lucide-react-native/icons/x';
+import { ArtTile } from '@/components/art/ArtTile';
+import { FirstRun } from '@/components/library/FirstRun';
+import { PlayShuffleRow } from '@/components/library/PlayShuffleRow';
+import { TrackRow } from '@/components/library/TrackRow';
+import { Avatar } from '@/components/ui/avatar';
+import { ChipRow } from '@/components/ui/chip';
+import { EmptyState } from '@/components/ui/empty-state';
+import { IconButton } from '@/components/ui/icon-button';
+import { GroupLabel, ListRow } from '@/components/ui/list-row';
+import { SearchField } from '@/components/ui/search-field';
 import { Text } from '@/components/ui/text';
-import { TrackItem } from '@/components/library/TrackItem';
-import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
+import {
+  LIBRARY_FILTERS,
+  SORT_LABELS,
+  useLibraryView,
+  type LibraryItem,
+} from '@/hooks/useLibraryView';
+import { countLabel } from '@/lib/format';
 import { colors } from '@/lib/theme';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 
-type SortKey = 'title' | 'artist' | 'album' | 'created_at';
-
-const SORT_LABELS: Record<SortKey, string> = {
-  created_at: 'Recent',
-  title: 'Title',
-  artist: 'Artist',
-  album: 'Album',
-};
-
-export default function LibraryScreen() {
-  const insets = useSafeAreaInsets();
-  const db = useSQLiteContext();
-  const { importFiles, importing } = useLibraryActions();
-  const [sortKey, setSortKey] = useState<SortKey>('created_at');
-
-  const library = usePlayerStore(s => s.library);
-  const currentTrack = usePlayerStore(s => s.currentTrack);
-  const playFromList = usePlayerStore(s => s.playFromList);
-  const setLibrary = usePlayerStore(s => s.setLibrary);
-  const toggleFavorite = usePlayerStore(s => s.toggleFavorite);
-
-  // Load library from DB on mount
-  useEffect(() => {
-    db.getAllAsync<{
-      id: string;
-      file_path: string;
-      title: string;
-      artist: string;
-      album: string;
-      duration: number | null;
-      album_art: string | null;
-      is_favorite: number;
-      play_count: number;
-    }>('SELECT * FROM tracks ORDER BY created_at DESC').then(rows => {
-      setLibrary(
-        rows.map(r => ({
-          id: r.id,
-          filePath: r.file_path,
-          title: r.title,
-          artist: r.artist ?? 'Unknown Artist',
-          album: r.album ?? 'Unknown Album',
-          duration: r.duration ?? 0,
-          albumArt: r.album_art ?? undefined,
-          isFavorite: !!r.is_favorite,
-          playCount: r.play_count ?? 0,
-        }))
-      );
-    });
-  }, [db, setLibrary]);
-
-  const sorted = [...library].sort((a, b) => {
-    switch (sortKey) {
-      case 'title':
-        return a.title.localeCompare(b.title);
-      case 'artist':
-        return a.artist.localeCompare(b.artist);
-      case 'album':
-        return a.album.localeCompare(b.album);
-      default:
-        return 0; // created_at is already default DB order
-    }
-  });
-
-  const handlePlay = useCallback(
-    (index: number) => {
-      playFromList(sorted, index);
-    },
-    [sorted, playFromList]
-  );
-
-  const handleFavorite = useCallback(
-    (trackId: string) => {
-      toggleFavorite(trackId);
-      db.runAsync(
-        "UPDATE tracks SET is_favorite = NOT is_favorite, updated_at = datetime('now') WHERE id = ?",
-        [trackId]
-      );
-    },
-    [toggleFavorite, db]
-  );
-
-  const cycleSortKey = useCallback(() => {
-    const keys: SortKey[] = ['created_at', 'title', 'artist', 'album'];
-    setSortKey(prev => keys[(keys.indexOf(prev) + 1) % keys.length]);
-  }, []);
-
-  const renderItem = useCallback(
-    ({ item, index }: { item: Track; index: number }) => (
-      <TrackItem
-        track={item}
-        isActive={currentTrack?.id === item.id}
-        onPress={() => handlePlay(index)}
-        onFavoritePress={() => handleFavorite(item.id)}
-      />
-    ),
-    [currentTrack?.id, handlePlay, handleFavorite]
-  );
-
-  const keyExtractor = useCallback((item: Track) => item.id, []);
-
+function SortButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
-        <Text style={s.headerTitle}>Library</Text>
-        <View style={s.headerActions}>
-          <Pressable onPress={cycleSortKey} style={s.headerBtn} hitSlop={8}>
-            <SortAsc size={18} color={colors.mutedForeground} />
-            <Text style={s.sortLabel}>{SORT_LABELS[sortKey]}</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Track count */}
-      {library.length > 0 && (
-        <Text style={s.trackCount}>
-          {library.length} track{library.length !== 1 ? 's' : ''}
-        </Text>
-      )}
-
-      {/* Track list or empty state */}
-      {library.length === 0 ? (
-        <View style={s.empty}>
-          <Library size={48} color={colors.mutedForeground} />
-          <Text style={s.emptyTitle}>No tracks yet</Text>
-          <Text style={s.emptySubtitle}>Import music from your device to get started</Text>
-          <Pressable onPress={importFiles} disabled={importing} style={s.importBtn}>
-            <Plus size={18} color={colors.primaryForeground} />
-            <Text style={s.importBtnText}>{importing ? 'Importing...' : 'Import Music'}</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <FlatList
-          data={sorted}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={s.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* FAB */}
-      {library.length > 0 && (
-        <Pressable onPress={importFiles} disabled={importing} style={[s.fab, { bottom: 16 }]}>
-          <Plus size={24} color={colors.primaryForeground} />
-        </Pressable>
-      )}
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sort by ${label}`}
+      onPress={onPress}
+      className="h-11 flex-row items-center gap-1.5 rounded-full px-2 active:bg-border"
+    >
+      <ArrowUpDown size={18} color={colors.softForeground} />
+      <Text variant="label" className="text-soft-foreground">
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.foreground,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-  },
-  sortLabel: {
-    fontSize: 13,
-    color: colors.mutedForeground,
-  },
-  trackCount: {
-    fontSize: 13,
-    color: colors.mutedForeground,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.foreground,
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.mutedForeground,
-    textAlign: 'center',
-  },
-  importBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  importBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primaryForeground,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-});
+export default function LibraryScreen() {
+  const router = useRouter();
+  const view = useLibraryView();
+  const { importFiles, importing } = useLibraryActions();
+  const { scrollY, onScroll } = useWindowScroll();
+  const topInset = useWindowInset();
+  const [searching, setSearching] = useState(false);
+
+  const currentTrackId = usePlayerStore(s => s.currentTrack?.id);
+  const isPlaying = usePlayerStore(s => s.isPlaying);
+  const playFromList = usePlayerStore(s => s.playFromList);
+  const playShuffled = usePlayerStore(s => s.playShuffled);
+
+  const { tracks, source } = view;
+  const renderItem = useCallback(
+    ({ item }: { item: LibraryItem }) => {
+      switch (item.type) {
+        case 'label':
+          return <GroupLabel>{item.text}</GroupLabel>;
+        case 'empty':
+          return <EmptyState title={item.title} body={item.body} />;
+        case 'artist':
+          return (
+            <ListRow
+              art={<ArtTile title={item.name} />}
+              title={item.name}
+              meta={item.meta}
+              end={<ChevronRight size={20} color={colors.mutedForeground} />}
+              onPress={() => view.setArtist(item.name)}
+            />
+          );
+        case 'track':
+          return (
+            <TrackRow
+              track={item.track}
+              active={item.track.id === currentTrackId}
+              playing={isPlaying}
+              onPress={() => playFromList(tracks, item.index, source)}
+              onLongPress={() =>
+                router.push({ pathname: '/track/[id]', params: { id: item.track.id } })
+              }
+            />
+          );
+      }
+    },
+    [currentTrackId, isPlaying, playFromList, tracks, source, router, view.setArtist]
+  );
+
+  if (view.total === 0) return <FirstRun onImport={importFiles} importing={importing} />;
+
+  const toggleSearch = () => {
+    if (searching) view.setQuery('');
+    setSearching(s => !s);
+  };
+
+  const header = (
+    <View className="px-3 pb-1">
+      <ChipRow
+        options={LIBRARY_FILTERS}
+        value={view.filter}
+        onChange={view.setFilter}
+        className="mt-3"
+      />
+      {searching && (
+        <SearchField
+          value={view.query}
+          onChangeText={view.setQuery}
+          autoFocus
+          placeholder={`Filter ${countLabel(view.total, 'song', 'songs')}`}
+          accessibilityLabel="Filter songs"
+          className="mt-3"
+        />
+      )}
+      {view.artist ? (
+        <View className="mt-3 flex-row items-center">
+          <IconButton
+            icon={ArrowLeft}
+            accessibilityLabel="All artists"
+            onPress={() => view.setArtist(null)}
+            className="-ml-2.5"
+          />
+          <Text variant="sheetTitle" numberOfLines={1} className="flex-1">
+            {view.artist}
+          </Text>
+        </View>
+      ) : null}
+      {view.filter !== 'artists' || view.artist ? (
+        <View className="mt-3">
+          <PlayShuffleRow
+            disabled={tracks.length === 0}
+            onPlay={() => playFromList(tracks, 0, source)}
+            onShuffle={() => playShuffled(tracks, source)}
+            end={
+              view.filter === 'history' ? null : (
+                <SortButton label={SORT_LABELS[view.sort]} onPress={view.cycleSort} />
+              )
+            }
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  return (
+    <View className="flex-1 bg-background">
+      <Animated.FlatList
+        data={view.items}
+        renderItem={renderItem}
+        keyExtractor={item => item.key}
+        ListHeaderComponent={header}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: topInset, paddingHorizontal: 4, paddingBottom: 24 }}
+      />
+      <WindowHeader
+        title="Library"
+        subtitle={countLabel(view.total, 'song', 'songs')}
+        scrollY={scrollY}
+        actions={
+          <>
+            <IconButton
+              icon={searching ? X : Search}
+              color={colors.foreground}
+              accessibilityLabel={searching ? 'Close filter' : 'Filter songs'}
+              onPress={toggleSearch}
+            />
+            <Avatar />
+          </>
+        }
+      />
+    </View>
+  );
+}
