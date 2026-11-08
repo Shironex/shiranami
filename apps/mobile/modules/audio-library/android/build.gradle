@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.audiolibrary'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.audiolibrary"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // ContentHashTest pins the hash against the desktop's golden values.
+  testImplementation 'junit:junit:4.13.2'
+}
