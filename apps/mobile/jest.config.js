@@ -1,9 +1,11 @@
 const expoPreset = require('jest-expo/android/jest-preset');
 
-// Packages published as untranspiled JSX. The preset only sends its own list
-// (react-native, expo, ...) through Babel, so without an entry here the first
-// test importing one fails with a syntax error.
-const UNTRANSPILED_PACKAGES = ['@rn-primitives'];
+// Packages published as untranspiled JSX (@rn-primitives) or as ES modules
+// only (@noble, which @shiranami/contracts/sync uses for the LAN sync crypto).
+// The preset only sends its own list (react-native, expo, ...) through Babel,
+// so without an entry here the first test importing one fails with a syntax
+// error.
+const UNTRANSPILED_PACKAGES = ['@rn-primitives', '@noble'];
 
 // Start of the allowlist in the preset's pattern: `/node_modules/(?!(...))`.
 const ALLOWLIST_START = '(?!(';

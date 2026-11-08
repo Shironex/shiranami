@@ -27,7 +27,7 @@ jobs:
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       landing: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.landing == 'true' }}
       desktop: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' }}
-      mobile: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.mobile == 'true' }}
+      mobile: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.contracts == 'true' || steps.filter.outputs.mobile == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6

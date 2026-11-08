@@ -5,9 +5,9 @@
 // which a React Native bundle cannot load. This subpath only re-exports the
 // generated wire types (from `crates/shiranami-sync/src/wire.rs`) plus
 // helpers: parsing the QR link, the X25519 pairing exchange (`@noble/curves`,
-// pure JS, so it runs under Hermes without a native module) and the exact
-// strings the desktop HMACs. The phone supplies HMAC-SHA256 and SHA-256
-// itself.
+// pure JS, so it runs under Hermes without a native module), the exact
+// strings the desktop HMACs, and the HMACs themselves (`@noble/hashes`), so a
+// client never re-implements any of it.
 //
 // Protocol reference: crates/shiranami-sync/README.md. The constants below are
 // mirrored from the Rust crate and pinned by a test there.
@@ -297,4 +297,86 @@ export function authorizationHeader(
   signatureBase64Url: string
 ): string {
   return `${SYNC_AUTH_SCHEME} dev=${deviceId},ts=${ts},n=${nonce},sig=${signatureBase64Url}`;
+}
+
+const utf8 = (text: string) => new TextEncoder().encode(text);
+
+function hmacBase64Url(key: Uint8Array, message: string): string {
+  return toBase64Url(hmac(sha256, key, utf8(message)));
+}
+
+function decodeKey(text: string, what: string): Uint8Array {
+  const key = fromBase64Url(text);
+  if (!key || key.length === 0) throw new Error(`${what} is not base64url`);
+  return key;
+}
+
+/** `PairRequest.proof`: the HMAC of {@link pairProofMessage} under the `k=` secret. */
+export function pairRequestProof(
+  pairingSecret: string,
+  nonce: string,
+  deviceName: string,
+  platform: string,
+  phonePublicKey: string
+): string {
+  return hmacBase64Url(
+    decodeKey(pairingSecret, 'the pairing secret'),
+    pairProofMessage(nonce, deviceName, platform, phonePublicKey)
+  );
+}
+
+/**
+ * The device secret, base64url: the HMAC of {@link deviceSecretMessage} keyed
+ * by the X25519 shared secret of the phone's ephemeral `secretKey` and the
+ * desktop's public key. Call it only after {@link verifyPairResponse} passed.
+ * Throws on a malformed or low-order desktop key.
+ */
+export function deriveDeviceSecret(input: {
+  secretKey: Uint8Array;
+  phonePublicKey: string;
+  desktopPublicKey: string;
+  deviceId: string;
+  pairingSecret: string;
+}): string {
+  const shared = pairingSharedSecret(input.secretKey, input.desktopPublicKey);
+  return hmacBase64Url(
+    shared,
+    deviceSecretMessage(
+      input.deviceId,
+      input.pairingSecret,
+      input.phonePublicKey,
+      input.desktopPublicKey
+    )
+  );
+}
+
+/** Lowercase hex SHA-256, for {@link SyncSigningInput.bodySha256Hex}. */
+export function sha256Hex(body: Uint8Array | string): string {
+  const digest = sha256(typeof body === 'string' ? utf8(body) : body);
+  let out = '';
+  for (const byte of digest) out += byte.toString(16).padStart(2, '0');
+  return out;
+}
+
+/** A fresh request nonce: 16 random bytes, base64url (22 characters). */
+export function randomRequestNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return toBase64Url(bytes);
+}
+
+/**
+ * The `Authorization` header of a signed request. `deviceSecret` is the
+ * base64url text {@link deriveDeviceSecret} returned.
+ */
+export function signRequest(
+  deviceSecret: string,
+  deviceId: string,
+  input: SyncSigningInput
+): string {
+  const signature = hmacBase64Url(
+    decodeKey(deviceSecret, 'the device secret'),
+    signingPayload(input)
+  );
+  return authorizationHeader(deviceId, input.ts, input.nonce, signature);
 }
