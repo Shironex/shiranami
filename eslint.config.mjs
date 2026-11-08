@@ -134,6 +134,41 @@ export default defineConfig(
       'react-hooks/exhaustive-deps': 'off',
     },
   },
+  // React + React Hooks for the Expo app (apps/mobile), same baseline as the
+  // renderer above.
+  {
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+    },
+    settings: {
+      // Expo SDK 56 pins React 19.2.
+      react: { version: '19.2' },
+    },
+    rules: {
+      ...react.configs.flat.recommended.rules,
+      ...react.configs.flat['jsx-runtime'].rules,
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'off',
+      // Metro does not tree-shake, so an import from the package root bundles
+      // and evaluates every icon at startup, not just the one used.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'lucide-react-native',
+              message:
+                "Import one icon per module: import Play from 'lucide-react-native/icons/play'.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Component-architecture rules (Tier C), scoped to migrated feature folders.
   // The glob widens one feature per migration PR — see MIGRATED_COMPONENT_FEATURES.
   {
@@ -193,6 +228,10 @@ export default defineConfig(
       '**/.astro/**',
       '**/coverage/**',
       '**/generated/**',
+      // Expo prebuild output and Metro/Expo CLI caches (gitignored).
+      'apps/mobile/android/**',
+      'apps/mobile/ios/**',
+      'apps/mobile/.expo/**',
       // Rust tier: cargo build output and Tauri's regenerated permission
       // schemas. Nothing in either is authored here.
       '**/target/**',
