@@ -111,8 +111,15 @@ export type PairRequest = {
 	/**  `android` or `ios`; free text, at most 32 characters. */
 	platform: string,
 	/**
-	 *  Base64url `HMAC-SHA256(k, "shiranami-sync/v1/pair\n" + nonce + "\n" +
-	 *  deviceName + "\n" + platform)`, `k` being the decoded `k=` value.
+	 *  The phone's ephemeral X25519 public key, 32 bytes base64url without
+	 *  padding. Generated for this pairing only.
+	 */
+	publicKey: string,
+	/**
+	 *  Base64url `HMAC-SHA256(k, "shiranami-sync/v2/pair\n" + nonce + "\n" +
+	 *  deviceName + "\n" + platform + "\n" + publicKey)`, `k` being the
+	 *  decoded `k=` value. Covering the public key stops a sniffer from
+	 *  swapping in its own.
 	 */
 	proof: string,
 };
@@ -120,12 +127,21 @@ export type PairRequest = {
 /**
  *  `POST /v1/sync/pair` success body.
  * 
- *  The device secret is never sent. Both sides derive it:
- *  `HMAC-SHA256(k, "shiranami-sync/v1/device-secret\n" + deviceId)`.
+ *  The device secret is never sent. Both sides derive it from the X25519
+ *  shared secret of the two ephemeral keys:
+ *  `HMAC-SHA256(key = X25519(own private, other public),
+ *  "shiranami-sync/v2/device-secret\n" + deviceId + "\n" + k + "\n" +
+ *  phonePublicKey + "\n" + desktopPublicKey)`, `k` being the `k=` text of
+ *  the link and the keys their base64url text.
  */
 export type PairResponse = {
 	/**  Desktop-minted id for this phone, the `dev=` of every signed request. */
 	deviceId: string,
+	/**
+	 *  The desktop's ephemeral X25519 public key for this pairing, 32 bytes
+	 *  base64url without padding.
+	 */
+	publicKey: string,
 	/**  Stable id of this desktop install. */
 	desktopId: string,
 	/**  The desktop's display name. */

@@ -16,12 +16,14 @@ use std::time::Duration;
 use shiranami_core::paths::FoldersCache;
 use shiranami_core::paths::authority::{PathAuthority, PathAuthorityResult};
 use shiranami_sync::auth::{
-    NonceCache, authorization_header, b64, device_secret, pair_proof, random_bytes, unb64,
+    NonceCache, authorization_header, b64, device_secret, pair_proof, parse_public_key,
+    random_bytes, unb64,
 };
 use shiranami_sync::wire::PairResponse;
 use shiranami_sync::{BindPolicy, PairingLink, SyncConfig, SyncServer};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
+use x25519_dalek::{EphemeralSecret, PublicKey};
 
 struct TestAuthority {
     downloads: PathBuf,
@@ -204,18 +206,32 @@ pub struct Phone {
     pub paired: PairResponse,
 }
 
-/// Send the pairing request for `link` and return the raw response.
+/// Send the pairing request for `link` with a throwaway phone key and return
+/// the raw response.
 pub async fn send_pair(link: &str, name: &str, proof_override: Option<&str>) -> Reply {
+    let key = EphemeralSecret::random();
+    let public = b64(PublicKey::from(&key).as_bytes());
+    send_pair_with_key(link, name, &public, proof_override).await
+}
+
+/// Send the pairing request for `link` carrying `public_key`.
+pub async fn send_pair_with_key(
+    link: &str,
+    name: &str,
+    public_key: &str,
+    proof_override: Option<&str>,
+) -> Reply {
     let parsed = PairingLink::parse(link).expect("the QR parses");
     let secret = unb64(&parsed.secret).unwrap();
     let proof = proof_override.map_or_else(
-        || pair_proof(&secret, &parsed.nonce, name, "android"),
+        || pair_proof(&secret, &parsed.nonce, name, "android", public_key),
         str::to_owned,
     );
     let body = serde_json::json!({
         "nonce": parsed.nonce,
         "deviceName": name,
         "platform": "android",
+        "publicKey": public_key,
         "proof": proof,
     });
     let url = format!("http://{}:{}/v1/sync/pair", parsed.hosts[0], parsed.port);
@@ -239,15 +255,26 @@ impl Phone {
     /// Pair from a QR payload. `Err` carries the refusing status.
     pub async fn pair(link: &str, name: &str) -> Result<Self, Reply> {
         let parsed = PairingLink::parse(link).expect("the QR parses");
-        let pairing_secret = unb64(&parsed.secret).unwrap();
-        let reply = send_pair(link, name, None).await;
+        // What the real phone does: an ephemeral X25519 key per pairing, the
+        // public half in the request, the shared secret from the reply.
+        let key = EphemeralSecret::random();
+        let public = b64(PublicKey::from(&key).as_bytes());
+        let reply = send_pair_with_key(link, name, &public, None).await;
         if reply.status != 200 {
             return Err(reply);
         }
         let paired: PairResponse = serde_json::from_slice(&reply.body).unwrap();
+        let desktop_key = parse_public_key(&paired.public_key).expect("a 32 byte key");
+        let shared = key.diffie_hellman(&PublicKey::from(desktop_key));
         Ok(Self {
             base: format!("http://{}:{}", parsed.hosts[0], parsed.port),
-            secret: device_secret(&pairing_secret, &paired.device_id),
+            secret: device_secret(
+                shared.as_bytes(),
+                &paired.device_id,
+                &parsed.secret,
+                &public,
+                &paired.public_key,
+            ),
             device_id: paired.device_id.clone(),
             client: reqwest::Client::new(),
             paired,

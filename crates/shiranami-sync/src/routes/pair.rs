@@ -11,7 +11,9 @@ use shiranami_core::sync::lock_or_recover;
 use shiranami_db::repo::sync::{SyncPeer, insert_peer};
 use tokio::sync::oneshot;
 
-use crate::auth::{PAIR_PROOF_CONTEXT, b64, device_secret, hmac_verify, unb64};
+use x25519_dalek::{EphemeralSecret, PublicKey};
+
+use crate::auth::{b64, device_secret, hmac_verify, pair_proof_message, parse_public_key, unb64};
 use crate::error::SyncError;
 use crate::pairing::{APPROVAL_TIMEOUT, MAX_PAIR_FAILURES};
 use crate::routes::json;
@@ -67,7 +69,22 @@ pub(super) async fn pair(
         ));
     }
 
-    let secret = prove(&shared, &request)?;
+    let Some(phone_key) = parse_public_key(&request.public_key) else {
+        return Err(SyncError::BadRequest(
+            "public key is not 32 bytes of base64url",
+        ));
+    };
+    let pairing_secret = prove(&shared, &request)?;
+    // Ephemeral on this side too: a fresh key per pairing, gone once the
+    // device secret is derived. A low-order phone key would make the shared
+    // secret predictable, so a non-contributory exchange is refused.
+    let desktop_key = EphemeralSecret::random();
+    let desktop_public = b64(PublicKey::from(&desktop_key).as_bytes());
+    let shared_secret = desktop_key.diffie_hellman(&PublicKey::from(phone_key));
+    if !shared_secret.was_contributory() {
+        close_window_if(&shared, &request.nonce);
+        return Err(SyncError::BadRequest("unusable public key"));
+    }
     let mut waiting = Waiting {
         shared: &shared,
         nonce: request.nonce.clone(),
@@ -108,7 +125,13 @@ pub(super) async fn pair(
         device_id: device_id.clone(),
         name,
         platform,
-        secret: b64(&device_secret(&secret, &device_id)),
+        secret: b64(&device_secret(
+            shared_secret.as_bytes(),
+            &device_id,
+            &b64(&pairing_secret),
+            &request.public_key,
+            &desktop_public,
+        )),
         created_at: shiranami_core::time::iso8601::now(),
         last_seen_at: None,
     };
@@ -128,6 +151,7 @@ pub(super) async fn pair(
         StatusCode::OK,
         &PairResponse {
             device_id,
+            public_key: desktop_public,
             desktop_id: shared.desktop_id.clone(),
             desktop_name: shared.desktop_name.clone(),
             library_id: shared.library_id.clone(),
@@ -157,9 +181,11 @@ fn prove(shared: &Shared, request: &PairRequest) -> Result<[u8; 32], SyncError> 
     if window.busy {
         return Err(SyncError::PairingBusy);
     }
-    let message = format!(
-        "{PAIR_PROOF_CONTEXT}\n{}\n{}\n{}",
-        request.nonce, request.device_name, request.platform
+    let message = pair_proof_message(
+        &request.nonce,
+        &request.device_name,
+        &request.platform,
+        &request.public_key,
     );
     let proven = unb64(&request.proof)
         .is_some_and(|tag| hmac_verify(&window.secret, message.as_bytes(), &tag));

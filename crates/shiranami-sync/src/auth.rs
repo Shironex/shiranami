@@ -2,8 +2,9 @@
 //!
 //! v0 runs over plain HTTP on the LAN, so a bearer token would be readable by
 //! anyone on the same Wi-Fi and replayable forever. Instead the per-device
-//! secret never crosses the wire (it is derived from the QR secret on both
-//! sides) and every request carries an HMAC over what it asks for:
+//! secret never crosses the wire (both sides derive it from an ephemeral
+//! X25519 exchange made during pairing, see [`device_secret`]) and every
+//! request carries an HMAC over what it asks for:
 //!
 //! ```text
 //! Authorization: SNM1 dev=<deviceId>,ts=<unix seconds>,n=<nonce>,sig=<base64url>
@@ -36,10 +37,10 @@ pub const AUTH_SCHEME: &str = "SNM1";
 pub const MAX_SKEW_SECS: i64 = 120;
 
 /// Domain separator for the pairing proof.
-pub const PAIR_PROOF_CONTEXT: &str = "shiranami-sync/v1/pair";
+pub const PAIR_PROOF_CONTEXT: &str = "shiranami-sync/v2/pair";
 
 /// Domain separator for the device secret derivation.
-pub const DEVICE_SECRET_CONTEXT: &str = "shiranami-sync/v1/device-secret";
+pub const DEVICE_SECRET_CONTEXT: &str = "shiranami-sync/v2/device-secret";
 
 /// Nonces must be this long at least, in characters.
 const MIN_NONCE_LEN: usize = 16;
@@ -85,16 +86,67 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     out
 }
 
-/// The pairing proof a phone sends: base64url HMAC over the pair fields.
-pub fn pair_proof(pairing_secret: &[u8], nonce: &str, device_name: &str, platform: &str) -> String {
-    let message = format!("{PAIR_PROOF_CONTEXT}\n{nonce}\n{device_name}\n{platform}");
+/// What the pairing proof covers. Binds the phone's X25519 public key, so a
+/// sniffer who swaps in its own key invalidates the proof.
+pub fn pair_proof_message(
+    nonce: &str,
+    device_name: &str,
+    platform: &str,
+    phone_public_key: &str,
+) -> String {
+    format!("{PAIR_PROOF_CONTEXT}\n{nonce}\n{device_name}\n{platform}\n{phone_public_key}")
+}
+
+/// The pairing proof a phone sends: base64url HMAC, under the QR secret, over
+/// [`pair_proof_message`].
+pub fn pair_proof(
+    pairing_secret: &[u8],
+    nonce: &str,
+    device_name: &str,
+    platform: &str,
+    phone_public_key: &str,
+) -> String {
+    let message = pair_proof_message(nonce, device_name, platform, phone_public_key);
     b64(&hmac_sha256(pairing_secret, message.as_bytes()))
 }
 
-/// The long-lived device secret both sides derive after pairing.
-pub fn device_secret(pairing_secret: &[u8], device_id: &str) -> [u8; 32] {
-    let message = format!("{DEVICE_SECRET_CONTEXT}\n{device_id}");
-    hmac_sha256(pairing_secret, message.as_bytes())
+/// What the device secret derivation covers: the context, the device id, the
+/// QR secret as it appeared in the link (`k=`) and both public keys.
+pub fn device_secret_message(
+    device_id: &str,
+    pairing_secret_b64: &str,
+    phone_public_key: &str,
+    desktop_public_key: &str,
+) -> String {
+    format!(
+        "{DEVICE_SECRET_CONTEXT}\n{device_id}\n{pairing_secret_b64}\n{phone_public_key}\n{desktop_public_key}"
+    )
+}
+
+/// The long-lived device secret both sides derive after pairing:
+/// `HMAC-SHA256(key = X25519 shared secret, device_secret_message(..))`.
+///
+/// Keyed by the ECDH result, so someone who saw the QR and sniffed the whole
+/// exchange still cannot compute it without one of the two private keys.
+pub fn device_secret(
+    shared_secret: &[u8; 32],
+    device_id: &str,
+    pairing_secret_b64: &str,
+    phone_public_key: &str,
+    desktop_public_key: &str,
+) -> [u8; 32] {
+    let message = device_secret_message(
+        device_id,
+        pairing_secret_b64,
+        phone_public_key,
+        desktop_public_key,
+    );
+    hmac_sha256(shared_secret, message.as_bytes())
+}
+
+/// A base64url X25519 public key from the wire, if it is exactly 32 bytes.
+pub fn parse_public_key(text: &str) -> Option<[u8; 32]> {
+    unb64(text)?.try_into().ok()
 }
 
 /// The exact string a request signature covers.

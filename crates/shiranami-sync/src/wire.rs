@@ -19,12 +19,16 @@ use serde::{Deserialize, Serialize};
 use specta::{Type, Types};
 use specta_typescript::{Number, Typescript};
 
-/// The protocol version this build speaks. The `v1` in every path and the
-/// `v=` in the pairing link.
-pub const PROTOCOL_VERSION: u32 = 1;
+/// The protocol version this build speaks: the `v=` in the pairing link,
+/// `protocolVersion` in the pair and hello bodies, and the mDNS TXT `v`.
+///
+/// 2 added the X25519 exchange to pairing. The route paths keep their `/v1/`
+/// prefix: that versions the REST surface, which did not change.
+pub const PROTOCOL_VERSION: u32 = 2;
 
-/// The oldest protocol version this build still answers.
-pub const MIN_PROTOCOL_VERSION: u32 = 1;
+/// The oldest protocol version this build still answers. Version 1 pairing
+/// (device secret from the QR alone) never shipped and is not accepted.
+pub const MIN_PROTOCOL_VERSION: u32 = 2;
 
 /// What a desktop build can serve. A client checks for a capability rather
 /// than comparing app versions, so a later build can add one without a
@@ -56,20 +60,32 @@ pub struct PairRequest {
     pub device_name: String,
     /// `android` or `ios`; free text, at most 32 characters.
     pub platform: String,
-    /// Base64url `HMAC-SHA256(k, "shiranami-sync/v1/pair\n" + nonce + "\n" +
-    /// deviceName + "\n" + platform)`, `k` being the decoded `k=` value.
+    /// The phone's ephemeral X25519 public key, 32 bytes base64url without
+    /// padding. Generated for this pairing only.
+    pub public_key: String,
+    /// Base64url `HMAC-SHA256(k, "shiranami-sync/v2/pair\n" + nonce + "\n" +
+    /// deviceName + "\n" + platform + "\n" + publicKey)`, `k` being the
+    /// decoded `k=` value. Covering the public key stops a sniffer from
+    /// swapping in its own.
     pub proof: String,
 }
 
 /// `POST /v1/sync/pair` success body.
 ///
-/// The device secret is never sent. Both sides derive it:
-/// `HMAC-SHA256(k, "shiranami-sync/v1/device-secret\n" + deviceId)`.
+/// The device secret is never sent. Both sides derive it from the X25519
+/// shared secret of the two ephemeral keys:
+/// `HMAC-SHA256(key = X25519(own private, other public),
+/// "shiranami-sync/v2/device-secret\n" + deviceId + "\n" + k + "\n" +
+/// phonePublicKey + "\n" + desktopPublicKey)`, `k` being the `k=` text of
+/// the link and the keys their base64url text.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PairResponse {
     /// Desktop-minted id for this phone, the `dev=` of every signed request.
     pub device_id: String,
+    /// The desktop's ephemeral X25519 public key for this pairing, 32 bytes
+    /// base64url without padding.
+    pub public_key: String,
     /// Stable id of this desktop install.
     pub desktop_id: String,
     /// The desktop's display name.

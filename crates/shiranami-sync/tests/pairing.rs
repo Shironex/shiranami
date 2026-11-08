@@ -7,7 +7,9 @@ mod common;
 
 use std::time::Duration;
 
-use common::{Harness, Phone, send_pair};
+use common::{Harness, Phone, send_pair, send_pair_with_key};
+use shiranami_sync::auth::{b64, pair_proof, random_bytes};
+use x25519_dalek::{X25519_BASEPOINT_BYTES, x25519};
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_phone_pairs_from_the_qr_and_says_hello() {
@@ -16,7 +18,7 @@ async fn a_phone_pairs_from_the_qr_and_says_hello() {
 
     assert_eq!(phone.paired.desktop_id, harness.server.desktop_id());
     assert_eq!(phone.paired.desktop_name, "Test Desktop");
-    assert_eq!(phone.paired.protocol_version, 1);
+    assert_eq!(phone.paired.protocol_version, 2);
 
     let hello = phone.get("/v1/sync/hello").await;
     assert_eq!(hello.status, 200);
@@ -164,4 +166,54 @@ async fn shutdown_stops_the_listener() {
         .send()
         .await;
     assert!(refused.is_err(), "nothing listens after shutdown");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_proof_binds_the_phone_key_so_a_sniffer_cannot_swap_it() {
+    let harness = Harness::start().await;
+    let link = harness.qr();
+    let parsed = shiranami_sync::PairingLink::parse(&link).unwrap();
+    let k = shiranami_sync::auth::unb64(&parsed.secret).unwrap();
+    let honest = b64(x25519(random_bytes::<32>(), X25519_BASEPOINT_BYTES).as_slice());
+    let attacker = b64(x25519(random_bytes::<32>(), X25519_BASEPOINT_BYTES).as_slice());
+    // A valid proof for the honest key, replayed with the attacker's key.
+    let proof = pair_proof(&k, &parsed.nonce, "Pixel", "android", &honest);
+    let swapped = send_pair_with_key(&link, "Pixel", &attacker, Some(&proof)).await;
+    assert_eq!(swapped.status, 404);
+    assert!(swapped.body.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_low_order_or_malformed_phone_key_is_refused() {
+    let harness = Harness::start().await;
+    let link = harness.qr();
+    // The all-zero point: every shared secret with it is zero.
+    let zero = b64(&[0_u8; 32]);
+    assert_eq!(
+        send_pair_with_key(&link, "Pixel", &zero, None).await.status,
+        400
+    );
+    let link = harness.qr();
+    assert_eq!(
+        send_pair_with_key(&link, "Pixel", "c2hvcnQ", None)
+            .await
+            .status,
+        400
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn both_sides_derive_the_same_device_secret() {
+    let harness = Harness::start().await;
+    let phone = harness.paired_phone().await;
+    let stored = {
+        let mut conn = harness.pool.acquire().await.unwrap();
+        shiranami_db::repo::sync::get_peer(&mut conn, &phone.device_id)
+            .await
+            .unwrap()
+            .unwrap()
+            .secret
+    };
+    assert_eq!(stored, b64(&phone.secret));
+    assert_eq!(phone.get("/v1/sync/hello").await.status, 200);
 }

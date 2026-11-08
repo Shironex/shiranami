@@ -228,6 +228,15 @@ sha2-next = { package = "sha2", version = "0.11" }
 mdns-sd = "=0.21.6"
 if-addrs = { version = "0.15", features = ["link-local"] }
 base64 = "0.22"
+# Pairing key agreement: the phone and the desktop each send an ephemeral
+# X25519 public key, so the device secret needs a private key and not only the
+# QR secret. `static_secrets` stays off (no long-lived X25519 key exists);
+# `getrandom` makes the ephemeral keys. 3.0.0 is past the release age gate.
+x25519-dalek = { version = "3", default-features = false, features = [
+  "precomputed-tables",
+  "zeroize",
+  "getrandom",
+] }
 
 # Phase 9 (`shiranami-metadata`). `lofty` replaces music-metadata, node-id3,
 # flac-tagger *and* the ffmpeg re-mux path in one dependency (architecture §2.2
