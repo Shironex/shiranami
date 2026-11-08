@@ -125,6 +125,17 @@ export const companionXp = predicate(
   })
 );
 
+/** `sync:status`. */
+export const syncStatus = predicate(
+  z.object({
+    running: z.boolean(),
+    addresses: z.array(z.string()),
+    pairing: z.object({ deepLink: z.string(), expiresAt: z.number() }).nullable(),
+    pendingPairs: z.array(z.object({ requestId: z.string(), deviceName: z.string() })),
+    transfers: z.array(z.object({ deviceId: z.string(), title: z.string() })),
+  })
+);
+
 /**
  * `radio:now-playing`.
  *

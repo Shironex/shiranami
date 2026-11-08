@@ -23,6 +23,7 @@ export type ISettingsSection =
   | 'system'
   | 'shortcuts'
   | 'scrobble'
+  | 'phoneSync'
   | 'discord'
   | 'updates'
   | 'privacy'

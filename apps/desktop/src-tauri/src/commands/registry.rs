@@ -61,7 +61,7 @@
 /// Raising it is how a lane records that it landed. Lowering it means a
 /// namespace was dropped, which is exactly the regression R13 names — museeks
 /// lost six features across its migration and noticed afterwards.
-pub const COMMAND_COUNT: usize = 162;
+pub const COMMAND_COUNT: usize = 169;
 
 /// The invoke half of the 155-channel parity checklist (§2.6): 135 invoke plus
 /// 20 events. [`COMMAND_COUNT`] may exceed it only by the commands that port no
@@ -71,7 +71,7 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// Commands in this crate that port no v1 channel and are therefore not counted
 /// against [`V1_INVOKE_CHANNEL_COUNT`].
 ///
-/// Twenty-six of them:
+/// Thirty-four of them:
 ///
 /// - `health_check`.
 /// - `dialog_save_file` — v1 opened its save panel inside the
@@ -129,7 +129,11 @@ pub const V1_INVOKE_CHANNEL_COUNT: usize = 135;
 /// - `share_take_pending_deep_link`: the cold-start half of `share:deep-link`.
 ///   v1 dropped a link that launched the app, so there was no drain to port.
 ///   See [`crate::commands::share`].
-pub const NON_V1_COMMANDS: usize = 27;
+/// - `sync_get_status`, `sync_set_enabled`, `sync_start_pairing`,
+///   `sync_cancel_pairing`, `sync_respond_pairing`, `sync_list_devices` and
+///   `sync_revoke_device`: LAN sync with a phone (v0). v1 had no phone sync of
+///   any kind. See [`crate::commands::sync`].
+pub const NON_V1_COMMANDS: usize = 34;
 
 /// Every namespace, in one list, expanded through `$callback`.
 ///
@@ -178,6 +182,7 @@ macro_rules! namespace_list {
             shell
             storage
             store
+            sync
             system
             updater
             waveform

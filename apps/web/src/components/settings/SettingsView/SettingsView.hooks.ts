@@ -1,4 +1,4 @@
-import { useCallback, useState, type ComponentType } from 'react';
+import { lazy, useCallback, useState, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FolderOpen,
@@ -24,6 +24,7 @@ import {
   CloudRain,
   MonitorCog,
   Keyboard,
+  Smartphone,
 } from 'lucide-react';
 import { MusicFoldersSection } from '@/components/settings/MusicFoldersSection';
 import { LibrarySection } from '@/components/settings/LibrarySection';
@@ -193,6 +194,13 @@ const SECTIONS: ISettingsSectionEntry[] = [
     group: 'system',
   },
   {
+    id: 'phoneSync',
+    labelKey: 'phoneSyncNav',
+    subtitleKey: 'subtitles.phoneSync',
+    Icon: Smartphone,
+    group: 'system',
+  },
+  {
     id: 'discord',
     labelKey: 'discord',
     subtitleKey: 'subtitles.discord',
@@ -223,6 +231,12 @@ const SECTIONS: ISettingsSectionEntry[] = [
   },
 ];
 
+// Phone sync carries the QR encoder and is opened rarely: its own chunk,
+// fetched on first visit.
+const PhoneSyncSection = lazy(
+  () => import('@/components/settings/PhoneSyncSection/PhoneSyncSection')
+);
+
 const SECTION_PANEL: Record<ISettingsSection, ComponentType> = {
   folders: MusicFoldersSection,
   library: LibrarySection,
@@ -242,6 +256,7 @@ const SECTION_PANEL: Record<ISettingsSection, ComponentType> = {
   system: SystemSection,
   shortcuts: ShortcutsSection,
   scrobble: ScrobbleSection,
+  phoneSync: PhoneSyncSection,
   discord: DiscordSection,
   updates: UpdatesSection,
   privacy: PrivacySection,

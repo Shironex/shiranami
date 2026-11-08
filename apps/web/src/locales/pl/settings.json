@@ -28,7 +28,8 @@
     "updates": "Kanał aktualizacji aplikacji",
     "privacy": "Raporty awarii i dane",
     "about": "Informacje o aplikacji",
-    "support": "Wesprzyj projekt"
+    "support": "Wesprzyj projekt",
+    "phoneSync": "Sparuj telefon i skopiuj bibliotekę przez Wi-Fi"
   },
   "musicFolders": "Foldery muzyki",
   "library": "Biblioteka",
@@ -48,6 +49,36 @@
   "system": "System",
   "shortcuts": "Skróty",
   "scrobble": "Scrobblowanie",
+  "phoneSync": {
+    "title": "Synchronizacja z telefonem",
+    "subtitle": "Skopiuj bibliotekę do aplikacji Shiranami na telefonie przez domowe Wi-Fi",
+    "unavailable": "Synchronizacja z telefonem działa w aplikacji Shiranami na komputer.",
+    "toggleLabel": "Zezwalaj telefonom w tej sieci",
+    "toggleDesc": "Nasłuchuje tylko w sieci prywatnej. Po ponownym uruchomieniu znowu wyłączone.",
+    "listeningOn": "Nasłuchuje na {{addresses}}",
+    "discoverable": "Telefony w tej sieci mogą znaleźć ten komputer.",
+    "notDiscoverable": "Komputer nie jest ogłaszany w sieci; sparuj telefon kodem QR.",
+    "sending": "Wysyłanie {{title}} do {{device}}",
+    "pairHint": "Sparuj telefon, skanując jednorazowy kod w aplikacji Shiranami.",
+    "pairPhone": "Sparuj telefon",
+    "scanTitle": "Zeskanuj w aplikacji Shiranami",
+    "scanHint": "Otwórz Synchronizację na telefonie i zeskanuj ten kod. Oba urządzenia muszą być w tej samej sieci. Zanim telefon cokolwiek dostanie, zatwierdzasz go tutaj.",
+    "qrLabel": "Kod parowania",
+    "expiresIn": "Kod wygaśnie za {{time}}",
+    "codeExpired": "Ten kod wygasł",
+    "newCode": "Nowy kod",
+    "cancel": "Anuluj",
+    "wantsToPair": "Telefon chce się sparować",
+    "allow": "Zezwól",
+    "deny": "Odrzuć",
+    "devicesTitle": "Sparowane telefony",
+    "devicesSubtitle": "Telefony, które mogą kopiować bibliotekę. Odwołaj telefon, aby od razu odciąć mu dostęp.",
+    "noDevices": "Brak sparowanych telefonów.",
+    "pairedOn": "sparowano {{date}}",
+    "lastSeen": "ostatnio {{date}}",
+    "revoke": "Odwołaj",
+    "revokeNamed": "Odwołaj {{name}}"
+  },
   "discord": "Discord",
   "updates": "Aktualizacje",
   "privacy": "Prywatność",
@@ -997,5 +1028,6 @@
     "closeToTray": "Zamykaj do zasobnika",
     "closeToTrayDesc": "Zamknięcie okna pozostawia Shiranami działające w zasobniku zamiast kończyć aplikację",
     "macTrayNote": "Na macOS ukryte okno można otworzyć ponownie z ikony na pasku menu lub z Docka. Aby całkowicie zakończyć, użyj Zakończ na pasku menu."
-  }
+  },
+  "phoneSyncNav": "Telefon"
 }

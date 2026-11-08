@@ -43,6 +43,7 @@ import { shareApi } from './namespaces/share';
 import { shellApi } from './namespaces/shell';
 import { storageApi } from './namespaces/storage';
 import { storeApi } from './namespaces/store';
+import { syncApi } from './namespaces/sync';
 import { systemApi } from './namespaces/system';
 import { updaterApi } from './namespaces/updater';
 import { waveformApi } from './namespaces/waveform';
@@ -60,6 +61,7 @@ export function createElectronApi(): ElectronAPI {
     analysis: analysisApi,
     doctor: doctorApi,
     companion: companionApi,
+    sync: syncApi,
     loudness: loudnessApi,
     waveform: waveformApi,
     db: dbApi,

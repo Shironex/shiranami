@@ -28,7 +28,8 @@
     "updates": "Application update channel",
     "privacy": "Crash reporting and data",
     "about": "About this application",
-    "support": "Support the project"
+    "support": "Support the project",
+    "phoneSync": "Pair a phone and copy your library over Wi-Fi"
   },
   "musicFolders": "Music Folders",
   "library": "Library",
@@ -48,6 +49,36 @@
   "system": "System",
   "shortcuts": "Shortcuts",
   "scrobble": "Scrobbling",
+  "phoneSync": {
+    "title": "Sync with phone",
+    "subtitle": "Copy your library to the Shiranami phone app over your home Wi-Fi",
+    "unavailable": "Phone sync is available in the Shiranami desktop app.",
+    "toggleLabel": "Allow phones on this network",
+    "toggleDesc": "Opens a listener on your private network only. Off again after a restart.",
+    "listeningOn": "Listening on {{addresses}}",
+    "discoverable": "Phones on this network can find this computer.",
+    "notDiscoverable": "Not advertised on the network; pair with the QR code.",
+    "sending": "Sending {{title}} to {{device}}",
+    "pairHint": "Pair a phone by scanning a one-time code with the Shiranami app.",
+    "pairPhone": "Pair a phone",
+    "scanTitle": "Scan with the Shiranami app",
+    "scanHint": "Open Sync on your phone and scan this code. Both devices must be on the same network. You approve the phone here before it gets anything.",
+    "qrLabel": "Pairing code",
+    "expiresIn": "Code expires in {{time}}",
+    "codeExpired": "This code has expired",
+    "newCode": "New code",
+    "cancel": "Cancel",
+    "wantsToPair": "A phone wants to pair",
+    "allow": "Allow",
+    "deny": "Deny",
+    "devicesTitle": "Paired phones",
+    "devicesSubtitle": "Phones that can copy your library. Revoke one to cut it off at once.",
+    "noDevices": "No phones paired yet.",
+    "pairedOn": "paired {{date}}",
+    "lastSeen": "last seen {{date}}",
+    "revoke": "Revoke",
+    "revokeNamed": "Revoke {{name}}"
+  },
   "discord": "Discord",
   "updates": "Updates",
   "privacy": "Privacy",
@@ -971,5 +1002,6 @@
     "closeToTray": "Close to tray",
     "closeToTrayDesc": "Closing the window keeps Shiranami running in the tray instead of quitting",
     "macTrayNote": "On macOS the hidden window can be reopened from the menu bar icon or the Dock. Use Quit in the menu bar to exit completely."
-  }
+  },
+  "phoneSyncNav": "Sync with phone"
 }

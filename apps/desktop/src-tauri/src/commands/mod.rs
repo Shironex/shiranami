@@ -69,6 +69,7 @@ pub mod share;
 pub mod shell;
 pub mod storage;
 pub mod store;
+pub mod sync;
 pub mod system;
 pub mod updater;
 pub mod waveform;

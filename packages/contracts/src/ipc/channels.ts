@@ -256,6 +256,19 @@ export const IPC_CHANNELS = {
     setAccessories: 'companion:set-accessories',
     xp: 'companion:xp',
   },
+  sync: {
+    // LAN sync with the phone (v2-only, v0): the opt-in listener, QR pairing
+    // with a desktop Allow / Deny, and the paired-device list. The event
+    // carries the whole status whenever any of it changes.
+    getStatus: 'sync:get-status',
+    setEnabled: 'sync:set-enabled',
+    startPairing: 'sync:start-pairing',
+    cancelPairing: 'sync:cancel-pairing',
+    respondPairing: 'sync:respond-pairing',
+    listDevices: 'sync:list-devices',
+    revokeDevice: 'sync:revoke-device',
+    status: 'sync:status',
+  },
   loudness: {
     // Batch loudness analysis (EBU R128 / ReplayGain) via ffmpeg loudnorm.
     // Measures integrated loudness per track and persists it on the DB row.
@@ -375,6 +388,14 @@ export const V2_ONLY_CHANNELS = [
   'companion:set-species',
   'companion:set-accessories',
   'companion:xp',
+  'sync:get-status',
+  'sync:set-enabled',
+  'sync:start-pairing',
+  'sync:cancel-pairing',
+  'sync:respond-pairing',
+  'sync:list-devices',
+  'sync:revoke-device',
+  'sync:status',
   'lyrics:save-batch',
   'lyrics:save-cancel',
   'lyrics:save-progress',

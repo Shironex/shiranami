@@ -26,6 +26,7 @@ pub mod folders;
 pub mod infra;
 pub mod media;
 pub mod paths;
+pub mod phone_sync;
 pub mod seam;
 pub mod shortcuts;
 pub mod state;
@@ -354,6 +355,7 @@ fn shutdown(app: &tauri::AppHandle) {
 fn shutdown_once(app: &tauri::AppHandle) {
     tracing::info!("exit requested; shutting down");
     watch::stop(app);
+    stop_phone_sync(app);
     stop_media_server(app);
     tracing::info!("graceful shutdown complete");
 
@@ -398,6 +400,18 @@ fn stop_media_server(app: &tauri::AppHandle) {
 
     tauri::async_runtime::block_on(serve.shutdown());
     tracing::info!("the loopback media server is stopped");
+}
+
+/// Stop the LAN sync listener if the user left it on. Bounded like the media
+/// server's shutdown, and a no-op when sync never ran.
+fn stop_phone_sync(app: &tauri::AppHandle) {
+    let Some(state) = app.try_state::<state::AppState>() else {
+        return;
+    };
+    let Some(sync) = state.deferred().phone_sync.as_ref() else {
+        return;
+    };
+    tauri::async_runtime::block_on(sync.shutdown());
 }
 
 /// Brings the existing main window back to the foreground.

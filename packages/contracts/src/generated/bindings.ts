@@ -1366,6 +1366,35 @@ export const commands = {
 	storeSet: (key: RendererStoreKey, value: Json) => __TAURI_INVOKE<null>("store_set", { key, value }),
 	/**  `store:delete` — remove one renderer-visible key. */
 	storeDelete: (key: RendererStoreKey) => __TAURI_INVOKE<null>("store_delete", { key }),
+	/**  `sync:get-status`: listener, pairing window, waiting phones, transfers. */
+	syncGetStatus: () => __TAURI_INVOKE<SyncStatus>("sync_get_status"),
+	/**
+	 *  `sync:set-enabled`: start or stop the LAN listener and mDNS.
+	 * 
+	 *  Not persisted: sync runs only while the user has it switched on in this
+	 *  session. A start failure (no private network interface, a bind error) is a
+	 *  `BAD_REQUEST` carrying the reason, which the section shows.
+	 */
+	syncSetEnabled: (enabled: boolean) => __TAURI_INVOKE<SyncStatus>("sync_set_enabled", { enabled }),
+	/**
+	 *  `sync:start-pairing`: open a 5 minute pairing window and return the QR
+	 *  payload. Starts the listener when it is off.
+	 */
+	syncStartPairing: () => __TAURI_INVOKE<SyncPairingTicket>("sync_start_pairing"),
+	/**  `sync:cancel-pairing`: close the window and deny anyone waiting. */
+	syncCancelPairing: () => __TAURI_INVOKE<SyncStatus>("sync_cancel_pairing"),
+	/**
+	 *  `sync:respond-pairing`: Allow or Deny a waiting phone. Resolves `false`
+	 *  when the request is no longer waiting (it timed out or the phone left).
+	 */
+	syncRespondPairing: (requestId: string, allow: boolean) => __TAURI_INVOKE<boolean>("sync_respond_pairing", { requestId, allow }),
+	/**  `sync:list-devices`: paired phones, without their secrets. */
+	syncListDevices: () => __TAURI_INVOKE<SyncDevice[]>("sync_list_devices"),
+	/**
+	 *  `sync:revoke-device`: forget a phone. Its next request gets a 404. Works
+	 *  while sync is off. Returns the remaining devices.
+	 */
+	syncRevokeDevice: (deviceId: string) => __TAURI_INVOKE<SyncDevice[]>("sync_revoke_device", { deviceId }),
 	/**
 	 *  `updater:check-for-updates` — ask whether this build updates itself, and
 	 *  start a check if it does.
@@ -1508,6 +1537,7 @@ export const events = {
 	playlistExtractProgress: makeEvent<PlaylistExtracting>("playlist:extract-progress"),
 	radioNowPlaying: makeEvent<RadioNowPlayingChanged>("radio:now-playing"),
 	shareDeepLink: makeEvent<ShareDeepLink>("share:deep-link"),
+	syncStatus: makeEvent<SyncStatusChanged>("sync:status"),
 	systemNotice: makeEvent<SystemNoticeEmitted>("system:notice"),
 	updaterCheckingForUpdate: makeEvent<UpdaterCheckingForUpdate>("updater:checking-for-update"),
 	updaterDownloadProgress: makeEvent<UpdaterDownloadProgress>("updater:download-progress"),
@@ -3884,6 +3914,81 @@ export type SummaryQuery = {
 	since?: string | null,
 	/**  Exclusive ISO-8601 upper bound. */
 	until?: string | null,
+};
+
+/**  A paired phone, without its secret. */
+export type SyncDevice = {
+	/**  Desktop-minted id. */
+	deviceId: string,
+	/**  What the phone called itself. */
+	name: string,
+	/**  The phone's platform string. */
+	platform: string,
+	/**  When pairing was allowed, ISO-8601. */
+	createdAt: string,
+	/**  Last authenticated request, ISO-8601. */
+	lastSeenAt: string | null,
+};
+
+/**  A pairing window, as the desktop shows it: the QR payload and its expiry. */
+export type SyncPairingTicket = {
+	/**
+	 *  The `shiranami://pair?...` link the QR code encodes. Carries the
+	 *  one-time pairing secret.
+	 */
+	deepLink: string,
+	/**  The addresses the link lists, for the "listening on" line. */
+	hosts: string[],
+	/**  The listener port. */
+	port: number,
+	/**  When the window closes, epoch milliseconds. */
+	expiresAt: number,
+};
+
+/**  A phone that has proven it scanned the QR and now waits for Allow / Deny. */
+export type SyncPendingPair = {
+	/**  Pass back to `sync_respond_pairing`. */
+	requestId: string,
+	/**  What the phone called itself. */
+	deviceName: string,
+	/**  The phone's platform string. */
+	platform: string,
+};
+
+/**  The whole sync state the settings section renders. */
+export type SyncStatus = {
+	/**  Whether the LAN listener is up. */
+	running: boolean,
+	/**  `ip:port` for each bound interface. */
+	addresses: string[],
+	/**  Whether `_shiranami._tcp` is being advertised. */
+	advertising: boolean,
+	/**  The open pairing window, if any. */
+	pairing: SyncPairingTicket | null,
+	/**  Phones waiting for Allow / Deny. */
+	pendingPairs: SyncPendingPair[],
+	/**  Audio files streaming right now. */
+	transfers: SyncTransfer[],
+};
+
+/**
+ *  LAN sync changed state (v2, no v1 counterpart): the listener started or
+ *  stopped, a phone is waiting for Allow / Deny, a transfer started or
+ *  ended. Carries the whole status so the settings section never has to
+ *  follow up with a read. See `crate::phone_sync`.
+ */
+export type SyncStatusChanged = SyncStatus;
+
+/**  An audio file currently streaming to a phone. */
+export type SyncTransfer = {
+	/**  The receiving device. */
+	deviceId: string,
+	/**  Its name. */
+	deviceName: string,
+	/**  The track being sent. */
+	trackId: string,
+	/**  Its title. */
+	title: string,
 };
 
 /**

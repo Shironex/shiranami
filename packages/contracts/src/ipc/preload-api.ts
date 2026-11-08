@@ -67,6 +67,7 @@ import type {
 } from './history';
 import type { AnalysisBatchResult, AnalysisInput, AnalysisProgress } from './analysis';
 import type { CompanionSpecies, CompanionState, CompanionXpGain } from './companion';
+import type { SyncDevice, SyncPairingTicket, SyncStatus } from '../generated/bindings';
 import type { DoctorProgress, DoctorScanInput, DoctorScanResult } from './doctor';
 import type { LoudnessAnalyzeInput, LoudnessAnalyzeResult, LoudnessProgress } from './loudness';
 import type {
@@ -196,6 +197,30 @@ export interface CompanionApi {
   setAccessories: (accessories: string[]) => Promise<CompanionState>;
   /** XP accrued from a recorded play, streamed by `db:history:record-play`. */
   onXp: (callback: (gain: CompanionXpGain) => void) => () => void;
+}
+
+// ── sync ──────────────────────────────────────────────────────────────────
+
+export interface SyncApi {
+  /** Listener, addresses, open pairing window, waiting phones, transfers. */
+  getStatus: () => Promise<SyncStatus>;
+  /**
+   * Start or stop the LAN listener. Session-only: sync is off again after a
+   * restart. Rejects with the reason when no private network can be bound.
+   */
+  setEnabled: (enabled: boolean) => Promise<SyncStatus>;
+  /** Open a 5 minute pairing window (starting the listener) for the QR code. */
+  startPairing: () => Promise<SyncPairingTicket>;
+  /** Close the window and deny anyone waiting. */
+  cancelPairing: () => Promise<SyncStatus>;
+  /** Allow or Deny a waiting phone; `false` when it is no longer waiting. */
+  respondPairing: (requestId: string, allow: boolean) => Promise<boolean>;
+  /** Paired phones, without their secrets. */
+  listDevices: () => Promise<SyncDevice[]>;
+  /** Forget a phone; resolves the remaining devices. */
+  revokeDevice: (deviceId: string) => Promise<SyncDevice[]>;
+  /** The whole status, pushed whenever any part of it changes. */
+  onStatus: (callback: (status: SyncStatus) => void) => () => void;
 }
 
 // ── loudness ──────────────────────────────────────────────────────────────
@@ -806,6 +831,11 @@ export interface SharedElectronApi {
    * where this is absent.
    */
   companion?: CompanionApi;
+  /**
+   * LAN sync with the phone (v0). v2-only, hence optional: the v1 preload
+   * has no listener, and the renderer hides the section where this is absent.
+   */
+  sync?: SyncApi;
   loudness: LoudnessApi;
   waveform: WaveformApi;
   db: DbApi;

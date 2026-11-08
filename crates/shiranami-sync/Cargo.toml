@@ -1,0 +1,49 @@
+[package]
+name = "shiranami-sync"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+shiranami-core.workspace = true
+shiranami-db.workspace = true
+shiranami-serve.workspace = true
+
+axum = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+futures-util = { workspace = true }
+getrandom = { workspace = true }
+hmac = { workspace = true }
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+if-addrs = { workspace = true }
+mdns-sd = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2-next = { workspace = true }
+specta = { workspace = true }
+specta-serde = { workspace = true }
+specta-typescript = { workspace = true }
+sqlx = { workspace = true }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+uuid = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

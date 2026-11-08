@@ -220,6 +220,16 @@ export const CHANNEL_IMPLEMENTATIONS: Record<IpcChannelName, ChannelPath> = {
   'companion:set-accessories': ['companion', 'setAccessories'],
   'companion:xp': ['companion', 'onXp'],
 
+  // ── sync ────────────────────────────────────────────────────────────────
+  'sync:get-status': ['sync', 'getStatus'],
+  'sync:set-enabled': ['sync', 'setEnabled'],
+  'sync:start-pairing': ['sync', 'startPairing'],
+  'sync:cancel-pairing': ['sync', 'cancelPairing'],
+  'sync:respond-pairing': ['sync', 'respondPairing'],
+  'sync:list-devices': ['sync', 'listDevices'],
+  'sync:revoke-device': ['sync', 'revokeDevice'],
+  'sync:status': ['sync', 'onStatus'],
+
   // ── loudness / waveform ─────────────────────────────────────────────────
   'loudness:analyze': ['loudness', 'analyze'],
   'loudness:cancel': ['loudness', 'cancel'],
