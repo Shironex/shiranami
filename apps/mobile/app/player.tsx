@@ -1,13 +1,17 @@
-import { useEffect, useRef } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
 import EllipsisVertical from 'lucide-react-native/icons/ellipsis-vertical';
 import Heart from 'lucide-react-native/icons/heart';
+import LibraryIcon from 'lucide-react-native/icons/library';
+import RadioIcon from 'lucide-react-native/icons/radio';
+import { ArtTile } from '@/components/art/ArtTile';
 import { RemovalToast } from '@/components/library/RemovalToast';
 import { Cover } from '@/components/player/Cover';
 import { PlayerActions } from '@/components/player/PlayerActions';
+import { PeekCard } from '@/components/player/PeekCard';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
@@ -15,14 +19,88 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
+import { hasAlbum } from '@/lib/albums';
 import { stationMeta } from '@/lib/radio';
+import { UNKNOWN_ARTIST } from '@/lib/track-meta';
+import { PEEK_CARD_MIN_HEIGHT, peekCardRoom } from '@/lib/up-next';
 import { colors } from '@/lib/theme';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
 /** Cover side margin; the cover is the screen width minus both. */
 const COVER_GUTTER = 24;
 /** Keeps the whole player on screen on short phones. */
 const MAX_COVER = 420;
+/** The cover beside the title when the lyrics and up next card is shown. */
+const PEEK_COVER = 132;
+
+/** Where the queue came from, as a quiet chip in the top bar. */
+function SourceChip({ live, source }: { live: boolean; source: string }) {
+  const Icon = live ? RadioIcon : LibraryIcon;
+  return (
+    <View className="flex-1 items-center">
+      <View className="h-8 max-w-full flex-row items-center gap-1.5 rounded-full bg-border px-3">
+        <Icon size={16} color={colors.softForeground} />
+        <Text
+          variant="label"
+          numberOfLines={1}
+          className="shrink text-[13.5px] text-soft-foreground"
+        >
+          {live ? 'Live radio' : source}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/** A name in the meta line that opens its page. */
+function MetaLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Text
+      accessibilityRole="link"
+      onPress={onPress}
+      suppressHighlighting
+      className="text-soft-foreground"
+    >
+      {label}
+    </Text>
+  );
+}
+
+/** "Artist · Album", each part a link to its page when the tags name one. */
+function TrackMetaLine({ track, onOpen }: { track: Track; onOpen: (href: MetaHref) => void }) {
+  const knownArtist = track.artist !== UNKNOWN_ARTIST;
+  const parts: ReactNode[] = [
+    knownArtist ? (
+      <MetaLink
+        key="artist"
+        label={track.artist}
+        onPress={() => onOpen({ pathname: '/artist/[name]', params: { name: track.artist } })}
+      />
+    ) : (
+      track.artist
+    ),
+  ];
+  if (hasAlbum(track)) {
+    parts.push(
+      ' · ',
+      <MetaLink
+        key="album"
+        label={track.album}
+        onPress={() =>
+          onOpen({
+            pathname: '/album/[title]',
+            params: { title: track.album, artist: track.artist },
+          })
+        }
+      />
+    );
+  }
+  return <>{parts}</>;
+}
+
+type MetaHref =
+  | { pathname: '/artist/[name]'; params: { name: string } }
+  | { pathname: '/album/[title]'; params: { title: string; artist: string } };
 
 export default function PlayerScreen() {
   const router = useRouter();
@@ -42,10 +120,43 @@ export default function PlayerScreen() {
 
   if (!track) return <View className="flex-1 bg-background" />;
 
-  // Room under the cover for meta, seek, transport and actions (about 380pt).
-  const coverSize = Math.min(width - COVER_GUTTER * 2, MAX_COVER, height - 380 - insets.top);
   const live = !!track.isLive;
   const favorite = live ? radio.saved : !!track.isFavorite;
+  // Tall phones get the small cover and the lyrics and up next card; short ones
+  // and radio keep the big cover, which shrinks before any control does.
+  const peek = !live && peekCardRoom(height, insets.top, insets.bottom) >= PEEK_CARD_MIN_HEIGHT;
+  // Room under the cover for meta, seek, transport and actions (about 380pt).
+  const coverSize = Math.min(width - COVER_GUTTER * 2, MAX_COVER, height - 380 - insets.top);
+  const open = (href: MetaHref) => {
+    router.back();
+    router.navigate(href);
+  };
+
+  const meta = (
+    <Text
+      variant="bodyMuted"
+      numberOfLines={1}
+      className={peek ? 'mt-1 text-[15px]' : 'mt-1 text-[16px]'}
+    >
+      {live && radio.station ? (
+        stationMeta(radio.station)
+      ) : (
+        <TrackMetaLine track={track} onOpen={open} />
+      )}
+    </Text>
+  );
+  const heart =
+    !live || radio.station ? (
+      <IconButton
+        icon={Heart}
+        size={26}
+        filled={favorite}
+        color={favorite ? colors.favorite : colors.foreground}
+        accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
+        accessibilityState={{ selected: favorite }}
+        onPress={() => (live ? radio.toggle() : toggleFavorite(track.id))}
+      />
+    ) : null;
 
   return (
     <View className="flex-1 bg-background">
@@ -59,7 +170,7 @@ export default function PlayerScreen() {
           paddingBottom: Math.max(insets.bottom, 12) + 8,
         }}
       >
-        <View className="flex-row items-center justify-between px-2">
+        <View className="flex-row items-center justify-between gap-2 px-2">
           <IconButton
             icon={ChevronDown}
             size={24}
@@ -67,13 +178,7 @@ export default function PlayerScreen() {
             accessibilityLabel="Close player"
             onPress={() => router.back()}
           />
-          <Text
-            variant="label"
-            numberOfLines={1}
-            className="flex-1 text-center text-soft-foreground"
-          >
-            {live ? 'Live radio' : `Playing from ${source}`}
-          </Text>
+          <SourceChip live={live} source={source} />
           {live ? (
             <View className="h-11 w-11" />
           ) : (
@@ -86,39 +191,58 @@ export default function PlayerScreen() {
           )}
         </View>
 
-        <View className="items-center pt-5">
-          <Cover track={track} size={coverSize} />
-        </View>
+        {peek ? (
+          <>
+            <View className="flex-row items-end gap-4 pl-6 pr-[18px] pt-[18px]">
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Lyrics full screen"
+                onPress={() => router.push('/lyrics')}
+                style={{ borderRadius: 18, boxShadow: '0 24px 40px -18px rgba(0,0,4,0.95)' }}
+              >
+                <ArtTile
+                  title={track.title}
+                  artUri={track.albumArt}
+                  size={PEEK_COVER}
+                  radius={18}
+                />
+              </Pressable>
+              <View className="min-w-0 flex-1 pb-1.5">
+                <Text variant="heading" numberOfLines={2}>
+                  {track.title}
+                </Text>
+                {meta}
+              </View>
+              <View className="pb-0.5">{heart}</View>
+            </View>
+            <View className="mt-[18px] flex-1">
+              <PeekCard track={track} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View className="items-center pt-5">
+              <Cover track={track} size={coverSize} />
+            </View>
+            <View className="flex-row items-center gap-3 pl-7 pr-[18px] pt-6">
+              <View className="min-w-0 flex-1">
+                <Text variant="title" numberOfLines={1}>
+                  {track.title}
+                </Text>
+                {meta}
+              </View>
+              {heart}
+            </View>
+          </>
+        )}
 
-        <View className="flex-row items-center gap-3 pl-7 pr-[18px] pt-6">
-          <View className="min-w-0 flex-1">
-            <Text variant="title" numberOfLines={1}>
-              {track.title}
-            </Text>
-            <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[16px]">
-              {live && radio.station ? stationMeta(radio.station) : track.artist}
-            </Text>
-          </View>
-          {(!live || radio.station) && (
-            <IconButton
-              icon={Heart}
-              size={26}
-              filled={favorite}
-              color={favorite ? colors.favorite : colors.foreground}
-              accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
-              accessibilityState={{ selected: favorite }}
-              onPress={() => (live ? radio.toggle() : toggleFavorite(track.id))}
-            />
-          )}
-        </View>
-
-        <View className="px-7 pt-[18px]">
+        <View className={peek ? 'px-7 pt-4' : 'px-7 pt-[18px]'}>
           <SeekBar />
         </View>
         <View className="px-[22px] pt-3.5">
           <Transport />
         </View>
-        <View className="mt-auto px-4 pt-6">
+        <View className={peek ? 'px-4 pt-2' : 'mt-auto px-4 pt-6'}>
           <PlayerActions />
         </View>
       </ScrollView>
