@@ -25,6 +25,7 @@ pub mod rate;
 mod routes;
 pub mod server;
 pub mod status;
+mod streams;
 pub mod wire;
 
 pub use error::SyncError;
