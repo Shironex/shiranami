@@ -86,3 +86,46 @@ async fn finished_transfers_leave_the_status() {
     }
     panic!("the transfer never left the status");
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn revoking_a_device_ends_its_running_stream() {
+    let harness = Harness::start().await;
+    let total = 32 * 1024 * 1024;
+    harness
+        .add_track("long", "long.flac", &fixture(total), "")
+        .await;
+    let phone = harness.paired_phone().await;
+    let path = "/v1/sync/tracks/long/audio";
+
+    let mut response = phone
+        .client
+        .get(format!("{}{path}", phone.base))
+        .header("authorization", phone.auth("GET", path))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    let first = response.chunk().await.unwrap().expect("a first chunk");
+    let mut received = first.len();
+
+    {
+        let mut conn = harness.pool.acquire().await.unwrap();
+        shiranami_sync::devices::revoke(&mut conn, &phone.device_id)
+            .await
+            .unwrap();
+    }
+    harness.server.forget_device(&phone.device_id);
+
+    // The rest of the body stops short: either an early end or a broken body.
+    let drained = tokio::time::timeout(std::time::Duration::from_secs(10), async {
+        while let Ok(Some(chunk)) = response.chunk().await {
+            received += chunk.len();
+        }
+    })
+    .await;
+    assert!(drained.is_ok(), "the stream ended instead of hanging");
+    assert!(
+        received < total,
+        "a revoked device must not receive the whole file ({received} of {total})"
+    );
+}

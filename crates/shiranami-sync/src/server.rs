@@ -165,12 +165,34 @@ pub(crate) struct Shared {
     pub(crate) transfers: Mutex<HashMap<u64, SyncTransfer>>,
     pub(crate) next_transfer: AtomicU64,
     pub(crate) touched: Mutex<HashMap<String, Instant>>,
+    /// Per device, a child of [`Shared::shutdown`] every audio stream of that
+    /// device ends on. Fired when the device is revoked.
+    pub(crate) device_streams: Mutex<HashMap<String, CancellationToken>>,
     pub(crate) shutdown: CancellationToken,
 }
 
 impl Shared {
     pub(crate) fn notify(&self) {
         (self.on_change)(self.status());
+    }
+
+    /// The token `device_id`'s streams stop on: revoking it or shutting down.
+    pub(crate) fn stream_token(&self, device_id: &str) -> CancellationToken {
+        lock_or_recover(&self.device_streams)
+            .entry(device_id.to_owned())
+            .or_insert_with(|| self.shutdown.child_token())
+            .clone()
+    }
+
+    /// Forget everything held in memory for a revoked device and end its open
+    /// audio streams now, rather than when they finish.
+    pub(crate) fn forget_device(&self, device_id: &str) {
+        self.nonces.forget(device_id);
+        lock_or_recover(&self.touched).remove(device_id);
+        let token = lock_or_recover(&self.device_streams).remove(device_id);
+        if let Some(token) = token {
+            token.cancel();
+        }
     }
 
     pub(crate) fn hosts(&self) -> Vec<String> {
@@ -321,6 +343,7 @@ pub async fn start(config: SyncConfig) -> Result<SyncServer, StartError> {
         transfers: Mutex::new(HashMap::new()),
         next_transfer: AtomicU64::new(1),
         touched: Mutex::new(HashMap::new()),
+        device_streams: Mutex::new(HashMap::new()),
         shutdown: CancellationToken::new(),
     });
 
@@ -415,11 +438,12 @@ impl SyncServer {
         responder.is_some_and(|responder| responder.send(allow).is_ok())
     }
 
-    /// Drop the replay state of a revoked device. The revocation itself is a
-    /// row delete ([`crate::devices::revoke`]); this only frees memory early.
+    /// Drop the in-memory state of a revoked device and end its open audio
+    /// streams. The revocation itself is a row delete
+    /// ([`crate::devices::revoke`]); without this a stream already running
+    /// would carry on to the end of its file.
     pub fn forget_device(&self, device_id: &str) {
-        self.shared.nonces.forget(device_id);
-        lock_or_recover(&self.shared.touched).remove(device_id);
+        self.shared.forget_device(device_id);
     }
 
     /// Stop advertising, close every listener and wait (bounded) for open

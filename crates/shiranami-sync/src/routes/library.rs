@@ -232,7 +232,7 @@ pub(super) async fn revoke_self(
 ) -> Result<Response, SyncError> {
     let device = authenticate(&shared, peer, &method, &uri, &headers, &body).await?;
     crate::devices::revoke(&mut *conn(&shared).await?, &device.device_id).await?;
-    shared.nonces.forget(&device.device_id);
+    shared.forget_device(&device.device_id);
     shared.notify();
     let mut response = Response::new(axum::body::Body::empty());
     *response.status_mut() = StatusCode::NO_CONTENT;

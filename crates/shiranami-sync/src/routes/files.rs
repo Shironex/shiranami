@@ -142,7 +142,8 @@ pub(super) async fn audio(
     let guard = begin_transfer(&shared, &device.device_id, &device.name, &track_id, &title)?;
     let content_type =
         extension_of(&path).map_or(UNKNOWN_AUDIO_MIME, |extension| audio_mime(&extension));
-    let stop = shared.shutdown.clone();
+    // Ends on shutdown and on revoking this device, mid-file if need be.
+    let stop = shared.stream_token(&device.device_id);
 
     let (status, length, content_range, body) = match resolve(range_header, total) {
         RangeOutcome::Full => {
