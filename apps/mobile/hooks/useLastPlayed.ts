@@ -56,6 +56,15 @@ export function useLastPlayed(): void {
       const paused = before.isPlaying && !state.isPlaying;
       const due = Math.abs(state.currentTime - savedPosition) >= POSITION_SAVE_INTERVAL_SECONDS;
       if (!changed && !paused && !due) return;
+      if (changed) {
+        // Resuming the saved track starts it at 0 before the seek lands; keep
+        // the saved position until playback reports a real one.
+        const saved = useLastPlayedStore.getState().track;
+        if (saved?.id === track.id) {
+          savedPosition = saved.position;
+          return;
+        }
+      }
       savedPosition = changed ? 0 : state.currentTime;
       const next = { id: track.id, position: savedPosition };
       useLastPlayedStore.getState().set({ track: next });
