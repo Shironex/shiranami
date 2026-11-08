@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
-import { WifiOff } from 'lucide-react-native';
+import WifiOff from 'lucide-react-native/icons/wifi-off';
 import { Text } from '@/components/ui/text';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { colors } from '@/lib/theme';
@@ -14,7 +14,7 @@ function OfflineBannerInner() {
   return (
     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={s.banner}>
       <WifiOff size={14} color={colors.foreground} />
-      <Text style={s.text}>You're offline — local library still works</Text>
+      <Text style={s.text}>{"You're offline. Your local library still works."}</Text>
     </Animated.View>
   );
 }

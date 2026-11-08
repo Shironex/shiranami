@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, X } from 'lucide-react-native';
+import Search from 'lucide-react-native/icons/search';
+import X from 'lucide-react-native/icons/x';
 import { Text } from '@/components/ui/text';
 import { useYouTubeSearch } from '@/hooks/useYouTubeSearch';
 import { useYouTubeStream } from '@/hooks/useYouTubeStream';

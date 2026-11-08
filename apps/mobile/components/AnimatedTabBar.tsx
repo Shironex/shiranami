@@ -12,7 +12,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Library, Radio, Search, Settings } from 'lucide-react-native';
+import Library from 'lucide-react-native/icons/library';
+import Radio from 'lucide-react-native/icons/radio';
+import Search from 'lucide-react-native/icons/search';
+import Settings from 'lucide-react-native/icons/settings';
 import { Text } from '@/components/ui/text';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { colors } from '@/lib/theme';

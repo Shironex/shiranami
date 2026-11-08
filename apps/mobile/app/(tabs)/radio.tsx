@@ -9,7 +9,10 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Heart, Radio, Search, X } from 'lucide-react-native';
+import Heart from 'lucide-react-native/icons/heart';
+import Radio from 'lucide-react-native/icons/radio';
+import Search from 'lucide-react-native/icons/search';
+import X from 'lucide-react-native/icons/x';
 import type { Station } from 'radio-browser-api';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Text } from '@/components/ui/text';

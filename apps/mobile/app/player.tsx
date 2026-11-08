@@ -3,19 +3,17 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
-import {
-  ChevronDown,
-  Heart,
-  Mic2,
-  Music2,
-  Pause,
-  Play,
-  Repeat,
-  Repeat1,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-} from 'lucide-react-native';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
+import Heart from 'lucide-react-native/icons/heart';
+import Mic2 from 'lucide-react-native/icons/mic-vocal';
+import Music2 from 'lucide-react-native/icons/eighth-note';
+import Pause from 'lucide-react-native/icons/pause';
+import Play from 'lucide-react-native/icons/play';
+import Repeat from 'lucide-react-native/icons/repeat';
+import Repeat1 from 'lucide-react-native/icons/repeat-1';
+import Shuffle from 'lucide-react-native/icons/shuffle';
+import SkipBack from 'lucide-react-native/icons/skip-back';
+import SkipForward from 'lucide-react-native/icons/skip-forward';
 import { LyricsPanel } from '@/components/player/LyricsPanel';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
