@@ -8,6 +8,7 @@ import {
 
 type StatusListener = (status: AudioStatus) => void;
 type SkipListener = (event: LockScreenSkip) => void;
+type Subscription = { remove: () => void };
 
 const mockPlayer = {
   listener: null as StatusListener | null,
@@ -20,7 +21,7 @@ const mockPlayer = {
   seekTo: jest.fn(() => Promise.resolve()),
   remove: jest.fn(),
   setActiveForLockScreen: jest.fn(),
-  addListener: jest.fn((event: string, listener: StatusListener | SkipListener) => {
+  addListener: jest.fn((event: string, listener: StatusListener | SkipListener): Subscription => {
     if (event === 'lockScreenSkip') {
       mockPlayer.skipListener = listener as SkipListener;
       return { remove: mockPlayer.skipRemove };
