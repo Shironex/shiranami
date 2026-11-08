@@ -72,10 +72,16 @@ fn extract_all_blocking(archive: &Path, destination: &Path) -> Result<()> {
 
         // `None` means the entry name escapes its own archive — `..`, an
         // absolute path, or a Windows drive letter. Skipped, never written.
+        // It is also `None` for a name the archive cannot decode at all, and
+        // that one fails the extraction instead of being skipped.
         let Some(relative) = entry.enclosed_name() else {
+            let name = entry.name().map_err(|source| DownloaderError::Archive {
+                path: archive.to_path_buf(),
+                source,
+            })?;
             tracing::warn!(
                 archive = %archive.display(),
-                entry = entry.name(),
+                entry = %name,
                 "skipped an archive entry whose path escapes the destination"
             );
             continue;
