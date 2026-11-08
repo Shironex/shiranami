@@ -6,7 +6,7 @@ const { withNativeWind } = require('nativewind/metro');
 // nodeModulesPaths itself.
 const config = getDefaultConfig(__dirname);
 
-// The web app and the landing site use a newer React than the one Expo SDK 56
+// The web app and the landing site use a newer React than the one Expo SDK 57
 // pins, and pnpm's hidden hoist folder (node_modules/.pnpm/node_modules) holds
 // theirs. A dependency that requires `react` without declaring it would walk up
 // into that copy and put a second React in the bundle, which crashes at startup

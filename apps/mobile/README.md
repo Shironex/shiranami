@@ -1,6 +1,6 @@
 # Shiranami mobile
 
-How to run `apps/mobile` (Expo SDK 56) on a physical Android device. The app needs a development build: `expo-audio` with its playback service, `expo-sqlite` and the local `audio-noisy` module are native code that Expo Go does not contain.
+How to run `apps/mobile` (Expo SDK 57) on a physical Android device. The app needs a development build: `expo-audio` with its playback service, `expo-sqlite` and the local `audio-noisy` module are native code that Expo Go does not contain.
 
 There is no emulator workflow, by choice. Everything below targets a real phone.
 
@@ -114,7 +114,7 @@ Run this on the phone after any change to playback, navigation or native config.
 
 ### React 19.2.3 for mobile, newer React elsewhere
 
-React Native 0.85 checks its renderer against the exact React version it was built with (19.2.3 for SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps them apart with the parent-scoped override `'@shiranami/mobile>react'`, and `apps/mobile/metro.config.js` resolves `react` from the app itself so Metro never picks the web copy out of pnpm's hidden hoist folder. Do not bump mobile React on its own; it moves with the Expo SDK.
+React Native 0.86 checks its renderer against the exact React version it was built with (19.2.3 for SDK 57), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps them apart with the parent-scoped override `'@shiranami/mobile>react'`, and `apps/mobile/metro.config.js` resolves `react` from the app itself so Metro never picks the web copy out of pnpm's hidden hoist folder. Do not bump mobile React on its own; it moves with the Expo SDK.
 
 ### Keep the `android/` ignore anchored
 
