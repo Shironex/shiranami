@@ -8,6 +8,7 @@ import Pencil from 'lucide-react-native/icons/pencil';
 import Trash from 'lucide-react-native/icons/trash';
 import { PlayShuffleRow } from '@/components/library/PlayShuffleRow';
 import { TrackRow } from '@/components/library/TrackRow';
+import { useDockInset } from '@/components/nav/Dock';
 import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
@@ -23,6 +24,7 @@ export default function PlaylistScreen() {
   const { playlist, tracks } = usePlaylist(id);
   const { scrollY, onScroll } = useWindowScroll();
   const topInset = useWindowInset();
+  const bottomInset = useDockInset();
   const currentTrackId = usePlayerStore(s => s.currentTrack?.id);
   const isPlaying = usePlayerStore(s => s.isPlaying);
   const playFromList = usePlayerStore(s => s.playFromList);
@@ -84,7 +86,11 @@ export default function PlaylistScreen() {
             body="Long press a song in the Library and pick Add to playlist."
           />
         }
-        contentContainerStyle={{ paddingTop: topInset, paddingHorizontal: 4, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingTop: topInset,
+          paddingHorizontal: 4,
+          paddingBottom: bottomInset,
+        }}
       />
       <WindowHeader
         title={name}

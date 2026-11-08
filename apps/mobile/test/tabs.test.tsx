@@ -1,4 +1,5 @@
 import { Text } from 'react-native';
+import { fireEvent } from '@testing-library/react-native';
 import { renderRouter, screen } from 'expo-router/testing-library';
 import type { AppEnv } from '@/lib/env';
 
@@ -35,7 +36,7 @@ async function renderTabs() {
   await renderRouter(
     {
       '(tabs)/_layout': TabsLayout,
-      '(tabs)/index': placeholder('Library'),
+      '(tabs)/(library)/index': placeholder('Library'),
       '(tabs)/search': placeholder('Search'),
       '(tabs)/radio': placeholder('Radio'),
       '(tabs)/playlists/index': placeholder('Playlists'),
@@ -54,6 +55,26 @@ describe('tabs', () => {
     expect(screen.getByRole('tab', { name: 'Playlists' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Radio' })).toBeTruthy();
     expect(screen.queryByRole('tab', { name: 'Search' })).toBeNull();
+  });
+
+  it('marks the open tab as selected in the dock and moves it on press', async () => {
+    mockEnv.current = { ...mockEnv.current, youtubeSearch: false };
+    await renderTabs();
+
+    const library = screen.getByRole('tab', { name: 'Library' });
+    const radio = screen.getByRole('tab', { name: 'Radio' });
+    expect(library.props.accessibilityState).toEqual({ selected: true });
+    expect(radio.props.accessibilityState).toEqual({ selected: false });
+
+    await fireEvent.press(radio);
+
+    expect(await screen.findByText('Radio screen')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Radio' }).props.accessibilityState).toEqual({
+      selected: true,
+    });
+    expect(screen.getByRole('tab', { name: 'Library' }).props.accessibilityState).toEqual({
+      selected: false,
+    });
   });
 
   it('shows the search tab when the flag is on', async () => {

@@ -6,6 +6,11 @@ export function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** Time left, 83 -> "−1:23" (a minus sign, not a hyphen). */
+export function formatRemaining(position: number, duration: number): string {
+  return `\u2212${formatDuration(Math.max(0, duration - Math.max(0, position)))}`;
+}
+
 /** Wall-clock time as "00:47", in the phone's 24 hour style. */
 export function formatClock(ms: number): string {
   const date = new Date(ms);

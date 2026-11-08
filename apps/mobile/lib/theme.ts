@@ -13,6 +13,9 @@ export const colors = {
   raised: generated.colors.raised,
   sheet: generated.colors.sheet,
   nav: generated.colors.nav,
+  dock: generated.colors.dock,
+  dockTab: generated.colors['dock-tab'],
+  dockIcon: generated.colors['dock-icon'],
   foreground: generated.colors.foreground,
   softForeground: generated.colors['soft-foreground'],
   mutedForeground: generated.colors['muted-foreground'],
@@ -44,6 +47,9 @@ export const fonts = {
 
 /** The desktop's ease-out curve, cubic-bezier(0.22, 1, 0.36, 1). */
 export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+
+/** ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1): moves that should land softly, no bounce. */
+export const EASE_OUT_QUART = [0.25, 1, 0.5, 1] as const;
 
 export const NAV_THEME: Theme = {
   ...DarkTheme,

@@ -44,6 +44,14 @@ describe('SeekBar accessibility', () => {
     });
   });
 
+  it('shows the time played and the time left', async () => {
+    usePlayerStore.setState({ currentTrack: track(), currentTime: 61, duration: 144 });
+    await render(<SeekBar />);
+
+    expect(screen.getByText('1:01')).toBeTruthy();
+    expect(screen.getByText('\u22121:23')).toBeTruthy();
+  });
+
   it('steps ten seconds forward and back through the store', async () => {
     usePlayerStore.setState({ currentTrack: track(), currentTime: 61, duration: 144 });
     await render(<SeekBar />);
