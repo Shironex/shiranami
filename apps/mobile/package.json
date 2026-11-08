@@ -11,6 +11,7 @@
     "eas": "pnpm dlx eas-cli@24.8.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "check:expo": "node scripts/expo-doctor.js",
     "test": "jest",
     "tokens": "node scripts/gen-colors.js"
   },
