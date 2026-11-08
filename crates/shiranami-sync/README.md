@@ -186,5 +186,9 @@ messages to HMAC, from `@shiranami/contracts/sync`, a subpath with no Tauri impo
   backup can never add a paired device) and restarts a running listener over the new library.
 - Replay protection outlives the listener: switching sync off and on keeps the nonce cache, and a
   timestamp from before the app started is refused, which covers an app restart inside the skew window.
+  Two side effects follow. A phone whose clock runs behind the desktop's gets 404s for up to 120 s after
+  the desktop app starts, until its timestamps pass the start time (correcting with `serverTime` avoids
+  it). A desktop clock stepped backwards (a manual change or a large NTP correction) makes requests look
+  older than the start time, so they are refused until the clock catches up or the app restarts.
 - v0 is plain HTTP: a sniffer on the same Wi-Fi cannot forge or replay requests, but can see track names
   and audio bytes. Use v0 on networks you trust.
