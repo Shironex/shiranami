@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { SettingsHeader } from '@/components/settings/SettingsHeader';
 import { useSettingsView } from './SettingsView.hooks';
@@ -72,7 +73,9 @@ export default function SettingsView() {
               full-width stretch would blow out label/value rows. */}
           <div className="flex-1 overflow-y-auto scrollbar-thin p-6 pb-20">
             <div className="max-w-2xl space-y-4">
-              <Panel />
+              <Suspense fallback={null}>
+                <Panel />
+              </Suspense>
             </div>
           </div>
         </div>
