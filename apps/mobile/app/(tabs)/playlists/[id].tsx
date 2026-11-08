@@ -34,6 +34,7 @@ export default function PlaylistScreen() {
   const renderItem = useCallback(
     ({ item, index }: { item: Track; index: number }) => (
       <TrackRow
+        swipeable
         track={item}
         active={item.id === currentTrackId}
         playing={isPlaying}

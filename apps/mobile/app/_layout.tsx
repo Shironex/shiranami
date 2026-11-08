@@ -3,6 +3,7 @@ import '@/lib/crypto-polyfill';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NAV_THEME, colors } from '@/lib/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
 import { PortalHost } from '@rn-primitives/portal';
@@ -64,7 +65,8 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    // Swipe gestures on rows need the gesture handler root at the top of the tree.
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <Suspense fallback={<LoadingFallback />}>
         <SQLiteProvider databaseName="shiranami.db" onInit={migrateDbIfNeeded} useSuspense>
           <SettingsProvider>
@@ -104,6 +106,6 @@ export default function RootLayout() {
         </SQLiteProvider>
       </Suspense>
       {!splashDone && <AnimatedSplash ready={appReady} onDismissed={handleSplashDismissed} />}
-    </View>
+    </GestureHandlerRootView>
   );
 }
