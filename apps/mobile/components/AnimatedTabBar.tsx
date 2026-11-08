@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 import { type LayoutChangeEvent, Platform, Pressable, StyleSheet, View } from 'react-native';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from 'expo-router/tabs';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -388,7 +388,7 @@ const s = StyleSheet.create({
     borderRadius: 1,
   },
   pillTrack: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
   },
   pillContainer: {

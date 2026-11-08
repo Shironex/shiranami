@@ -1,4 +1,4 @@
-import { DarkTheme, type Theme } from '@react-navigation/native';
+import { DarkTheme, type Theme } from 'expo-router';
 
 export const colors = {
   background: 'hsl(265 25% 8%)',
