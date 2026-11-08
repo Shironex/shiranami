@@ -217,3 +217,49 @@ async fn both_sides_derive_the_same_device_secret() {
     assert_eq!(stored, b64(&phone.secret));
     assert_eq!(phone.get("/v1/sync/hello").await.status, 200);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_stopped_listener_reports_nothing_over_its_successor() {
+    let mut harness = Harness::start_with(true).await;
+    let link = harness.qr();
+    // A phone waiting on Allow: its handler (and the guard that reports when
+    // it ends) lives on a connection of the listener about to be replaced.
+    let waiting = tokio::spawn(async move { send_pair(&link, "Pixel 8", None).await });
+    for _ in 0..100 {
+        if !harness.server.status().pending_pairs.is_empty() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(
+        harness
+            .events
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|status| !status.pending_pairs.is_empty()),
+        "a running listener reports the waiting phone"
+    );
+
+    let before = harness.events.lock().unwrap().len();
+    let old = harness.server.status();
+    harness.restart().await;
+    // The old wait ends as a Deny once its listener stops.
+    let refused = waiting.await.unwrap();
+    assert_ne!(refused.status, 200);
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(old.running);
+    assert!(
+        harness.events.lock().unwrap()[before..].is_empty(),
+        "the replaced listener reported after it began to stop"
+    );
+
+    // The new listener still reports.
+    let _ = harness.qr();
+    let events = harness.events.lock().unwrap();
+    assert!(
+        events
+            .last()
+            .is_some_and(|status| status.running && status.pairing.is_some())
+    );
+}

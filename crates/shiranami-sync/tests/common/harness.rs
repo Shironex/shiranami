@@ -10,7 +10,7 @@
 
 use std::net::Ipv4Addr;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use shiranami_core::paths::FoldersCache;
@@ -20,7 +20,7 @@ use shiranami_sync::auth::{
     pair_response_message, parse_public_key, random_bytes, unb64,
 };
 use shiranami_sync::wire::PairResponse;
-use shiranami_sync::{BindPolicy, PairingLink, SyncConfig, SyncServer};
+use shiranami_sync::{BindPolicy, PairingLink, SyncConfig, SyncServer, SyncStatus};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
 use x25519_dalek::{EphemeralSecret, PublicKey};
@@ -48,6 +48,7 @@ fn config(
     art: &Path,
     nonces: &Arc<NonceCache>,
     require_approval: bool,
+    events: &Arc<Mutex<Vec<SyncStatus>>>,
 ) -> SyncConfig {
     let source = pool.clone();
     let mut config = SyncConfig::new(
@@ -61,6 +62,8 @@ fn config(
     config.advertise = false;
     config.require_approval = require_approval;
     config.nonces = Arc::clone(nonces);
+    let events = Arc::clone(events);
+    config.on_change = Arc::new(move |status| events.lock().unwrap().push(status));
     config
 }
 
@@ -76,6 +79,8 @@ pub struct Harness {
     pub art: TempDir,
     /// Outlives a [`Harness::restart`], as the app's does.
     pub nonces: Arc<NonceCache>,
+    /// Every status the listeners reported, in order.
+    pub events: Arc<Mutex<Vec<SyncStatus>>>,
     folders: Arc<FoldersCache>,
     require_approval: bool,
     _data: TempDir,
@@ -104,12 +109,14 @@ impl Harness {
             }),
         ));
         let nonces = Arc::new(NonceCache::default());
+        let events = Arc::new(Mutex::new(Vec::new()));
         let server = shiranami_sync::start(config(
             &pool,
             &folders,
             art.path(),
             &nonces,
             require_approval,
+            &events,
         ))
         .await
         .unwrap();
@@ -122,6 +129,7 @@ impl Harness {
             outside,
             art,
             nonces,
+            events,
             folders,
             require_approval,
             _data: data,
@@ -139,6 +147,7 @@ impl Harness {
             self.art.path(),
             &self.nonces,
             self.require_approval,
+            &self.events,
         ))
         .await
         .unwrap();

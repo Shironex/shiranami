@@ -169,6 +169,9 @@ pub(crate) struct Shared {
     /// revoked.
     pub(crate) device_streams: Mutex<DeviceStreams>,
     pub(crate) shutdown: CancellationToken,
+    /// Whether this listener may still report changes. Cleared when shutdown
+    /// begins; see [`Shared::notify`].
+    pub(crate) reporting: Mutex<bool>,
 }
 
 /// Per device, a child of the shutdown token that every audio stream of that
@@ -209,8 +212,26 @@ impl DeviceStreams {
 }
 
 impl Shared {
+    /// Report the current status to the observer, unless this listener has
+    /// begun shutting down.
+    ///
+    /// A connection the old listener left detached (a stream ending, a
+    /// pairing wait dropped) can still run this after the app has started a
+    /// new listener, and its `running: false` would then overwrite the new
+    /// one's status. The flag is checked and the observer called under one
+    /// lock, so once [`Shared::stop_reporting`] returns nothing from this
+    /// listener can be emitted any more; the owner reports the stopped state
+    /// itself.
     pub(crate) fn notify(&self) {
-        (self.on_change)(self.status());
+        let reporting = lock_or_recover(&self.reporting);
+        if *reporting {
+            (self.on_change)(self.status());
+        }
+    }
+
+    /// Silence [`Shared::notify`] for good. Waits for an emission in flight.
+    pub(crate) fn stop_reporting(&self) {
+        *lock_or_recover(&self.reporting) = false;
     }
 
     /// The token `device_id`'s streams stop on: revoking it or shutting down.
@@ -376,6 +397,7 @@ pub async fn start(config: SyncConfig) -> Result<SyncServer, StartError> {
         touched: Mutex::new(HashMap::new()),
         device_streams: Mutex::new(DeviceStreams::default()),
         shutdown: CancellationToken::new(),
+        reporting: Mutex::new(true),
     });
 
     let router = crate::listen::limited(crate::routes::router(Arc::clone(&shared)));
@@ -478,8 +500,10 @@ impl SyncServer {
     }
 
     /// Stop advertising, close every listener and wait (bounded) for open
-    /// responses. Idempotent.
+    /// responses. Idempotent. From the moment it is called the observer hears
+    /// nothing more from this listener: the caller reports the stopped state.
     pub async fn shutdown(&self) {
+        self.shared.stop_reporting();
         self.shared.shutdown.cancel();
         *lock_or_recover(&self.shared.pairing) = None;
         deny_all(&self.shared);
