@@ -19,6 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "~56.0.24",
+    "expo-audio": "~56.0.13",
     "expo-build-properties": "~56.0.27",
     "expo-constants": "~56.0.27",
     "expo-dev-client": "~56.0.28",
@@ -42,7 +43,6 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
     "react-native-svg": "15.15.4",
-    "react-native-track-player": "^4.1.2",
     "react-native-worklets": "0.8.3",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^3.4.19",
@@ -66,13 +66,6 @@
       "exclude": [
         "typescript"
       ]
-    },
-    "autolinking": {
-      "android": {
-        "exclude": [
-          "react-native-track-player"
-        ]
-      }
     }
   }
 }

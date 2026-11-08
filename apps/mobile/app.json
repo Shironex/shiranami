@@ -31,8 +31,6 @@
       "permissions": [
         "android.permission.READ_MEDIA_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE"
       ]
@@ -40,6 +38,14 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-media-library",
         {
