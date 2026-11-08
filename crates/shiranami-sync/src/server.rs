@@ -89,6 +89,10 @@ pub struct SyncConfig {
     pub require_approval: bool,
     /// See [`ChangeObserver`].
     pub on_change: ChangeObserver,
+    /// The replay cache. The app passes one that outlives every listener it
+    /// starts, so a restart of the listener does not reopen the window for a
+    /// captured request; see [`NonceCache`].
+    pub nonces: Arc<NonceCache>,
 }
 
 impl SyncConfig {
@@ -112,6 +116,7 @@ impl SyncConfig {
             advertise: true,
             require_approval: true,
             on_change: Arc::new(|_| {}),
+            nonces: Arc::new(NonceCache::default()),
         }
     }
 }
@@ -153,7 +158,7 @@ pub(crate) struct Shared {
     pub(crate) advertising: std::sync::atomic::AtomicBool,
     pub(crate) pairing: Mutex<Option<PairingWindow>>,
     pub(crate) pending: Mutex<HashMap<String, Pending>>,
-    pub(crate) nonces: NonceCache,
+    pub(crate) nonces: Arc<NonceCache>,
     pub(crate) device_rate: TokenBuckets<String>,
     pub(crate) pair_attempts: WindowCounter<IpAddr>,
     pub(crate) auth_failures: WindowCounter<IpAddr>,
@@ -309,7 +314,7 @@ pub async fn start(config: SyncConfig) -> Result<SyncServer, StartError> {
         advertising: std::sync::atomic::AtomicBool::new(false),
         pairing: Mutex::new(None),
         pending: Mutex::new(HashMap::new()),
-        nonces: NonceCache::default(),
+        nonces: config.nonces,
         device_rate: TokenBuckets::new(DEVICE_RATE_PER_SEC, DEVICE_BURST),
         pair_attempts: WindowCounter::new(PAIR_ATTEMPTS_PER_MINUTE, Duration::from_secs(60)),
         auth_failures: WindowCounter::new(AUTH_FAILURES_PER_MINUTE, Duration::from_secs(60)),

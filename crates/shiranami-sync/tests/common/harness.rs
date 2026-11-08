@@ -16,7 +16,7 @@ use std::time::Duration;
 use shiranami_core::paths::FoldersCache;
 use shiranami_core::paths::authority::{PathAuthority, PathAuthorityResult};
 use shiranami_sync::auth::{
-    authorization_header, b64, device_secret, pair_proof, random_bytes, unb64,
+    NonceCache, authorization_header, b64, device_secret, pair_proof, random_bytes, unb64,
 };
 use shiranami_sync::wire::PairResponse;
 use shiranami_sync::{BindPolicy, PairingLink, SyncConfig, SyncServer};
@@ -40,6 +40,28 @@ impl PathAuthority for TestAuthority {
     }
 }
 
+fn config(
+    pool: &SqlitePool,
+    folders: &Arc<FoldersCache>,
+    art: &Path,
+    nonces: &Arc<NonceCache>,
+    require_approval: bool,
+) -> SyncConfig {
+    let source = pool.clone();
+    let mut config = SyncConfig::new(
+        Arc::new(move || source.clone()),
+        Arc::clone(folders),
+        art.to_owned(),
+        "Test Desktop".to_owned(),
+        "0.0.0-test".to_owned(),
+    );
+    config.bind = BindPolicy::Addresses(vec![Ipv4Addr::LOCALHOST]);
+    config.advertise = false;
+    config.require_approval = require_approval;
+    config.nonces = Arc::clone(nonces);
+    config
+}
+
 /// A running listener over a fresh database and temp folders.
 pub struct Harness {
     pub server: SyncServer,
@@ -50,6 +72,10 @@ pub struct Harness {
     /// Not an allowed root.
     pub outside: TempDir,
     pub art: TempDir,
+    /// Outlives a [`Harness::restart`], as the app's does.
+    pub nonces: Arc<NonceCache>,
+    folders: Arc<FoldersCache>,
+    require_approval: bool,
     _data: TempDir,
 }
 
@@ -75,19 +101,16 @@ impl Harness {
                 folders: vec![music.path().to_owned()],
             }),
         ));
-        let source = pool.clone();
-        let mut config = SyncConfig::new(
-            Arc::new(move || source.clone()),
-            folders,
-            art.path().to_owned(),
-            "Test Desktop".to_owned(),
-            "0.0.0-test".to_owned(),
-        );
-        config.bind = BindPolicy::Addresses(vec![Ipv4Addr::LOCALHOST]);
-        config.advertise = false;
-        config.require_approval = require_approval;
-
-        let server = shiranami_sync::start(config).await.unwrap();
+        let nonces = Arc::new(NonceCache::default());
+        let server = shiranami_sync::start(config(
+            &pool,
+            &folders,
+            art.path(),
+            &nonces,
+            require_approval,
+        ))
+        .await
+        .unwrap();
         let base = format!("http://127.0.0.1:{}", server.port());
         Self {
             server,
@@ -96,8 +119,28 @@ impl Harness {
             music,
             outside,
             art,
+            nonces,
+            folders,
+            require_approval,
             _data: data,
         }
+    }
+
+    /// Stop the listener and start a new one over the same database and the
+    /// same replay cache, as switching sync off and on does in the app. The
+    /// port changes; point phones at the new [`Harness::base`].
+    pub async fn restart(&mut self) {
+        self.server.shutdown().await;
+        self.server = shiranami_sync::start(config(
+            &self.pool,
+            &self.folders,
+            self.art.path(),
+            &self.nonces,
+            self.require_approval,
+        ))
+        .await
+        .unwrap();
+        self.base = format!("http://127.0.0.1:{}", self.server.port());
     }
 
     /// Open a pairing window and return the QR payload.

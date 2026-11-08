@@ -14,7 +14,7 @@ use serde::Serialize;
 use shiranami_core::sync::lock_or_recover;
 use shiranami_db::repo::sync::{SyncPeer, get_peer, touch_peer};
 
-use crate::auth::{hmac_verify, is_fresh, parse_authorization, signing_payload, unb64};
+use crate::auth::{hmac_verify, parse_authorization, signing_payload, unb64};
 use crate::error::SyncError;
 use crate::server::{Shared, unix_now};
 
@@ -144,7 +144,7 @@ pub(crate) async fn authenticate(
         .ok_or_else(|| refuse("no authorization"))?;
     let signed = parse_authorization(header_value).ok_or_else(|| refuse("malformed"))?;
     let now = unix_now();
-    if !is_fresh(signed.ts, now) {
+    if !shared.nonces.accepts(signed.ts, now) {
         return Err(refuse("stale timestamp"));
     }
 
@@ -172,14 +172,16 @@ pub(crate) async fn authenticate(
     if !hmac_verify(&secret, payload.as_bytes(), &signed.sig) {
         return Err(refuse("bad signature"));
     }
+    // The bucket first: a device over its rate never reaches the nonce
+    // cache, so a flood cannot fill its share of the cache either.
+    if !shared.device_rate.allow(&peer.device_id) {
+        return Err(SyncError::RateLimited { retry_after: 1 });
+    }
     if !shared
         .nonces
         .check_and_insert(&peer.device_id, &signed.nonce, signed.ts, now)
     {
         return Err(refuse("reused nonce"));
-    }
-    if !shared.device_rate.allow(&peer.device_id) {
-        return Err(SyncError::RateLimited { retry_after: 1 });
     }
 
     touch(shared, &peer.device_id).await;

@@ -121,3 +121,53 @@ async fn an_address_that_keeps_failing_is_refused_outright() {
         "even a valid request waits out the block"
     );
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_captured_request_cannot_be_replayed_after_a_listener_restart() {
+    let mut harness = Harness::start().await;
+    let mut phone = harness.paired_phone().await;
+    let path = "/v1/sync/hello";
+    let captured = phone.auth("GET", path);
+    assert_eq!(
+        phone
+            .send("GET", path, Some(captured.clone()), &[])
+            .await
+            .status,
+        200
+    );
+
+    harness.restart().await;
+    phone.base = harness.base.clone();
+
+    assert_bare_404(
+        &phone.send("GET", path, Some(captured), &[]).await,
+        "replay after a restart",
+    );
+    assert_eq!(
+        phone.get(path).await.status,
+        200,
+        "fresh requests still work"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_request_signed_before_the_process_started_is_refused() {
+    let harness = Harness::start().await;
+    let phone = harness.paired_phone().await;
+    let path = "/v1/sync/hello";
+    // Inside the skew window, but older than the replay cache: what a request
+    // captured before an app restart looks like to the new process.
+    let before_start = shiranami_sync::auth::authorization_header(
+        &phone.device_id,
+        &phone.secret,
+        "GET",
+        path,
+        Phone::now() - 60,
+        &Phone::nonce(),
+        b"",
+    );
+    assert_bare_404(
+        &phone.send("GET", path, Some(before_start), &[]).await,
+        "signed before the process started",
+    );
+}
