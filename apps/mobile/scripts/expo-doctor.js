@@ -28,14 +28,14 @@ if (result.error) {
 
 const failed = (result.stdout ?? '')
   .split('\n')
-  .filter((line) => line.startsWith('✖ '))
-  .map((line) => line.slice(2).trim());
+  .filter(line => line.startsWith('✖ '))
+  .map(line => line.slice(2).trim());
 
 if (failed.length === 0) {
   process.exit(result.status === 0 ? 0 : 1);
 }
 
-const unexpected = failed.filter((name) => !KNOWN_FAILURES.includes(name));
+const unexpected = failed.filter(name => !KNOWN_FAILURES.includes(name));
 if (unexpected.length > 0) {
   console.error(`\nexpo-doctor: unexpected failed checks:\n- ${unexpected.join('\n- ')}`);
   process.exit(1);
