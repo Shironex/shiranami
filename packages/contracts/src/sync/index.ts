@@ -3,18 +3,24 @@
 // Tauri-free on purpose: the root `@shiranami/contracts` entry is fine for the
 // desktop renderer, but the generated Tauri bindings import `@tauri-apps/api`,
 // which a React Native bundle cannot load. This subpath only re-exports the
-// generated wire types (from `crates/shiranami-sync/src/wire.rs`) plus pure
-// helpers: parsing the QR link and building the exact strings the desktop
-// signs. The phone supplies HMAC-SHA256 and SHA-256 itself; nothing here
-// depends on a crypto library.
+// generated wire types (from `crates/shiranami-sync/src/wire.rs`) plus
+// helpers: parsing the QR link, the X25519 pairing exchange (`@noble/curves`,
+// pure JS, so it runs under Hermes without a native module) and the exact
+// strings the desktop HMACs. The phone supplies HMAC-SHA256 and SHA-256
+// itself.
 //
 // Protocol reference: crates/shiranami-sync/README.md. The constants below are
 // mirrored from the Rust crate and pinned by a test there.
 
+import { x25519 } from '@noble/curves/ed25519.js';
+
 export type * from '../generated/sync';
 
-/** The protocol version: the `v1` in every path and `v=` in the QR link. */
-export const SYNC_PROTOCOL_VERSION = 1;
+/**
+ * The protocol version: `v=` in the QR link and `protocolVersion` in the pair
+ * and hello bodies. 2 added the X25519 exchange; the route paths keep `/v1/`.
+ */
+export const SYNC_PROTOCOL_VERSION = 2;
 
 /** The `Authorization` scheme and the first line of every signed payload. */
 export const SYNC_AUTH_SCHEME = 'SNM1';
@@ -23,10 +29,10 @@ export const SYNC_AUTH_SCHEME = 'SNM1';
 export const SYNC_MAX_SKEW_SECONDS = 120;
 
 /** Domain separator of the pairing proof. */
-export const SYNC_PAIR_PROOF_CONTEXT = 'shiranami-sync/v1/pair';
+export const SYNC_PAIR_PROOF_CONTEXT = 'shiranami-sync/v2/pair';
 
 /** Domain separator of the device secret derivation. */
-export const SYNC_DEVICE_SECRET_CONTEXT = 'shiranami-sync/v1/device-secret';
+export const SYNC_DEVICE_SECRET_CONTEXT = 'shiranami-sync/v2/device-secret';
 
 /** The DNS-SD service type the desktop advertises while sync is on. */
 export const SYNC_SERVICE_TYPE = '_shiranami._tcp';
@@ -118,17 +124,99 @@ export function parsePairingLink(link: string): SyncPairingLink | null {
   };
 }
 
-/** The message whose HMAC under the QR secret is `PairRequest.proof`. */
-export function pairProofMessage(nonce: string, deviceName: string, platform: string): string {
-  return `${SYNC_PAIR_PROOF_CONTEXT}\n${nonce}\n${deviceName}\n${platform}`;
+/**
+ * The message whose HMAC under the QR secret is `PairRequest.proof`. Covers
+ * the phone's public key, so a sniffer cannot swap in its own.
+ */
+export function pairProofMessage(
+  nonce: string,
+  deviceName: string,
+  platform: string,
+  phonePublicKey: string
+): string {
+  return `${SYNC_PAIR_PROOF_CONTEXT}\n${nonce}\n${deviceName}\n${platform}\n${phonePublicKey}`;
 }
 
 /**
- * The message whose HMAC under the QR secret is the device secret, once the
- * desktop has answered with `PairResponse.deviceId`.
+ * The message whose HMAC is the device secret. The HMAC **key** is the X25519
+ * shared secret ({@link pairingSharedSecret}), not the QR secret: knowing the
+ * QR and sniffing the exchange is not enough to derive it.
+ *
+ * `pairingSecret` is the `k=` text of the link; the keys are base64url text.
  */
-export function deviceSecretMessage(deviceId: string): string {
-  return `${SYNC_DEVICE_SECRET_CONTEXT}\n${deviceId}`;
+export function deviceSecretMessage(
+  deviceId: string,
+  pairingSecret: string,
+  phonePublicKey: string,
+  desktopPublicKey: string
+): string {
+  return `${SYNC_DEVICE_SECRET_CONTEXT}\n${deviceId}\n${pairingSecret}\n${phonePublicKey}\n${desktopPublicKey}`;
+}
+
+const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+/** Base64url without padding. No `Buffer`, no `btoa`: Hermes has neither reliably. */
+export function toBase64Url(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i] ?? 0;
+    const b = bytes[i + 1] ?? 0;
+    const c = bytes[i + 2] ?? 0;
+    const chunk = (a << 16) | (b << 8) | c;
+    const chars = Math.min(4, Math.ceil(((bytes.length - i) * 8) / 6));
+    for (let j = 0; j < chars; j++) {
+      out += B64URL[(chunk >> (18 - 6 * j)) & 63];
+    }
+  }
+  return out;
+}
+
+/** Decode base64url without padding; `null` on any character outside the alphabet. */
+export function fromBase64Url(text: string): Uint8Array | null {
+  if (text.length % 4 === 1) return null;
+  const out: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const char of text) {
+    const value = B64URL.indexOf(char);
+    if (value === -1) return null;
+    buffer = (buffer << 6) | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      out.push((buffer >> bits) & 0xff);
+    }
+  }
+  return Uint8Array.from(out);
+}
+
+/** An ephemeral X25519 key pair for one pairing attempt. */
+export interface SyncPairingKeyPair {
+  /** Keep in memory only; drop it once the device secret is derived. */
+  secretKey: Uint8Array;
+  /** Base64url, sent as `PairRequest.publicKey`. */
+  publicKey: string;
+}
+
+/** A fresh ephemeral key pair (from `crypto.getRandomValues`). */
+export function generatePairingKeyPair(): SyncPairingKeyPair {
+  const secretKey = x25519.utils.randomSecretKey();
+  return { secretKey, publicKey: toBase64Url(x25519.getPublicKey(secretKey)) };
+}
+
+/** The public key of a given secret key, base64url. For tests and vectors. */
+export function pairingPublicKey(secretKey: Uint8Array): string {
+  return toBase64Url(x25519.getPublicKey(secretKey));
+}
+
+/**
+ * The X25519 shared secret with the desktop's `PairResponse.publicKey`: the
+ * HMAC key of the device secret. Throws on a malformed or low-order key.
+ */
+export function pairingSharedSecret(secretKey: Uint8Array, desktopPublicKey: string): Uint8Array {
+  const peer = fromBase64Url(desktopPublicKey);
+  if (peer?.length !== 32) throw new Error('the desktop public key is not 32 bytes');
+  return x25519.getSharedSecret(secretKey, peer);
 }
 
 /** What a signed request covers. */

@@ -25,6 +25,7 @@
     "test": "vitest run --project contracts"
   },
   "dependencies": {
+    "@noble/curves": "2.4.0",
     "@tauri-apps/api": "^2.11.1",
     "zod": "^4.6.5"
   },
