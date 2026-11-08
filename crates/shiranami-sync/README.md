@@ -131,7 +131,13 @@ signing helpers, from `@shiranami/contracts/sync`, a subpath with no Tauri impor
 
 - The secret in the QR is only shown while the window is open and is never stored; only the derived
   per-device secret is.
-- `db:backup:export` deletes `sync_peers` rows from the exported copy, so a shared backup is not a sync
-  credential.
+- Revoking a device (from the desktop, or `DELETE /v1/sync/devices/self`) deletes its row, so its next
+  request is a 404, and ends any audio stream it has open mid-file.
+- `db:backup:export` deletes `sync_peers` rows from the exported copy with `secure_delete` on and then
+  `VACUUM`s it, so a shared backup carries no device id or secret, not even in free pages.
+- `db:backup:import` strips the same rows from a staged copy before it replaces the live library (a
+  backup can never add a paired device) and restarts a running listener over the new library.
+- Replay protection outlives the listener: switching sync off and on keeps the nonce cache, and a
+  timestamp from before the app started is refused, which covers an app restart inside the skew window.
 - v0 is plain HTTP: a sniffer on the same Wi-Fi cannot forge or replay requests, but can see track names
   and audio bytes. Use v0 on networks you trust.
