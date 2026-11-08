@@ -73,6 +73,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a4dc1d83-4979-4ae8-b0ed-1650233b0bdf"
+      }
+    },
+    "owner": "shirone-dev"
   }
 }
