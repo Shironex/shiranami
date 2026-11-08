@@ -80,7 +80,7 @@ describe('AppUpdateRows', () => {
     await render(<AppUpdateRows />);
 
     await fireEvent.press(screen.getByLabelText('Check for updates'));
-    await waitFor(() => expect(screen.getByText('Update ready, restart to use it')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Update ready')).toBeTruthy());
 
     await fireEvent.press(screen.getByLabelText('Restart to update'));
     expect(reload).toHaveBeenCalledTimes(1);
@@ -99,7 +99,7 @@ describe('AppUpdateRows', () => {
 
     await fireEvent.press(screen.getByLabelText('Check for updates'));
 
-    await waitFor(() => expect(screen.getByText('Update ready, restart to use it')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Update ready')).toBeTruthy());
     expect(fetchUpdate).toHaveBeenCalledTimes(1);
   });
 
