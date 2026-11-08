@@ -36,6 +36,7 @@ shiranami-integrations = { path = "crates/shiranami-integrations" }
 shiranami-recommendation = { path = "crates/shiranami-recommendation" }
 shiranami-serve = { path = "crates/shiranami-serve" }
 shiranami-media-controls = { path = "crates/shiranami-media-controls" }
+shiranami-sync = { path = "crates/shiranami-sync" }
 
 # External — pinned per docs/v2/architecture.md Appendix B. Only the
 # dependencies Phase 1 actually compiles are listed; each later phase adds its
@@ -199,6 +200,24 @@ bytes = "1"
 # the compiler is allowed to short-circuit the hand-rolled one.
 getrandom = "0.3"
 subtle = "2"
+
+# LAN sync v0 (`shiranami-sync`, docs/research/mobile-2026-11/lan-sync.md).
+#
+# `hmac` and `sha2-next` are the RustCrypto 0.13 / 0.11 line the lockfile
+# already carries through other crates, so request signing adds no new crate.
+# The 0.10 `sha2` above stays the workspace default because the waveform cache
+# key and the drizzle ledger hash are pinned to it.
+#
+# `mdns-sd` advertises `_shiranami._tcp` only while sync is on. Exact pin: it
+# is pre-1.0 and its own docs call it beta, and 0.21.7 is under the 7 day
+# release age gate. `if-addrs` is the interface enumeration it already uses,
+# named directly so the listener binds exactly the private addresses it lists.
+# `base64` is the URL-safe alphabet for the QR secret and the signature.
+hmac = "0.13"
+sha2-next = { package = "sha2", version = "0.11" }
+mdns-sd = "=0.21.6"
+if-addrs = { version = "0.15", features = ["link-local"] }
+base64 = "0.22"
 
 # Phase 9 (`shiranami-metadata`). `lofty` replaces music-metadata, node-id3,
 # flac-tagger *and* the ffmpeg re-mux path in one dependency (architecture §2.2
