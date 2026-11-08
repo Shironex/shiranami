@@ -88,12 +88,20 @@ const HELLO: SyncHello = {
 };
 
 /** A desktop on 192.168.1.20 with three songs, one of which the phone already has. */
-function fakeDesktop(manifest?: ManifestTrack[]) {
+interface DesktopOptions {
+  /** Track ids whose audio answers a bare 404 (file gone on the desktop). */
+  missing?: string[];
+  /** Forget the phone at its first audio request, so everything is a 404 after. */
+  revokeOnAudio?: boolean;
+}
+
+function fakeDesktop(manifest?: ManifestTrack[], options: DesktopOptions = {}) {
+  let revoked = false;
   const paths: string[] = [];
   const fetchImpl: SyncFetch = async (url, init) => {
     if (!url.startsWith('http://192.168.1.20:53111')) throw new TypeError('unreachable');
     const path = url.slice('http://192.168.1.20:53111'.length);
-    if (!init.headers.Authorization) return json(null, 404);
+    if (!init.headers.Authorization || revoked) return json(null, 404);
     expect(init.headers.Authorization).toMatch(/^SNM1 dev=dev-0001,ts=\d+,n=[\w-]{22},sig=/);
     paths.push(path.split('?')[0]);
     if (path === '/v1/sync/hello') return json(HELLO);
@@ -135,7 +143,14 @@ function fakeDesktop(manifest?: ManifestTrack[]) {
     if (path.startsWith('/v1/sync/history')) {
       return json({ entries: [], nextCursor: null, hasMore: false });
     }
-    if (path.endsWith('/audio')) return audio();
+    if (path.endsWith('/audio')) {
+      if (options.revokeOnAudio) {
+        revoked = true;
+        return json(null, 404);
+      }
+      if (options.missing?.some(id => path.includes(`/tracks/${id}/`))) return json(null, 404);
+      return audio();
+    }
     return json(null, 404);
   };
   return { fetchImpl, paths };
@@ -163,7 +178,7 @@ function memoryFiles() {
   return { written, partialFile };
 }
 
-async function setup(manifest?: ManifestTrack[]) {
+async function setup(manifest?: ManifestTrack[], options?: DesktopOptions) {
   const db = openTestDb();
   await migrateDbIfNeeded(db);
   await db.runAsync(
@@ -171,7 +186,7 @@ async function setup(manifest?: ManifestTrack[]) {
   );
   const files = memoryFiles();
   const saved: DesktopPeer[] = [];
-  const desktop = fakeDesktop(manifest);
+  const desktop = fakeDesktop(manifest, options);
   const deps: SyncDeps = {
     fetch: desktop.fetchImpl,
     lock: withLibraryLock,
@@ -237,6 +252,21 @@ describe('runSync', () => {
     expect([...files.written.keys()]).toEqual(['desktop-d1.flac', 'desktop-d2.flac']);
     const ids = (await loadLibrary(db)).map(t => t.id).sort();
     expect(ids).toEqual(['d1', 'd2', 'p1']);
+  });
+
+  it('skips a song whose file is gone on the desktop and copies the rest', async () => {
+    const { db, deps, saved } = await setup(undefined, { missing: ['d1'] });
+    const summary = await runSync(db, PEER, DEVICE_SECRET, deps);
+    expect(summary).toMatchObject({ downloaded: 1, failed: 1 });
+    expect((await loadLibrary(db)).map(t => t.id).sort()).toEqual(['d2', 'p1']);
+    expect(saved).toHaveLength(1);
+  });
+
+  it('stops as unpaired when the desktop forgot the phone mid-pull', async () => {
+    const { db, deps } = await setup(undefined, { revokeOnAudio: true });
+    await expect(runSync(db, PEER, DEVICE_SECRET, deps)).rejects.toMatchObject({
+      code: 'unpaired',
+    });
   });
 
   it('downloads nothing the second time', async () => {

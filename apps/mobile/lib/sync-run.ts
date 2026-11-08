@@ -219,7 +219,8 @@ export async function runSync(
         onSong?.(summary.downloaded);
       } catch (error) {
         const syncError = asSyncError(error, signal);
-        if (FATAL.includes(syncError.code)) throw syncError;
+        if (syncError.code === 'unpaired') await stillPaired(client, signal);
+        else if (FATAL.includes(syncError.code)) throw syncError;
         summary.failed++;
       }
       bytesLeft -= (track.sizeBytes ?? 0) - counted;
@@ -239,6 +240,16 @@ export async function runSync(
   } catch (error) {
     throw asSyncError(error, signal);
   }
+}
+
+/**
+ * The desktop answers a bare 404 both to a device it no longer knows and to a
+ * track whose file is gone or outside the library, so after a 404 on audio a
+ * signed hello tells them apart: it throws when the phone is unpaired (the
+ * run stops), and returns when only that track is missing (it is skipped).
+ */
+async function stillPaired(client: SyncClient, signal?: AbortSignal): Promise<void> {
+  await client.hello(signal);
 }
 
 /** Covers for linked rows that have none, one request per artwork hash. */
