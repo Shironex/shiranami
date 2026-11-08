@@ -185,6 +185,15 @@ pub async fn db_backup_export(
         }
     }
 
+    // Paired-phone secrets stay on this machine: a backup the user shares
+    // must not double as a LAN sync credential. Stripped from the staged copy,
+    // before it gets its real name, so no file with them ever sits at
+    // `destination`.
+    if let Err(error) = shiranami_db::repo::sync::strip_credentials(&staged).await {
+        remove_quietly(&staged);
+        return Ok(DbExportResult::failed(error));
+    }
+
     if let Err(error) = std::fs::rename(&staged, &destination) {
         remove_quietly(&staged);
         return Ok(DbExportResult::failed(error));
