@@ -346,3 +346,56 @@ describe('scanLibrary', () => {
     expect(describeScan({ ...result, found: 0 })).toBe('No music found on this phone');
   });
 });
+
+describe('backfill and scan share one connection', () => {
+  /** Counts open transactions; expo-sqlite's single connection cannot nest them. */
+  function watchTransactions(db: SQLiteDatabase) {
+    const seen = { open: 0, most: 0 };
+    const original = db.withTransactionAsync.bind(db);
+    db.withTransactionAsync = async task => {
+      seen.open++;
+      seen.most = Math.max(seen.most, seen.open);
+      try {
+        await original(task);
+      } finally {
+        seen.open--;
+      }
+    };
+    return seen;
+  }
+
+  it('lets a scan take over a running backfill without overlapping transactions', async () => {
+    const db = await freshDb();
+    const old = Array.from({ length: READ_BATCH * 3 }, (_, i) => `file:///tracks/old${i}.mp3`);
+    for (const [i, uri] of old.entries()) {
+      await db.runAsync('INSERT INTO tracks (id, file_path, title) VALUES (?, ?, ?)', [
+        `old${i}`,
+        uri,
+        `Old ${i}`,
+      ]);
+    }
+    const files = new Map<string, TrackTags | null>(old.map((uri, i) => [uri, tags(`old${i}`)]));
+    files.set(media(1).uri, tags('new'));
+    const native = fakeNative(files, [media(1)]);
+    // Every read yields to the event loop, so both jobs get to interleave.
+    native.readTracksAsync.mockImplementation(async (uris: string[]) => {
+      await new Promise(resolve => setTimeout(resolve, 1));
+      return uris.map(uri => files.get(uri) ?? null);
+    });
+    const seen = watchTransactions(db);
+
+    const backfill = backfillHashes(db, deps(native));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const scan = scanLibrary(db, { ...deps(native), native });
+    // A backfill asked for while the scan runs is skipped, not run alongside.
+    expect(await backfillHashes(db, deps(native))).toBe(0);
+
+    const [, result] = await Promise.all([backfill, scan]);
+
+    expect(seen.most).toBe(1);
+    expect(result).toMatchObject({ added: 1, failed: 0 });
+    // Whatever the backfill left over, the scan hashed before it read the phone.
+    const unhashed = await db.getAllAsync('SELECT id FROM tracks WHERE content_hash IS NULL');
+    expect(unhashed).toEqual([]);
+  });
+});

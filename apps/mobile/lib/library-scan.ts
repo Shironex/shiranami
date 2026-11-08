@@ -175,14 +175,58 @@ async function readInBatches<T>(
 }
 
 /**
+ * The one library job that may run: expo-sqlite has a single connection, so a
+ * backfill and a scan running together would open overlapping transactions.
+ */
+let activeJob: { kind: 'backfill' | 'scan'; stop: CancelToken; done: Promise<unknown> } | null =
+  null;
+
+/** A token that reads as cancelled when either the caller or the lock cancels it. */
+function eitherToken(caller: CancelToken | undefined, stop: CancelToken): CancelToken {
+  return {
+    get cancelled() {
+      return stop.cancelled || !!caller?.cancelled;
+    },
+  } as CancelToken;
+}
+
+async function runExclusive<T>(
+  kind: 'backfill' | 'scan',
+  stop: CancelToken,
+  job: () => Promise<T>
+): Promise<T> {
+  const done = job();
+  const entry = { kind, stop, done };
+  activeJob = entry;
+  try {
+    return await done;
+  } finally {
+    if (activeJob === entry) activeJob = null;
+  }
+}
+
+/**
  * Gives rows from before content hashes (manual imports on older builds) their
  * hash, and their real tags where the file has them: their titles came from
  * filenames, since the phone has no tag editor. Runs after startup, never
  * blocks it; a file that cannot be read keeps its row as it is.
  *
+ * Skipped (returns 0) while a scan or another backfill runs: the scan
+ * backfills first itself.
+ *
  * Returns how many rows changed.
  */
 export async function backfillHashes(
+  db: SQLiteDatabase,
+  deps: LibraryDeps,
+  token?: CancelToken
+): Promise<number> {
+  if (!deps.native || activeJob) return 0;
+  const stop: CancelToken = { cancelled: false };
+  return runExclusive('backfill', stop, () => runBackfill(db, deps, eitherToken(token, stop)));
+}
+
+async function runBackfill(
   db: SQLiteDatabase,
   deps: LibraryDeps,
   token?: CancelToken
@@ -254,9 +298,25 @@ export async function scanLibrary(
   deps: LibraryDeps & { native: AudioLibraryModule },
   options: ScanOptions = {}
 ): Promise<ScanResult> {
+  // Take over from a background backfill (it stops after its current batch),
+  // or wait for an earlier scan to finish.
+  while (activeJob) {
+    const previous = activeJob;
+    if (previous.kind === 'backfill') previous.stop.cancelled = true;
+    await previous.done.catch(() => undefined);
+  }
+  const stop: CancelToken = { cancelled: false };
+  return runExclusive('scan', stop, () => runScan(db, deps, options));
+}
+
+async function runScan(
+  db: SQLiteDatabase,
+  deps: LibraryDeps & { native: AudioLibraryModule },
+  options: ScanOptions
+): Promise<ScanResult> {
   const { token, onProgress, onBatch } = options;
   // Old rows need their hash before a device file can be matched to them.
-  await backfillHashes(db, deps, token);
+  await runBackfill(db, deps, token);
 
   const found = await deps.native.queryAudioAsync();
   const rows = await db.getAllAsync<KnownRow>(`SELECT ${KNOWN_COLUMNS} FROM tracks`);
