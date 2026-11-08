@@ -1,4 +1,5 @@
 import '@/global.css';
+import '@/lib/crypto-polyfill';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
