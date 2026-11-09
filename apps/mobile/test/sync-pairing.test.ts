@@ -273,6 +273,27 @@ describe('SyncClient', () => {
     expect(new Set(nonces).size).toBe(2);
   });
 
+  it('falls back to the real clock and nonce when they are passed as undefined', async () => {
+    const seen: string[] = [];
+    const client = new SyncClient({
+      fetch: async (_url, init) => {
+        seen.push(init.headers.Authorization);
+        return response(200, { ok: true });
+      },
+      host: '192.168.1.20',
+      port: 53111,
+      deviceId: 'dev-0001',
+      secret: DEVICE_SECRET,
+      skew: 0,
+      now: undefined,
+      nonce: undefined,
+    });
+    await expect(client.hello()).resolves.toEqual({ ok: true });
+    const ts = Number(/ts=(\d+)/.exec(seen[0])?.[1]);
+    expect(Math.abs(ts - Math.floor(Date.now() / 1000))).toBeLessThan(5);
+    expect(/n=([^,]+)/.exec(seen[0])?.[1]).toBeTruthy();
+  });
+
   it('accepts a 404 from DELETE devices/self as already forgotten', async () => {
     const client = new SyncClient({
       fetch: async () => response(404),

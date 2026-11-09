@@ -195,10 +195,12 @@ export class SyncClient {
   private readonly options: Required<SyncClientOptions>;
 
   constructor(options: SyncClientOptions) {
+    // `??`, not a spread under defaults: callers pass `now: deps.now`, and an
+    // explicit `undefined` would replace the default.
     this.options = {
-      now: () => Date.now(),
-      nonce: randomRequestNonce,
       ...options,
+      now: options.now ?? (() => Date.now()),
+      nonce: options.nonce ?? randomRequestNonce,
     };
   }
 
