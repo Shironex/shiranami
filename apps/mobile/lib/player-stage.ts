@@ -86,6 +86,22 @@ export function mixRect(a: Rect, b: Rect, t: number): Rect {
   };
 }
 
+/**
+ * Transforms that make a view laid out at `width` by `height` (top left at
+ * 0, 0, with `transformOrigin: 'left top'`) cover `rect`. Moving a view with
+ * transforms instead of its size and position skips layout on every frame,
+ * and its contents are not redrawn at each new size.
+ */
+export function rectTransform(rect: Rect, width: number, height: number) {
+  'worklet';
+  return [
+    { translateX: rect.x },
+    { translateY: rect.y },
+    { scaleX: width > 0 ? rect.width / width : 1 },
+    { scaleY: height > 0 ? rect.height / height : 1 },
+  ];
+}
+
 /** The player card's saved state; see `PlayerCardMode` in the settings. */
 export type CardMode = 'auto' | 'open' | 'folded';
 

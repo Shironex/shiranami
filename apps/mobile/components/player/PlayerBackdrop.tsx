@@ -1,10 +1,14 @@
-import { useId } from 'react';
+import { memo, useId } from 'react';
 import { StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { colors } from '@/lib/theme';
 
-/** The player's soft lavender glow from the top, as in the desktop now-playing view. */
-export function PlayerBackdrop() {
+/**
+ * The player's soft lavender glow from the top, as in the desktop now-playing
+ * view. On Android an SVG is drawn into a bitmap, so this is memoized and the
+ * player keeps it at one size: every redraw costs a full screen bitmap upload.
+ */
+export const PlayerBackdrop = memo(function PlayerBackdrop() {
   const id = useId().replace(/:/g, '');
   return (
     <Svg
@@ -35,4 +39,4 @@ export function PlayerBackdrop() {
       <Rect width="100%" height="100%" fill={`url(#${id})`} />
     </Svg>
   );
-}
+});

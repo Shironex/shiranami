@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import {
@@ -26,6 +26,17 @@ const DISMISS_DRAG = 140;
 const DISMISS_VELOCITY = 900;
 /** With reduce motion on, open and close are plain fades. */
 const FADE: WithTimingConfig = { duration: 200, reduceMotion: ReduceMotion.Never };
+/**
+ * If the stage has not reported where it is by then (a slow first render),
+ * the player opens anyway, as a plain fade.
+ */
+const PLACE_TIMEOUT_MS = 400;
+/**
+ * If the open has not reported its end this long after it should have (a
+ * stalled frame, a lost callback), it is put at its end state by hand. The
+ * player must never stay half open.
+ */
+const SETTLE_GRACE_MS = 600;
 
 /**
  * `progress` runs linearly; the stage eases each piece itself, so the pieces
@@ -50,6 +61,8 @@ export interface PlayerEnter {
   row: SharedValue<Rect | null>;
   /** Builds a pan that drags the player down; one per GestureDetector. */
   makePan: () => ReturnType<typeof Gesture.Pan>;
+  /** True once open; the screen then draws its end state from React. */
+  settled: boolean;
 }
 
 /**
@@ -72,9 +85,13 @@ export function usePlayerEnter(): PlayerEnter {
   const firstSpot = useRef(measureMiniPlayer());
   const closing = useRef(false);
 
+  const [settled, setSettled] = useState(false);
+  const started = useRef(false);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const place = useCallback(
-    (spot: MiniPlayerSpot | null) => {
-      if (reduceMotion) {
+    (spot: MiniPlayerSpot | null, fade = false) => {
+      if (reduceMotion || fade) {
         origin.value = null;
         row.value = null;
         return;
@@ -86,25 +103,69 @@ export function usePlayerEnter(): PlayerEnter {
     [reduceMotion, width, height, origin, row]
   );
 
+  const settle = useCallback(() => {
+    if (!closing.current) setSettled(true);
+  }, []);
+
+  const start = useCallback(
+    (spot: MiniPlayerSpot | null, fade = false) => {
+      if (started.current || closing.current) return;
+      started.current = true;
+      place(spot, fade);
+      const config = reduceMotion || fade ? FADE : travel(MOTION.slow);
+      progress.value = withTiming(1, config, finished => {
+        if (finished) runOnJS(settle)();
+      });
+      settleTimer.current = setTimeout(
+        () => {
+          if (closing.current) return;
+          cancelAnimation(progress);
+          progress.value = 1;
+          setSettled(true);
+        },
+        (config.duration ?? MOTION.slow) + SETTLE_GRACE_MS
+      );
+    },
+    [place, progress, reduceMotion, settle]
+  );
+
   const onPlaced = useCallback(() => {
-    void firstSpot.current.then(spot => {
-      if (closing.current) return;
-      place(spot);
-      progress.value = withTiming(1, reduceMotion ? FADE : travel(MOTION.slow));
-    });
-  }, [place, progress, reduceMotion]);
+    void firstSpot.current.then(spot => start(spot));
+  }, [start]);
+
+  useEffect(() => {
+    const placeTimer = setTimeout(() => start(null, true), PLACE_TIMEOUT_MS);
+    return () => clearTimeout(placeTimer);
+  }, [start]);
+
+  useEffect(
+    () => () => {
+      if (settleTimer.current) clearTimeout(settleTimer.current);
+    },
+    []
+  );
 
   usePreventRemove(true, ({ data }) => {
     if (closing.current) return;
     closing.current = true;
-    const leave = () => navigation.dispatch(data.action);
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    setSettled(false);
+    let left = false;
+    const leave = () => {
+      if (left) return;
+      left = true;
+      navigation.dispatch(data.action);
+    };
     void measureMiniPlayer().then(spot => {
       place(spot);
       cancelAnimation(progress);
       leaving.value = true;
-      progress.value = withTiming(0, reduceMotion ? FADE : travel(CLOSE_MS), finished => {
+      const config = reduceMotion ? FADE : travel(CLOSE_MS);
+      progress.value = withTiming(0, config, finished => {
         if (finished) runOnJS(leave)();
       });
+      // The screen goes even if the end of the animation never reports back.
+      setTimeout(leave, (config.duration ?? CLOSE_MS) + SETTLE_GRACE_MS);
     });
   });
 
@@ -132,5 +193,5 @@ export function usePlayerEnter(): PlayerEnter {
     () => ({ progress, origin, offset, drag, leaving, onPlaced }),
     [progress, origin, offset, drag, leaving, onPlaced]
   );
-  return { enter, row, makePan };
+  return { enter, row, makePan, settled };
 }

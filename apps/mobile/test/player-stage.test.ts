@@ -1,4 +1,11 @@
-import { STAGE, cardFolded, mixRect, pressCardTab, stageLayout } from '@/lib/player-stage';
+import {
+  STAGE,
+  cardFolded,
+  mixRect,
+  pressCardTab,
+  rectTransform,
+  stageLayout,
+} from '@/lib/player-stage';
 
 // The middle of a Galaxy S25 Ultra player (412 x 892 dp screen).
 const W = 412;
@@ -47,6 +54,30 @@ describe('player stage', () => {
     const b = { x: 10, y: 20, width: 30, height: 30 };
     expect(mixRect(a, b, 0.5)).toEqual({ x: 5, y: 10, width: 20, height: 20 });
     expect(mixRect(a, b, 0)).toEqual(a);
+  });
+});
+
+describe('rect transform', () => {
+  it('scales and moves a full size view onto the rect', () => {
+    expect(rectTransform({ x: 16, y: 700, width: 360, height: 64 }, 400, 800)).toEqual([
+      { translateX: 16 },
+      { translateY: 700 },
+      { scaleX: 0.9 },
+      { scaleY: 0.08 },
+    ]);
+  });
+
+  it('is the identity for the full rect', () => {
+    expect(rectTransform({ x: 0, y: 0, width: 400, height: 800 }, 400, 800)).toEqual([
+      { translateX: 0 },
+      { translateY: 0 },
+      { scaleX: 1 },
+      { scaleY: 1 },
+    ]);
+  });
+
+  it('does not divide by a zero size before layout', () => {
+    expect(rectTransform({ x: 0, y: 0, width: 10, height: 10 }, 0, 0)[2]).toEqual({ scaleX: 1 });
   });
 });
 

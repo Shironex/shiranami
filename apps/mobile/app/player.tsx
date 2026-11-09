@@ -24,14 +24,12 @@ import { usePlayerEnter } from '@/hooks/usePlayerEnter';
 import { usePlayerFold } from '@/hooks/usePlayerFold';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
-import { mixRect } from '@/lib/player-stage';
+import { mixRect, rectTransform } from '@/lib/player-stage';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
-/** The dock's corner radius, where the backdrop starts and ends. */
-const MINI_RADIUS = 26;
 /** Opening a page from the player waits for the close transition (280 ms) to finish. */
 const CLOSE_NAVIGATE_DELAY_MS = 320;
 
@@ -141,25 +139,25 @@ function PlayerView({ track }: { track: Track }) {
     hasLyrics || lyricsLoading
   );
   const { width, height } = useWindowDimensions();
-  const { enter, row, makePan } = usePlayerEnter();
+  const { enter, row, makePan, settled } = usePlayerEnter();
   const headerPan = useMemo(makePan, [makePan]);
   const stagePan = useMemo(makePan, [makePan]);
 
   // The backdrop grows out of the mini player row and follows a drag down.
+  // It keeps its full size and moves by transforms only: its gradient is drawn
+  // once, and no frame of the open waits on a layout pass.
   const backdropStyle = useAnimatedStyle(() => {
     const p = entered(enter.progress.value, enter.leaving.value);
     const full = { x: 0, y: enter.drag.value, width, height };
     const from = row.value;
     const rect = from ? mixRect(from, full, p) : full;
-    return {
-      opacity: Math.min(1, p / 0.4),
-      left: rect.x,
-      top: rect.y,
-      width: rect.width,
-      height: rect.height,
-      borderRadius: from ? MINI_RADIUS * (1 - p) : 0,
-    };
+    return { opacity: Math.min(1, p / 0.4), transform: rectTransform(rect, width, height) };
   });
+  // Once open, the backdrop's end state comes from React; only a drag moves it.
+  const settledBackdropStyle = useAnimatedStyle(() => ({
+    opacity: 1,
+    transform: [{ translateY: enter.drag.value }],
+  }));
   const contentStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -210,7 +208,15 @@ function PlayerView({ track }: { track: Track }) {
 
   return (
     <View className="flex-1">
-      <Animated.View pointerEvents="none" style={[styles.backdrop, backdropStyle]}>
+      {/* A new backdrop view once open (and again when closing): Reanimated
+          writes props it thinks settled back into React state and never
+          clears them, and a stale copy from before the open started must not
+          outlive the open. */}
+      <Animated.View
+        key={settled ? 'open' : 'moving'}
+        pointerEvents="none"
+        style={[styles.backdrop, { width, height }, settled ? settledBackdropStyle : backdropStyle]}
+      >
         <PlayerBackdrop />
       </Animated.View>
       <Animated.View
@@ -304,7 +310,7 @@ function PlayerView({ track }: { track: Track }) {
 
 // Reanimated views take no className (NativeWind only maps core components).
 const styles = StyleSheet.create({
-  backdrop: { position: 'absolute', overflow: 'hidden' },
+  backdrop: { position: 'absolute', left: 0, top: 0, transformOrigin: 'left top' },
   content: { flex: 1 },
   header: {
     flexDirection: 'row',
