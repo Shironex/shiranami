@@ -188,15 +188,17 @@ export function PlayerStage({
     };
   });
 
-  const cardStyle = useAnimatedStyle(() => {
-    if (!layout) return { opacity: 0 };
-    const rect = mixRect(layout.side.card, layout.hero.card, hero.value);
+  // The card keeps its open size inside a box that clips at the open card's
+  // bottom; folding slides it down so only its tab row stays in the box.
+  // Transforms only, so the fold never waits on a layout pass.
+  const cardBoxStyle = useAnimatedStyle(() => {
     const shown = staggered(enter.progress.value, 0.3, enter.leaving.value);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * 16 }] };
+  });
+  const cardStyle = useAnimatedStyle(() => {
+    if (!layout) return {};
     return {
-      opacity: shown,
-      top: rect.y,
-      height: rect.height,
-      transform: [{ translateY: (1 - shown) * 16 }],
+      transform: [{ translateY: (layout.hero.card.y - layout.side.card.y) * hero.value }],
     };
   });
 
@@ -265,9 +267,20 @@ export function PlayerStage({
         <>
           {hasCard && renderCard && (
             <Animated.View
-              style={[styles.card, { left: STAGE.cardX, width: layout.side.card.width }, cardStyle]}
+              style={[
+                styles.cardBox,
+                {
+                  left: STAGE.cardX,
+                  top: layout.side.card.y,
+                  width: layout.side.card.width,
+                  height: layout.side.card.height,
+                },
+                cardBoxStyle,
+              ]}
             >
-              {renderCard(Math.max(0, layout.side.card.height - STAGE.foldedCard))}
+              <Animated.View style={[styles.card, cardStyle]}>
+                {renderCard(Math.max(0, layout.side.card.height - STAGE.foldedCard))}
+              </Animated.View>
             </Animated.View>
           )}
         </>
@@ -286,5 +299,6 @@ const styles = StyleSheet.create({
     transformOrigin: 'left top',
     boxShadow: '0 30px 50px -24px rgba(0,0,4,0.95)',
   },
-  card: { position: 'absolute', overflow: 'hidden', borderRadius: 22 },
+  cardBox: { position: 'absolute', overflow: 'hidden' },
+  card: { flex: 1, overflow: 'hidden', borderRadius: 22 },
 });
