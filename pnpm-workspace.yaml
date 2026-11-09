@@ -151,6 +151,14 @@ overrides:
   'minimatch@11': 11.0.4
   '@isaacs/nonrecursive-glob-match@1': 1.0.3
   'ip-address@<10.7.4': 10.7.5
+  # apps/desktop's @wdio/cli > @wdio/utils > @puppeteer/browsers > proxy-agent >
+  # pac-proxy-agent > get-uri pulls basic-ftp@5 (e2e devDep): quadratic-time CPU
+  # DoS in Client.list() (GHSA-c475-qrg2-pj4r, Dependabot alert #198), fixed from
+  # 6.2.1. get-uri 8.0.1 still declares ^5.3.1, so no parent bump clears it.
+  # Exact 6.2.5 (Nov 1): 6.2.6 came out Nov 4, under the 7 day release age gate
+  # that pnpm 10.9.0 does not enforce. Relax to a floor once it has aged, and
+  # drop this when get-uri moves to 6.
+  basic-ftp: 6.2.5
   'zod@>=4 <4.6.6': ^4.6.6
 
 # Dependencies that packages use without declaring them. They only worked

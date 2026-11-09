@@ -63,6 +63,7 @@ overrides:
   minimatch@11: 11.0.4
   '@isaacs/nonrecursive-glob-match@1': 1.0.3
   ip-address@<10.7.4: 10.7.5
+  basic-ftp: 6.2.5
   zod@>=4 <4.6.6: ^4.6.6
 
 packageExtensionsChecksum: sha256-4CLLp1qoE5lCIEmnJT7+y49KrIKH00/NxaEPxHvoTa4=
@@ -6154,8 +6155,8 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  basic-ftp@5.3.1:
-    resolution: {integrity: sha512-bopVNp6ugyA150DDuZfPFdt1KZ5a94ZDiwX4hMgZDzF+GttD80lEy8kj98kbyhLXnPvhtIo93mdnLIjpCAeeOw==}
+  basic-ftp@6.2.5:
+    resolution: {integrity: sha512-JJKYwxdbJM6Z4jFO+ciaIUejHRCyIg6oJ9hoAzuZ0EMlJsHDT07h6vZt4NH8G61DLzddrDKvjoRqfewnPzDSJA==}
     engines: {node: '>=10.0.0'}
 
   better-result@2.9.2:
@@ -18931,7 +18932,7 @@ snapshots:
 
   baseline-browser-mapping@2.11.25: {}
 
-  basic-ftp@5.3.1: {}
+  basic-ftp@6.2.5: {}
 
   better-result@2.9.2: {}
 
@@ -21044,7 +21045,7 @@ snapshots:
 
   get-uri@6.0.5:
     dependencies:
-      basic-ftp: 5.3.1
+      basic-ftp: 6.2.5
       data-uri-to-buffer: 6.0.2
       debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
