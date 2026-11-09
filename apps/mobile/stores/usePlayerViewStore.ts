@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 /** The tabs of the player card. */
-export type PlayerCardTab = 'lyrics' | 'upNext';
+export type PlayerCardTab = 'lyrics' | 'upNext' | 'similar';
 
 interface PlayerViewState {
   /** The card tab last picked, kept for the session. */

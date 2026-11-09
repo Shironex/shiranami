@@ -9,6 +9,7 @@ import Animated, {
 import { useRouter } from 'expo-router';
 import Maximize2 from 'lucide-react-native/icons/maximize-2';
 import { CardQuiet } from '@/components/player/CardRow';
+import { CardSimilar } from '@/components/player/CardSimilar';
 import { CardTabs, type CardTab } from '@/components/player/CardTabs';
 import { CardUpNext } from '@/components/player/CardUpNext';
 import { LyricsView } from '@/components/player/LyricsView';
@@ -24,6 +25,7 @@ import type { PlayerCardTab } from '@/stores/usePlayerViewStore';
 const TABS: readonly CardTab<PlayerCardTab>[] = [
   { value: 'lyrics', label: 'Lyrics' },
   { value: 'upNext', label: 'Up next' },
+  { value: 'similar', label: 'Similar' },
 ];
 
 /** Panes slide this far as they cross, toward the side of their tab. */
@@ -71,9 +73,9 @@ function UpNextSummary() {
       accessibilityHint="Opens the queue"
       onPress={() => router.push('/queue')}
       hitSlop={8}
-      className="rounded-full px-2 py-1 active:bg-border"
+      className="ml-2 min-w-0 shrink rounded-full px-2 py-1 active:bg-border"
     >
-      <Text variant="meta" className="font-body-semibold text-[13px]">
+      <Text variant="meta" numberOfLines={1} className="font-body-semibold text-[13px]">
         {upNextSummary(entries)}
       </Text>
     </Pressable>
@@ -89,8 +91,9 @@ interface PlayerCardProps {
 }
 
 /**
- * The card under the cover: lyrics that follow the song, or the songs coming
- * up. Each pane scrolls inside the card; switching tabs crossfades them.
+ * The card under the cover: lyrics that follow the song, the songs coming
+ * up, or songs like this one from the library. Each pane scrolls inside the
+ * card; switching tabs crossfades them.
  */
 export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardProps) {
   const router = useRouter();
@@ -145,8 +148,10 @@ export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardPro
                       </CardQuiet>
                     }
                   />
-                ) : (
+                ) : t.value === 'upNext' ? (
                   <CardUpNext />
+                ) : (
+                  <CardSimilar track={track} />
                 )}
               </View>
             </Pane>
