@@ -31,13 +31,21 @@ function Seal({ title }: { title: string }) {
   );
 }
 
+interface CoverProps {
+  track: Track;
+  size: number;
+  /** Corner radius; 0 when a parent clips the corners (the animated player cover). */
+  radius?: number;
+  shadow?: boolean;
+}
+
 /**
  * The player cover: the track's own art, or a framed theme photo with the
  * track's kanji as a seal in the corner.
  */
-export function Cover({ track, size }: { track: Track; size: number }) {
-  const frame = { width: size, height: size, borderRadius: 24 };
-  const shadow = { boxShadow: '0 40px 60px -30px rgba(0,0,4,0.9)' };
+export function Cover({ track, size, radius = 24, shadow: withShadow = true }: CoverProps) {
+  const frame = { width: size, height: size, borderRadius: radius };
+  const shadow = withShadow ? { boxShadow: '0 40px 60px -30px rgba(0,0,4,0.9)' } : null;
   if (track.albumArt) {
     return (
       <View style={[frame, shadow]}>
@@ -59,7 +67,7 @@ export function Cover({ track, size }: { track: Track; size: number }) {
         zoom={1.25}
         size={{ width: size, height: size }}
         className="border border-border"
-        style={{ borderRadius: 24 }}
+        style={{ borderRadius: radius }}
       >
         <Scrim stops={SCRIM} />
       </ThemePhoto>

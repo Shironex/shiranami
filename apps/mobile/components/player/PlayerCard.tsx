@@ -88,14 +88,30 @@ interface PlayerCardProps {
   loading: boolean;
   tab: PlayerCardTab;
   onTab: (tab: PlayerCardTab) => void;
+  /** The card is folded to its tab pill (the big cover layout). */
+  folded: boolean;
+  /** 0 open, 1 folded, animated with the player's layout. */
+  fold: SharedValue<number>;
+  /** Height of the open body; it stays this tall and is clipped while folding. */
+  bodyHeight: number;
 }
 
 /**
  * The card under the cover: lyrics that follow the song, the songs coming
  * up, or songs like this one from the library. Each pane scrolls inside the
- * card; switching tabs crossfades them.
+ * card; switching tabs crossfades them. Folded, only the tab pill shows, so
+ * the card can be opened again.
  */
-export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardProps) {
+export function PlayerCard({
+  track,
+  lyrics,
+  loading,
+  tab,
+  onTab,
+  folded,
+  fold,
+  bodyHeight,
+}: PlayerCardProps) {
   const router = useRouter();
   const tabIndex = TABS.findIndex(t => t.value === tab);
   const position = useSharedValue(tabIndex);
@@ -107,17 +123,18 @@ export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardPro
     setVisited(prev => (prev.has(tab) ? prev : new Set(prev).add(tab)));
   }, [tab, tabIndex, position]);
 
+  const chrome = useAnimatedStyle(() => ({ opacity: 1 - fold.value }));
+  const body = useAnimatedStyle(() => ({ opacity: Math.max(0, 1 - fold.value * 1.8) }));
+
   const openLyrics = () => router.push('/lyrics');
   const hasLyrics = !!(lyrics.synced || lyrics.plain);
 
   return (
-    <View
-      className="flex-1 overflow-hidden rounded-[22px] border border-border pt-3.5"
-      style={{ backgroundColor: PLAYER_CARD }}
-    >
+    <View className="flex-1 pt-3.5">
+      <Animated.View pointerEvents="none" style={[styles.chrome, chrome]} />
       <View className="h-9 flex-row items-center justify-between pl-[18px] pr-2">
-        <CardTabs tabs={TABS} value={tab} onPress={onTab} />
-        {tab === 'lyrics' && hasLyrics && (
+        <CardTabs tabs={TABS} value={tab} folded={folded} onPress={onTab} />
+        {!folded && tab === 'lyrics' && hasLyrics && (
           <IconButton
             icon={Maximize2}
             size={18}
@@ -126,9 +143,14 @@ export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardPro
             onPress={openLyrics}
           />
         )}
-        {tab === 'upNext' && <UpNextSummary />}
+        {!folded && tab === 'upNext' && <UpNextSummary />}
       </View>
-      <View className="flex-1">
+      <Animated.View
+        pointerEvents={folded ? 'none' : 'auto'}
+        accessibilityElementsHidden={folded}
+        importantForAccessibility={folded ? 'no-hide-descendants' : 'auto'}
+        style={[{ height: bodyHeight }, body]}
+      >
         {TABS.map((t, index) =>
           visited.has(t.value) ? (
             <Pane key={t.value} index={index} position={position} active={t.value === tab}>
@@ -157,7 +179,22 @@ export function PlayerCard({ track, lyrics, loading, tab, onTab }: PlayerCardPro
             </Pane>
           ) : null
         )}
-      </View>
+      </Animated.View>
     </View>
   );
 }
+
+// Reanimated views take no className (NativeWind only maps core components).
+const styles = StyleSheet.create({
+  chrome: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: PLAYER_CARD,
+  },
+});

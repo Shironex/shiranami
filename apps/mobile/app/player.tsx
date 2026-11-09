@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
@@ -7,32 +8,25 @@ import EllipsisVertical from 'lucide-react-native/icons/ellipsis-vertical';
 import Heart from 'lucide-react-native/icons/heart';
 import LibraryIcon from 'lucide-react-native/icons/library';
 import RadioIcon from 'lucide-react-native/icons/radio';
-import { ArtTile } from '@/components/art/ArtTile';
 import { RemovalToast } from '@/components/library/RemovalToast';
-import { Cover } from '@/components/player/Cover';
 import { PlayerActions } from '@/components/player/PlayerActions';
 import { PlayerCard } from '@/components/player/PlayerCard';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
+import { PlayerStage, staggered } from '@/components/player/PlayerStage';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
 import { useLyrics } from '@/hooks/useLyrics';
+import { usePlayerEnter } from '@/hooks/usePlayerEnter';
+import { usePlayerFold } from '@/hooks/usePlayerFold';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-import { usePlayerViewStore } from '@/stores/usePlayerViewStore';
-
-/** Cover side margin; the cover is the screen width minus both. */
-const COVER_GUTTER = 24;
-/** Keeps the whole player on screen on short phones. */
-const MAX_COVER = 420;
-/** The cover beside the title when the lyrics and up next card is shown. */
-const PEEK_COVER = 132;
 
 /** Where the queue came from, as a quiet chip in the top bar. */
 function SourceChip({ live, source }: { live: boolean; source: string }) {
@@ -106,20 +100,7 @@ type MetaHref =
 
 export default function PlayerScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const track = usePlayerStore(s => s.currentTrack);
-  const source = usePlayerStore(s => s.queueSource);
-  const toggleFavorite = useToggleFavorite();
-  const radio = useCurrentStation();
-  const tab = usePlayerViewStore(s => s.tab);
-  const setTab = usePlayerViewStore(s => s.setTab);
-  const { lyrics, loading: lyricsLoading } = useLyrics(
-    track?.isLive ? undefined : track?.title,
-    track?.artist,
-    track?.album,
-    track?.duration
-  );
 
   // Close once the queue is cleared under the open player (not on a cold open).
   const hadTrack = useRef(false);
@@ -129,28 +110,40 @@ export default function PlayerScreen() {
   }, [track, router]);
 
   if (!track) return <View className="flex-1 bg-background" />;
+  return <PlayerView track={track} />;
+}
 
+function PlayerView({ track }: { track: Track }) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const source = usePlayerStore(s => s.queueSource);
+  const toggleFavorite = useToggleFavorite();
+  const radio = useCurrentStation();
   const live = !!track.isLive;
-  const favorite = live ? radio.saved : !!track.isFavorite;
-  // Songs get the small cover and the lyrics and up next card; radio keeps the big cover.
-  const peek = !live;
-  // Room under the cover for meta, seek, transport and actions (about 380pt).
-  const coverSize = Math.min(
-    width - COVER_GUTTER * 2,
-    MAX_COVER,
-    height - 380 - insets.top - insets.bottom
+  const { lyrics, loading: lyricsLoading } = useLyrics(
+    live ? undefined : track.title,
+    track.artist,
+    track.album,
+    track.duration
   );
+  const hasLyrics = !!(lyrics.synced || lyrics.plain);
+  const { folded, hero, fade, tab, onTab } = usePlayerFold(track.id, live, hasLyrics);
+  const enter = usePlayerEnter();
+
+  const stageStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const chromeStyle = useAnimatedStyle(() => {
+    const shown = staggered(enter.progress.value, 0.2);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * 12 }] };
+  });
+
+  const favorite = live ? radio.saved : !!track.isFavorite;
   const open = (href: MetaHref) => {
     router.back();
     router.navigate(href);
   };
 
   const meta = (
-    <Text
-      variant="bodyMuted"
-      numberOfLines={1}
-      className={peek ? 'mt-1 text-[15px]' : 'mt-1 text-[16px]'}
-    >
+    <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[15px]">
       {live && radio.station ? (
         stationMeta(radio.station)
       ) : (
@@ -199,66 +192,57 @@ export default function PlayerScreen() {
           )}
         </View>
 
-        {peek ? (
-          <>
-            <View className="flex-row items-end gap-4 pl-6 pr-[18px] pt-[18px]">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Lyrics full screen"
-                onPress={() => router.push('/lyrics')}
-                style={{ borderRadius: 18, boxShadow: '0 24px 40px -18px rgba(0,0,4,0.95)' }}
-              >
-                <ArtTile
-                  title={track.title}
-                  artUri={track.albumArt}
-                  size={PEEK_COVER}
-                  radius={18}
-                />
-              </Pressable>
-              <View className="min-w-0 flex-1 pb-1.5">
+        <Animated.View style={[{ flex: 1 }, stageStyle]}>
+          <PlayerStage
+            track={track}
+            hasCard={!live}
+            hero={hero}
+            enter={enter}
+            coverLabel={live ? undefined : 'Lyrics full screen'}
+            onCoverPress={live || !hasLyrics ? undefined : () => router.push('/lyrics')}
+            sideTitle={
+              <>
                 <Text variant="heading" numberOfLines={2}>
                   {track.title}
                 </Text>
                 {meta}
-              </View>
-              <View className="pb-0.5">{heart}</View>
-            </View>
-            <View className="mx-4 mt-[18px] min-h-0 flex-1">
+              </>
+            }
+            heroTitle={
+              <>
+                <Text variant="title" numberOfLines={1}>
+                  {track.title}
+                </Text>
+                {meta}
+              </>
+            }
+            heart={heart}
+            renderCard={bodyHeight => (
               <PlayerCard
                 track={track}
                 lyrics={lyrics}
                 loading={lyricsLoading}
                 tab={tab}
-                onTab={setTab}
+                onTab={onTab}
+                folded={folded}
+                fold={hero}
+                bodyHeight={bodyHeight}
               />
-            </View>
-          </>
-        ) : (
-          <>
-            <View className="items-center pt-5">
-              <Cover track={track} size={coverSize} />
-            </View>
-            <View className="flex-row items-center gap-3 pl-7 pr-[18px] pt-6">
-              <View className="min-w-0 flex-1">
-                <Text variant="title" numberOfLines={1}>
-                  {track.title}
-                </Text>
-                {meta}
-              </View>
-              {heart}
-            </View>
-          </>
-        )}
+            )}
+          />
+        </Animated.View>
 
-        <View className={peek ? 'px-4 pt-3' : 'mt-auto px-4 pt-4'}>
-          <PlayerActions track={track} />
-        </View>
-        <View className="px-7 pt-2">
-          <SeekBar />
-        </View>
-        <View className="px-[22px] pt-3.5">
-          <Transport />
-        </View>
+        <Animated.View style={chromeStyle}>
+          <View className="px-4 pt-3">
+            <PlayerActions track={track} />
+          </View>
+          <View className="px-7 pt-2">
+            <SeekBar />
+          </View>
+          <View className="px-[22px] pt-3.5">
+            <Transport />
+          </View>
+        </Animated.View>
       </View>
       <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
     </View>
