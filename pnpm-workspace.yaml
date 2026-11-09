@@ -13,7 +13,11 @@ overrides:
   '@wdio/native-utils': 2.5.0
   h3: 1.15.9
   undici: ^6.29.1
-  jsdom: ^30.0.1
+  jsdom: ^30.1.3
+  # jsdom 30.1.3 declares `^7.1.3`, which resolves 7.2.0 (Nov 8), under the 7 day
+  # release age gate that pnpm 10.9.0 does not enforce. Held at 7.1.9 (Oct 25);
+  # relax to a floor once 7.2.0 has aged.
+  '@asamuzakjp/css-color': 7.1.9
   path-to-regexp: 8.4.0
   # apps/server declares `^5.8.5`; the exact pin below it was blocking
   # fastify's own patched release (schema-validation bypass +
@@ -30,7 +34,10 @@ overrides:
   yaml: 2.8.4
   postcss: '>=8.5.18'
   lodash: 4.18.1
-  lucide-react: ^1.16.0
+  # Exact 1.66.0 (Oct 31): apps/web and apps/landing both resolve it. 1.67.0 (Nov 3) and
+  # newer are under the 7 day release age gate that pnpm
+  # 10.9.0 does not enforce, so a floor would pick up a too young version.
+  lucide-react: 1.66.0
   react: ^19.2.6
   react-dom: ^19.2.6
   # Expo SDK 57 pins React 19.2.3 exactly, as SDK 56 did (react-native 0.86.3
@@ -71,10 +78,10 @@ overrides:
   # that major jump is tracked separately as a Phase 3 migration.
   vitest: '>=4.1.12 <5'
   esbuild: '>=0.28.1'
-  # Pinned at 8.3.4 (fixes the 8.0-8.1.5 and 8.3.0-8.3.2 advisories): a floor
-  # resolves 8.3.5, which is under the 7 day release age gate that pnpm 10.9.0
-  # does not enforce. Relax to a floor once 8.3.5 has aged.
-  vite: 8.3.4
+  # Pinned at 8.3.5 (fixes the 8.0-8.1.5 and 8.3.0-8.3.2 advisories): a floor
+  # resolves 8.3.6 or newer, which is under the 7 day release age gate that
+  # pnpm 10.9.0 does not enforce. Relax to a floor once those have aged.
+  vite: 8.3.5
   # Bounded below 8.0.0: every consumer here (babel-preset-expo, react-native,
   # jest, @sentry/bundler-plugins) declares the 7 line, and an unbounded floor
   # resolved Babel 8 for all of them.
@@ -144,6 +151,14 @@ overrides:
   'minimatch@11': 11.0.4
   '@isaacs/nonrecursive-glob-match@1': 1.0.3
   'ip-address@<10.7.4': 10.7.5
+  # apps/desktop's @wdio/cli > @wdio/utils > @puppeteer/browsers > proxy-agent >
+  # pac-proxy-agent > get-uri pulls basic-ftp@5 (e2e devDep): quadratic-time CPU
+  # DoS in Client.list() (GHSA-c475-qrg2-pj4r, Dependabot alert #198), fixed from
+  # 6.2.1. get-uri 8.0.1 still declares ^5.3.1, so no parent bump clears it.
+  # Exact 6.2.5 (Nov 1): 6.2.6 came out Nov 4, under the 7 day release age gate
+  # that pnpm 10.9.0 does not enforce. Relax to a floor once it has aged, and
+  # drop this when get-uri moves to 6.
+  basic-ftp: 6.2.5
   'zod@>=4 <4.6.6': ^4.6.6
 
 # Dependencies that packages use without declaring them. They only worked

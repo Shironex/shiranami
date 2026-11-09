@@ -1,0 +1,9 @@
+[advisories]
+ignore = [
+  # RUSTSEC-2026-0459 (CVE-2026-119375): libsqlite3-sys 0.37 bundles SQLite
+  # before 3.54.0. Fixed in libsqlite3-sys 0.39. Blocked: the released
+  # sqlx-sqlite 0.9.0 declares libsqlite3-sys <0.38, so the lock cannot move.
+  # Lift this ignore when sqlx releases with a <0.40 bound (at least 7 days
+  # old), run `cargo update -p sqlx` and confirm libsqlite3-sys 0.39.1.
+  "RUSTSEC-2026-0459",
+]
