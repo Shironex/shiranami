@@ -18,6 +18,14 @@ const envSchema = z
     // Extra yt-dlp plugin directory holding the provider plugin. Dockerfile.server
     // sets it; it is only passed to yt-dlp together with YTDLP_POT_PROVIDER_URL.
     YTDLP_PLUGIN_DIR: z.string().min(1).optional(),
+    // Optional Netscape cookies.txt for yt-dlp, from a logged-in spare account:
+    // YouTube answers "confirm you're not a bot" to datacenter IPs otherwise.
+    // Export it from a private window per the yt-dlp wiki ("Exporting YouTube
+    // cookies"), then close that window so the session is not rotated. It
+    // expires, so renew it when the bot check comes back. Each yt-dlp run uses
+    // a private copy under /tmp, so a read-only mount is fine; unset leaves
+    // yt-dlp's arguments untouched and an unreadable file only logs a warning.
+    YTDLP_COOKIES_FILE: z.string().min(1).optional(),
     // Mandatory in production while a guarded surface is mounted (the YouTube
     // proxy, see ./features): ApiKeyGuard denies every request when it is
     // unset, so booting without it would take those routes offline rather than
