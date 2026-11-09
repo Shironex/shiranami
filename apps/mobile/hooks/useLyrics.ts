@@ -107,7 +107,9 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
       return;
     }
 
+    // The song before's lines must not show, highlight or seek while these load.
     const reqId = ++requestRef.current;
+    setLyrics({ synced: null, plain: null });
     setLoading(true);
 
     fetchFromLrclib(title, artist, album, duration)
