@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -28,10 +28,22 @@ function measureRect(view: View | null): Promise<Rect | null> {
 function Progress() {
   const currentTime = usePlayerStore(s => s.currentTime);
   const duration = usePlayerStore(s => s.duration);
+  const [width, setWidth] = useState(0);
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
+  // A transform, not a width, so each position update skips layout.
   return (
-    <View className="absolute bottom-0 left-4 right-4 h-0.5 overflow-hidden rounded-full bg-border">
-      <View className="h-full rounded-full bg-primary" style={{ width: `${progress * 100}%` }} />
+    <View
+      pointerEvents="none"
+      onLayout={e => setWidth(e.nativeEvent.layout.width)}
+      className="absolute bottom-0 left-4 right-4 h-0.5 overflow-hidden rounded-full bg-border"
+    >
+      <View
+        className="h-full bg-primary"
+        style={{
+          opacity: width > 0 ? 1 : 0,
+          transform: [{ translateX: (progress - 1) * width }],
+        }}
+      />
     </View>
   );
 }
