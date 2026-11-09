@@ -75,6 +75,12 @@ interface PlayerState {
   fade: number;
   /** Pause when the current track ends instead of moving on (sleep timer). */
   stopAfterCurrent: boolean;
+  /**
+   * Goes up on every jump in the position: a seek, or repeat one starting the
+   * song over. Time-synced UI (the karaoke lyric fill) restarts on it, since a
+   * jump inside the same lyric line changes nothing else it watches.
+   */
+  seekCount: number;
 }
 
 interface PlayerActions {
@@ -253,6 +259,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
     queueSource: 'Library',
     fade: 1,
     stopAfterCurrent: false,
+    seekCount: 0,
 
     play: () => {
       if (!get().currentTrack) return;
@@ -290,7 +297,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
       const { currentTrack, duration } = get();
       if (!currentTrack || currentTrack.isLive || !isFinite(time) || time < 0) return;
       const target = duration > 0 ? Math.min(time, duration) : time;
-      set({ currentTime: target });
+      set(s => ({ currentTime: target, seekCount: s.seekCount + 1 }));
       transport?.seekTo(target);
     },
 
@@ -538,7 +545,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => {
         return;
       }
       if (repeatMode === 'one') {
-        set({ currentTime: 0, isPlaying: true });
+        set(s => ({ currentTime: 0, isPlaying: true, seekCount: s.seekCount + 1 }));
         transport?.seekTo(0);
         transport?.play();
         return;

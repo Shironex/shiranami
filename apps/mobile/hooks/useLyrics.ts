@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { activeLyricIndex } from '@/lib/lyrics-sync';
 
 export interface LyricLine {
   time: number;
@@ -108,13 +109,7 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
   }, [title, artist, album, duration]);
 
   const getActiveLine = useCallback(
-    (currentTime: number): number => {
-      if (!lyrics.synced) return -1;
-      for (let i = lyrics.synced.length - 1; i >= 0; i--) {
-        if (currentTime >= lyrics.synced[i].time) return i;
-      }
-      return -1;
-    },
+    (currentTime: number): number => activeLyricIndex(lyrics.synced, currentTime),
     [lyrics.synced]
   );
 
