@@ -127,7 +127,12 @@ function PlayerView({ track }: { track: Track }) {
     track.duration
   );
   const hasLyrics = !!(lyrics.synced || lyrics.plain);
-  const { folded, hero, fade, tab, onTab } = usePlayerFold(track.id, live, hasLyrics);
+  // While lyrics load, auto mode keeps the card open instead of folding and reopening.
+  const { folded, hero, fade, tab, onTab } = usePlayerFold(
+    track.id,
+    live,
+    hasLyrics || lyricsLoading
+  );
   const enter = usePlayerEnter();
 
   const stageStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
