@@ -117,6 +117,23 @@ export function cardFolded(mode: CardMode, live: boolean, hasLyrics: boolean): b
 }
 
 /**
+ * The tab a new song (or a change in its lyrics) moves the card to, or null
+ * to stay. Until the user picks a tab, auto mode opens a song with lyrics on
+ * Lyrics. A picked tab survives a new song, except Lyrics on a song without
+ * any, which moves to Up next.
+ */
+export function tabForSong(
+  current: string,
+  picked: boolean,
+  mode: CardMode,
+  live: boolean,
+  hasLyrics: boolean
+): 'lyrics' | 'upNext' | null {
+  if (hasLyrics) return mode === 'auto' && !picked && current !== 'lyrics' ? 'lyrics' : null;
+  return !live && current === 'lyrics' ? 'upNext' : null;
+}
+
+/**
  * What a press on a card tab does: on a folded card it opens on that tab, on
  * the open tab it folds the card, on another tab it switches. `mode` is set
  * when the press changes the open or folded state, which is then saved.

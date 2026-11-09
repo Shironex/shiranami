@@ -9,7 +9,7 @@ import {
 } from 'react-native-reanimated';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { MOTION, motion } from '@/lib/motion';
-import { cardFolded, pressCardTab } from '@/lib/player-stage';
+import { cardFolded, pressCardTab, tabForSong } from '@/lib/player-stage';
 import { usePlayerViewStore, type PlayerCardTab } from '@/stores/usePlayerViewStore';
 
 /** With reduce motion on, the layout swaps while the stage is faded out. */
@@ -57,15 +57,17 @@ export function usePlayerFold(trackId: string, live: boolean, hasLyrics: boolean
     }
   }, [folded, reduceMotion, hero, fade]);
 
-  // Until the user picks, a song with lyrics opens on the lyrics tab.
+  // A new song may move the card to another tab; see tabForSong.
   useEffect(() => {
-    if (mode === 'auto' && hasLyrics) setTab('lyrics');
-  }, [trackId, mode, hasLyrics, setTab]);
+    const { tab: current, picked } = usePlayerViewStore.getState();
+    const next = tabForSong(current, picked, mode, live, hasLyrics);
+    if (next) setTab(next);
+  }, [trackId, mode, live, hasLyrics, setTab]);
 
   const onTab = useCallback(
     (pressed: PlayerCardTab) => {
       const next = pressCardTab(folded, tab, pressed);
-      if (next.tab !== tab) setTab(next.tab);
+      if (next.tab !== tab) setTab(next.tab, true);
       if (next.mode) update('playerCard', next.mode);
     },
     [folded, tab, setTab, update]

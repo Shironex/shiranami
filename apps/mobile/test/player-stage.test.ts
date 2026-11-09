@@ -5,6 +5,7 @@ import {
   pressCardTab,
   rectTransform,
   stageLayout,
+  tabForSong,
 } from '@/lib/player-stage';
 
 // The middle of a Galaxy S25 Ultra player (412 x 892 dp screen).
@@ -101,5 +102,27 @@ describe('card fold', () => {
     expect(pressCardTab(false, 'lyrics', 'upNext')).toEqual({ tab: 'upNext' });
     expect(pressCardTab(true, 'lyrics', 'similar')).toEqual({ tab: 'similar', mode: 'open' });
     expect(pressCardTab(true, 'lyrics', 'lyrics')).toEqual({ tab: 'lyrics', mode: 'open' });
+  });
+});
+
+describe('tab for a new song', () => {
+  it('opens a song with lyrics on Lyrics until the user picks a tab', () => {
+    expect(tabForSong('similar', false, 'auto', false, true)).toBe('lyrics');
+    expect(tabForSong('lyrics', false, 'auto', false, true)).toBeNull();
+  });
+
+  it('keeps a picked tab on a new song with lyrics', () => {
+    expect(tabForSong('upNext', true, 'auto', false, true)).toBeNull();
+    expect(tabForSong('similar', true, 'open', false, true)).toBeNull();
+  });
+
+  it('leaves Lyrics for Up next when the new song has none', () => {
+    expect(tabForSong('lyrics', true, 'auto', false, false)).toBe('upNext');
+    expect(tabForSong('lyrics', false, 'open', false, false)).toBe('upNext');
+    expect(tabForSong('similar', true, 'open', false, false)).toBeNull();
+  });
+
+  it('leaves the tab alone for radio, which has no card', () => {
+    expect(tabForSong('lyrics', true, 'auto', true, false)).toBeNull();
   });
 });
