@@ -1,7 +1,9 @@
 import '@/global.css';
+import '@/lib/crypto-polyfill';
 
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NAV_THEME, colors } from '@/lib/theme';
 import { useAppFonts } from '@/lib/use-app-fonts';
 import { PortalHost } from '@rn-primitives/portal';
@@ -63,7 +65,8 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    // Swipe gestures on rows need the gesture handler root at the top of the tree.
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <Suspense fallback={<LoadingFallback />}>
         <SQLiteProvider databaseName="shiranami.db" onInit={migrateDbIfNeeded} useSuspense>
           <SettingsProvider>
@@ -76,15 +79,24 @@ export default function RootLayout() {
                 }}
               >
                 <Stack.Screen name="(tabs)" />
+                {/* The player draws its own open and close transition (it grows out
+                    of the mini player), so the screen itself appears at once over
+                    the tabs, which stay visible underneath. */}
                 <Stack.Screen
                   name="player"
-                  options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+                  options={{
+                    presentation: 'transparentModal',
+                    animation: 'none',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
                 />
                 <Stack.Screen
                   name="lyrics"
                   options={{ presentation: 'fullScreenModal', animation: 'fade' }}
                 />
                 <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="sync" options={{ animation: 'slide_from_right' }} />
+                <Stack.Screen name="sync-pair" options={{ animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="sleep" options={SHEET} />
                 <Stack.Screen
                   name="queue"
@@ -101,6 +113,6 @@ export default function RootLayout() {
         </SQLiteProvider>
       </Suspense>
       {!splashDone && <AnimatedSplash ready={appReady} onDismissed={handleSplashDismissed} />}
-    </View>
+    </GestureHandlerRootView>
   );
 }

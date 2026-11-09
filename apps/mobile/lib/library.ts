@@ -13,6 +13,8 @@ export interface TrackRow {
   is_favorite: number;
   play_count: number | null;
   created_at: string;
+  year?: number | null;
+  track_number?: number | null;
 }
 
 export function rowToTrack(row: TrackRow): Track {
@@ -27,6 +29,8 @@ export function rowToTrack(row: TrackRow): Track {
     isFavorite: !!row.is_favorite,
     playCount: row.play_count ?? 0,
     addedAt: row.created_at,
+    year: row.year ?? undefined,
+    trackNumber: row.track_number ?? undefined,
   };
 }
 

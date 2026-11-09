@@ -3,7 +3,7 @@ export interface AppEnv {
   readonly apiUrl: string;
   /** Shared key the server expects in `x-shiranami-key`; empty when the server needs none. */
   readonly apiKey: string;
-  /** Shows the YouTube search tab. Off for v0.1, where only local files play. */
+  /** Shows the YouTube search tab. On unless a build turns it off. */
   readonly youtubeSearch: boolean;
 }
 
@@ -27,9 +27,10 @@ function httpUrl(name: string, value: string | undefined, fallback: string): str
   return url;
 }
 
-function flag(name: string, value: string | undefined): boolean {
+function flag(name: string, value: string | undefined, fallback: boolean): boolean {
   const trimmed = value?.trim();
-  if (!trimmed || trimmed === 'false') return false;
+  if (!trimmed) return fallback;
+  if (trimmed === 'false') return false;
   if (trimmed === 'true') return true;
   throw new Error(`${name} must be "true" or "false", got "${trimmed}".`);
 }
@@ -37,8 +38,8 @@ function flag(name: string, value: string | undefined): boolean {
 /**
  * Builds the app config from `EXPO_PUBLIC_*` values. A malformed value stops
  * the app at startup with the variable's name instead of failing later as a
- * vague network error. Every variable is optional: v0.1 plays local files and
- * needs no server.
+ * vague network error. Every variable is optional: local files and radio need
+ * no server, and YouTube search explains on screen when it cannot reach one.
  */
 export function readEnv(source: Record<string, string | undefined>): AppEnv {
   return {
@@ -46,7 +47,8 @@ export function readEnv(source: Record<string, string | undefined>): AppEnv {
     apiKey: source.EXPO_PUBLIC_API_KEY?.trim() ?? '',
     youtubeSearch: flag(
       'EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH',
-      source.EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH
+      source.EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH,
+      true
     ),
   };
 }

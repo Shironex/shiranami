@@ -109,6 +109,19 @@ Run this on the phone after any change to playback, navigation or native config.
 - [ ] Sheets and the back button: each sheet closes on back, no screen is skipped
 - [ ] Settings: tracks without art show the placeholder art
 - [ ] Icon and splash: launcher icon (adaptive and themed) and the splash look right
+- [ ] Desktop sync: pair by QR over home Wi-Fi, the first pull finishes, Sync now copies nothing new, Forget unpairs on both sides
+
+## Desktop sync (LAN v0)
+
+Settings > Desktop > Sync with desktop pairs the phone with the desktop app and copies its library over home Wi-Fi, one way (desktop to phone). The protocol is `crates/shiranami-sync/README.md`; the wire types, the link parser and every HMAC come from `@shiranami/contracts/sync`.
+
+- Pairing (`lib/sync-pairing.ts`): the camera reads the `shiranami://pair?...` QR, the phone finds the first host from it that answers, sends `POST /v1/sync/pair` and waits up to 120 s for Allow on the desktop. It checks `keyProof` before it derives the device secret.
+- Storage (`lib/sync-peer.ts`): the device secret goes to `expo-secure-store` (Android keystore) only. The desktop name, id, hosts, port, device id, clock skew and last sync time are the `syncDesktop` row of the settings table.
+- A pull (`lib/sync-run.ts`): manifest, favorites, playlists and history first, then audio, then covers. A song the phone already has (same `content_hash`) is linked, not downloaded. New songs are rows with `source = 'desktop'` and `desktop_id` (migration 3), hidden as missing until their audio is in `tracks/`. Audio resumes with `Range` plus `If-Range` from a `.part` file (`lib/sync-download.ts`); covers go to `art/<hash>.jpg`. Every database write joins the library run lock in `lib/library-scan.ts`.
+- Merges (`lib/sync-library.ts`): desktop favorites are added, never removed. A desktop playlist keeps its desktop id and takes the desktop's name and order on every pull; playlists made on the phone are not touched, and one deleted on the desktop stays on the phone. Plays are added once by id.
+- Cleartext: v0 is plain HTTP to a private address, and the address is only known at runtime from the QR. Android's network security config matches host names, not address ranges, and is fixed at build time, so it cannot scope cleartext to RFC 1918 space or to the paired host. The app therefore sets `usesCleartextTraffic` (through `expo-build-properties`) and the sync client refuses every host outside 10/8, 172.16/12, 192.168/16 and 169.254/16 itself (`isPrivateLanHost`). v1 moves to TLS with a pinned certificate and drops this.
+- Hermes has no Web Crypto, so `lib/crypto-polyfill.ts` installs `crypto.getRandomValues` from `expo-crypto` at startup for the X25519 keys and request nonces.
+- Metro, Jest and TypeScript read `@shiranami/contracts/sync` from source through its `react-native` export condition, so the contracts package needs no build for the app.
 
 ## Traps
 

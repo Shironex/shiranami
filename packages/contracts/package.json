@@ -13,6 +13,7 @@
       "require": "./dist/index.js"
     },
     "./sync": {
+      "react-native": "./src/sync/index.ts",
       "types": "./dist/sync/index.d.ts",
       "import": "./dist/sync/index.js",
       "require": "./dist/sync/index.js"
@@ -27,8 +28,8 @@
   "dependencies": {
     "@noble/curves": "2.4.0",
     "@noble/hashes": "2.4.0",
-    "@tauri-apps/api": "^2.11.1",
-    "zod": "^4.6.5"
+    "@tauri-apps/api": "^2.12.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",

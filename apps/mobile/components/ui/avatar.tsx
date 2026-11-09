@@ -11,7 +11,7 @@ export function Avatar({ size = 34 }: { size?: number }) {
       accessibilityRole="button"
       accessibilityLabel="Settings"
       onPress={() => router.push('/settings')}
-      className="h-11 w-11 items-center justify-center"
+      className="h-11 w-11 items-center justify-center active:opacity-70"
     >
       <View
         className="overflow-hidden rounded-lg border border-primary-ring bg-primary-tonal"

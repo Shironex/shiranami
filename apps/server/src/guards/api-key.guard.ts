@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { secretsEqual } from './secrets';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -28,10 +29,12 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('API key authentication is not configured');
     }
 
-    const request = context.switchToHttp().getRequest<{ headers: Record<string, string> }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<{ headers: Record<string, string | string[] | undefined> }>();
     const key = request.headers['x-shiranami-key'];
 
-    if (!key || key !== this.apiKey) {
+    if (typeof key !== 'string' || !secretsEqual(key, this.apiKey)) {
       throw new UnauthorizedException('Invalid or missing API key');
     }
 

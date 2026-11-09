@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
+import { groupAlbums, type Album } from '@/lib/albums';
 import { groupByDate, parseSqlTime, type DateGroup } from '@/lib/date-groups';
 import { countLabel } from '@/lib/format';
 import { loadHistory, type HistoryEntry } from '@/lib/history';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
-export type LibraryFilter = 'all' | 'favorites' | 'history' | 'artists';
+export type LibraryFilter = 'all' | 'favorites' | 'albums' | 'artists' | 'history';
 export type LibrarySort = 'recent' | 'title' | 'artist';
 
 export const LIBRARY_FILTERS = [
   { value: 'all', label: 'All' },
   { value: 'favorites', label: 'Favorites' },
-  { value: 'history', label: 'History' },
+  { value: 'albums', label: 'Albums' },
   { value: 'artists', label: 'Artists' },
+  { value: 'history', label: 'History' },
 ] as const;
 
 export const SORT_LABELS: Record<LibrarySort, string> = {
@@ -34,7 +36,8 @@ const PLAYED_LABELS: Record<DateGroup, string> = {
 };
 
 export type LibraryItem =
-  | { type: 'label'; key: string; text: string }
+  | { type: 'label'; key: string; text: string; letter?: boolean }
+  | { type: 'albums'; key: string; albums: Album[] }
   | { type: 'track'; key: string; track: Track; index: number }
   | { type: 'artist'; key: string; name: string; meta: string }
   | { type: 'empty'; key: string; title: string; body: string };
@@ -78,6 +81,36 @@ function trackItems(
   ]);
 }
 
+/** The A to Z group of a name: its first letter, or # for digits and symbols. */
+export function letterOf(name: string): string {
+  const first = name.trim().charAt(0).toUpperCase();
+  return first >= 'A' && first <= 'Z' ? first : '#';
+}
+
+/** Rows with a letter label before each new first letter (lists sorted by name). */
+function letterItems(tracks: Track[], nameOf: (t: Track) => string): LibraryItem[] {
+  const items: LibraryItem[] = [];
+  let last = '';
+  tracks.forEach((track, index) => {
+    const letter = letterOf(nameOf(track));
+    if (letter !== last) {
+      items.push({ type: 'label', key: `letter-${letter}`, text: letter, letter: true });
+      last = letter;
+    }
+    items.push({ type: 'track', key: `${track.id}-${index}`, track, index });
+  });
+  return items;
+}
+
+/** Albums two to a row, for the cover grid. */
+function albumItems(albums: Album[]): LibraryItem[] {
+  const rows: LibraryItem[] = [];
+  for (let i = 0; i < albums.length; i += 2) {
+    rows.push({ type: 'albums', key: `albums-${albums[i].key}`, albums: albums.slice(i, i + 2) });
+  }
+  return rows;
+}
+
 function artistItems(tracks: Track[]): LibraryItem[] {
   const counts = new Map<string, number>();
   for (const track of tracks) counts.set(track.artist, (counts.get(track.artist) ?? 0) + 1);
@@ -92,6 +125,10 @@ function artistItems(tracks: Track[]): LibraryItem[] {
 }
 
 const EMPTY: Record<Exclude<LibraryFilter, 'all'>, { title: string; body: string }> = {
+  albums: {
+    title: 'No albums yet',
+    body: 'Albums come from the tags of scanned and imported songs.',
+  },
   favorites: {
     title: 'No favorites yet',
     body: 'Tap the heart in the player to keep a song here.',
@@ -100,9 +137,83 @@ const EMPTY: Record<Exclude<LibraryFilter, 'all'>, { title: string; body: string
   artists: { title: 'No artists yet', body: 'Artists come from the names of imported files.' },
 };
 
+export interface LibraryViewInput {
+  library: Track[];
+  albums: Album[];
+  history: HistoryEntry[];
+  filter: LibraryFilter;
+  sort: LibrarySort;
+  query: string;
+}
+
+export interface LibraryView {
+  /** The songs listed as rows, in order (empty on the Albums and Artists views). */
+  tracks: Track[];
+  items: LibraryItem[];
+  /**
+   * What Play and Shuffle on the window take: the songs behind what is on
+   * screen. Empty when nothing is shown, so an empty view never plays the
+   * whole library.
+   */
+  playable: Track[];
+}
+
+/** The rows of one Library view, and the songs its Play and Shuffle take. */
+export function buildLibraryView({
+  library,
+  albums,
+  history,
+  filter,
+  sort,
+  query,
+}: LibraryViewInput): LibraryView {
+  let tracks: Track[] = [];
+  let playable: Track[];
+  let items: LibraryItem[];
+
+  if (filter === 'history') {
+    const inLibrary = new Set(library.map(t => t.id));
+    const entries = history.filter(
+      entry => inLibrary.has(entry.track.id) && matches(entry.track, query)
+    );
+    tracks = entries.map(entry => entry.track);
+    playable = tracks;
+    items = trackItems(tracks, index => parseSqlTime(entries[index].playedAt), PLAYED_LABELS, 'h-');
+  } else if (filter === 'artists') {
+    playable = library.filter(track => matches(track, query));
+    items = artistItems(playable);
+  } else if (filter === 'albums') {
+    const q = query.trim().toLowerCase();
+    const shown = albums.filter(
+      a => !q || a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
+    );
+    playable = shown.flatMap(album => album.tracks);
+    items = albumItems(shown);
+  } else {
+    const base = filter === 'favorites' ? library.filter(t => t.isFavorite) : library;
+    tracks = sortTracks(
+      base.filter(t => matches(t, query)),
+      sort
+    );
+    playable = tracks;
+    items =
+      sort === 'recent'
+        ? trackItems(tracks, index => parseSqlTime(tracks[index].addedAt), ADDED_LABELS, '')
+        : letterItems(tracks, sort === 'title' ? t => t.title : t => t.artist);
+  }
+
+  if (items.length === 0 && filter !== 'all') {
+    const empty = query
+      ? { title: 'No matches', body: `Nothing here matches "${query.trim()}".` }
+      : EMPTY[filter];
+    items = [{ type: 'empty', key: 'empty', ...empty }];
+  }
+  return { tracks, items, playable };
+}
+
 /**
  * Everything the Library tab shows, derived from the store and SQLite: the
- * chip filter, sort, artist drill-in and text filter, flattened into rows.
+ * chip filter, sort and text filter, flattened into rows.
  */
 export function useLibraryView() {
   const db = useSQLiteContext();
@@ -110,7 +221,6 @@ export function useLibraryView() {
   const currentTrackId = usePlayerStore(s => s.currentTrack?.id);
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [sort, setSort] = useState<LibrarySort>('recent');
-  const [artist, setArtist] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
@@ -120,70 +230,24 @@ export function useLibraryView() {
     loadHistory(db).then(setHistory);
   }, [db, filter, currentTrackId]);
 
-  const view = useMemo(() => {
-    let tracks: Track[] = [];
-    let items: LibraryItem[];
+  const albums = useMemo(() => groupAlbums(library), [library]);
 
-    if (filter === 'history') {
-      const inLibrary = new Set(library.map(t => t.id));
-      const entries = history.filter(
-        entry => inLibrary.has(entry.track.id) && matches(entry.track, query)
-      );
-      tracks = entries.map(entry => entry.track);
-      items = trackItems(
-        tracks,
-        index => parseSqlTime(entries[index].playedAt),
-        PLAYED_LABELS,
-        'h-'
-      );
-    } else if (filter === 'artists' && !artist) {
-      items = artistItems(library.filter(track => matches(track, query)));
-    } else {
-      const base =
-        filter === 'favorites'
-          ? library.filter(t => t.isFavorite)
-          : filter === 'artists'
-            ? library.filter(t => t.artist === artist)
-            : library;
-      tracks = sortTracks(
-        base.filter(t => matches(t, query)),
-        sort
-      );
-      const grouped = sort === 'recent' && filter !== 'artists';
-      items = trackItems(
-        tracks,
-        grouped ? index => parseSqlTime(tracks[index].addedAt) : null,
-        ADDED_LABELS,
-        ''
-      );
-    }
-
-    if (items.length === 0 && filter !== 'all') {
-      const empty = query
-        ? { title: 'No matches', body: `Nothing here matches "${query.trim()}".` }
-        : EMPTY[filter];
-      items = [{ type: 'empty', key: 'empty', ...empty }];
-    }
-    return { tracks, items };
-  }, [library, history, filter, sort, artist, query]);
+  const view = useMemo(
+    () => buildLibraryView({ library, albums, history, filter, sort, query }),
+    [library, albums, history, filter, sort, query]
+  );
 
   return {
     ...view,
     total: library.length,
+    albumCount: albums.length,
     filter,
-    setFilter: (next: LibraryFilter) => {
-      setFilter(next);
-      setArtist(null);
-    },
+    setFilter,
     sort,
     cycleSort: () => setSort(s => SORT_ORDER[(SORT_ORDER.indexOf(s) + 1) % SORT_ORDER.length]),
-    artist,
-    setArtist,
     query,
     setQuery,
     /** "Playing from …" for the player. */
-    source:
-      artist ??
-      (filter === 'all' ? 'Library' : LIBRARY_FILTERS.find(f => f.value === filter)!.label),
+    source: filter === 'all' ? 'Library' : LIBRARY_FILTERS.find(f => f.value === filter)!.label,
   };
 }

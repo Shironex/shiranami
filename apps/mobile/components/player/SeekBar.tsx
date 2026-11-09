@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, type GestureResponderEvent, type LayoutChangeEvent } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { formatDuration } from '@/lib/format';
+import { formatDuration, formatRemaining } from '@/lib/format';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 const STEP_SECONDS = 10;
@@ -76,11 +76,21 @@ export function SeekBar() {
           else if (e.nativeEvent.actionName === 'decrement') seekBy(-STEP_SECONDS);
         }}
       >
+        {/* The fill and the thumb move with transforms, so a position update
+            redraws them without a layout pass. */}
         <View pointerEvents="none" className="h-1 rounded-full bg-rail">
-          <View className="h-full rounded-full bg-primary" style={{ width: `${ratio * 100}%` }} />
+          <View className="h-full overflow-hidden rounded-full">
+            <View
+              className="h-full rounded-full bg-primary"
+              style={{
+                opacity: width > 0 ? 1 : 0,
+                transform: [{ translateX: (ratio - 1) * width }],
+              }}
+            />
+          </View>
           <View
             className="absolute -top-[5px] -ml-[7px] h-3.5 w-3.5 rounded-full bg-foreground"
-            style={{ left: `${ratio * 100}%` }}
+            style={{ left: 0, transform: [{ translateX: ratio * width }] }}
           />
         </View>
       </View>
@@ -89,7 +99,7 @@ export function SeekBar() {
           {formatDuration(ratio * duration)}
         </Text>
         <Text variant="meta" className="text-[13px]" style={{ fontVariant: ['tabular-nums'] }}>
-          {formatDuration(duration)}
+          {formatRemaining(ratio * duration, duration)}
         </Text>
       </View>
     </View>

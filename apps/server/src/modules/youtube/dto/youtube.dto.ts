@@ -29,3 +29,16 @@ export interface SearchResult {
   url: string;
   viewCount?: number;
 }
+
+/** What `stream/:videoId` answers: a signed link to the audio on this server. */
+export interface StreamResponse {
+  /** Server-relative path of the audio route, with its signed `t` token. */
+  path: string;
+  /** Unix seconds after which the link stops working. */
+  expiresAt: number;
+  /** File extension of the audio format, such as `m4a`. */
+  ext: string;
+  mimeType: string;
+  /** Size of the whole file in bytes. */
+  size: number;
+}

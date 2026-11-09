@@ -19,6 +19,8 @@ const isDev = process.env.NODE_ENV !== 'production';
       pinoHttp: {
         transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
         level: process.env.LOG_LEVEL ?? 'info',
+        // Request logs carry every header; the API key must never land in them.
+        redact: ['req.headers["x-shiranami-key"]'],
       },
     }),
     ScheduleModule.forRoot(),
@@ -28,9 +30,8 @@ const isDev = process.env.NODE_ENV !== 'production';
     PrismaModule,
     RedisModule,
     ShareModule,
-    // Dormant until the mobile app ships — see ./features. Mounting it here
-    // rather than commenting out the import keeps the module type-checked,
-    // linted and buildable, so it cannot rot while it waits.
+    // Switched by ./features. Mounting it here rather than commenting out the
+    // import keeps the module type-checked, linted and buildable either way.
     ...(YOUTUBE_PROXY_ENABLED ? [YoutubeModule] : []),
   ],
   controllers: [HealthController],
