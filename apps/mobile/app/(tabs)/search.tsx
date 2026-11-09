@@ -1,299 +1,147 @@
-import { useCallback } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useMemo } from 'react';
+import { ActivityIndicator, Pressable, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import Search from 'lucide-react-native/icons/search';
-import X from 'lucide-react-native/icons/x';
+import { useDockInset } from '@/components/nav/Dock';
+import { ResultRow } from '@/components/search/ResultRow';
+import { SearchNotice } from '@/components/search/SearchNotice';
+import { Avatar } from '@/components/ui/avatar';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SearchField } from '@/components/ui/search-field';
 import { Text } from '@/components/ui/text';
+import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
+import { useYouTubeSave } from '@/hooks/useYouTubeSave';
 import { useYouTubeSearch } from '@/hooks/useYouTubeSearch';
 import { useYouTubeStream } from '@/hooks/useYouTubeStream';
 import { colors } from '@/lib/theme';
 import type { SearchResult } from '@/lib/types';
+import { youtubeTrackId } from '@/lib/youtube-save';
+import { usePlayerStore } from '@/stores/usePlayerStore';
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatViewCount(count?: number): string {
-  if (!count) return '';
-  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M views`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(0)}K views`;
-  return `${count} views`;
-}
+type Item =
+  | { type: 'suggestion'; key: string; text: string }
+  | { type: 'result'; key: string; result: SearchResult };
 
 export default function SearchScreen() {
-  const insets = useSafeAreaInsets();
-  const { query, setQuery, results, suggestions, loading, error, search, clear } =
+  const bottomInset = useDockInset();
+  const topInset = useWindowInset();
+  const { scrollY, onScroll } = useWindowScroll();
+  const { query, setQuery, searched, results, suggestions, loading, error, search, retry, clear } =
     useYouTubeSearch();
-  const { streamResult, streaming } = useYouTubeStream();
+  const { streamResult, streaming, failed } = useYouTubeStream();
+  const { jobs, savedIds, save, cancel } = useYouTubeSave();
+  const currentTrackId = usePlayerStore(s => s.currentTrack?.id);
+  const isPlaying = usePlayerStore(s => s.isPlaying);
 
-  const renderResult = useCallback(
-    ({ item }: { item: SearchResult }) => {
-      const isStreaming = streaming === item.id;
+  const showSuggestions = suggestions.length > 0 && !loading;
+  const items = useMemo<Item[]>(
+    () =>
+      showSuggestions
+        ? suggestions.map(text => ({ type: 'suggestion', key: `s:${text}`, text }))
+        : results.map(result => ({ type: 'result', key: result.id, result })),
+    [showSuggestions, suggestions, results]
+  );
 
+  const renderItem = useCallback(
+    ({ item }: { item: Item }) => {
+      if (item.type === 'suggestion') {
+        return (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Search for ${item.text}`}
+            onPress={() => search(item.text)}
+            className="min-h-12 flex-row items-center gap-3.5 rounded-lg px-3 active:bg-border"
+          >
+            <Search size={18} color={colors.mutedForeground} />
+            <Text variant="option" numberOfLines={1} className="flex-1">
+              {item.text}
+            </Text>
+          </Pressable>
+        );
+      }
+      const { result } = item;
       return (
-        <Pressable
-          onPress={() => streamResult(item)}
-          disabled={isStreaming}
-          style={({ pressed }) => [s.resultItem, pressed && s.pressed]}
-        >
-          {/* Thumbnail */}
-          <View style={s.thumbnail}>
-            {item.thumbnail ? (
-              <Image source={{ uri: item.thumbnail }} style={s.thumbnailImg} />
-            ) : (
-              <View style={s.thumbnailPlaceholder} />
-            )}
-            <View style={s.durationBadge}>
-              <Text style={s.durationText}>{formatDuration(item.duration)}</Text>
-            </View>
-            {isStreaming && (
-              <View style={s.streamingOverlay}>
-                <ActivityIndicator size="small" color={colors.foreground} />
-              </View>
-            )}
-          </View>
-
-          {/* Info */}
-          <View style={s.resultInfo}>
-            <Text style={s.resultTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <Text style={s.resultMeta} numberOfLines={1}>
-              {item.uploader}
-              {item.viewCount ? ` · ${formatViewCount(item.viewCount)}` : ''}
-            </Text>
-          </View>
-        </Pressable>
+        <ResultRow
+          result={result}
+          active={currentTrackId === youtubeTrackId(result.id)}
+          playing={isPlaying}
+          loading={streaming === result.id}
+          saved={savedIds.has(result.id)}
+          job={jobs[result.id]}
+          playError={failed?.id === result.id ? failed.message : null}
+          onPress={() => streamResult(result)}
+          onSave={() => save(result)}
+          onCancel={() => cancel(result.id)}
+        />
       );
     },
-    [streamResult, streaming]
+    [
+      currentTrackId,
+      isPlaying,
+      streaming,
+      savedIds,
+      jobs,
+      failed,
+      search,
+      streamResult,
+      save,
+      cancel,
+    ]
   );
 
-  const renderSuggestion = useCallback(
-    ({ item }: { item: string }) => (
-      <Pressable
-        onPress={() => search(item)}
-        style={({ pressed }) => [s.suggestion, pressed && s.pressed]}
-      >
-        <Search size={14} color={colors.mutedForeground} />
-        <Text style={s.suggestionText} numberOfLines={1}>
-          {item}
-        </Text>
-      </Pressable>
-    ),
-    [search]
+  const header = (
+    <View className="px-3 pb-2">
+      <SearchField
+        value={query}
+        onChangeText={text => (text ? setQuery(text) : clear())}
+        onSubmitEditing={() => search()}
+        placeholder="Search YouTube"
+        accessibilityLabel="Search YouTube"
+        className="mt-3"
+      />
+      {error && (
+        <View className="mt-4">
+          <SearchNotice text={error} onRetry={retry} />
+        </View>
+      )}
+      {loading && <ActivityIndicator color={colors.primary} className="py-8" />}
+    </View>
   );
+
+  let empty = null;
+  if (loading || error) {
+    empty = null;
+  } else if (!query) {
+    empty = (
+      <EmptyState
+        title="Find a song on YouTube"
+        body="Play it right away, or save it to this phone to listen offline."
+      />
+    );
+  } else if (searched === query && results.length === 0) {
+    empty = <EmptyState title="No songs found" body="Try other words, or fewer of them." />;
+  }
 
   return (
-    <View style={[s.container, { paddingTop: insets.top }]}>
-      {/* Search bar */}
-      <View style={s.searchBar}>
-        <Search size={18} color={colors.mutedForeground} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={() => search()}
-          placeholder="Search YouTube..."
-          placeholderTextColor={colors.mutedForeground}
-          returnKeyType="search"
-          style={s.searchInput}
-          autoCorrect={false}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={clear} hitSlop={8}>
-            <X size={18} color={colors.mutedForeground} />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Suggestions */}
-      {suggestions.length > 0 && results.length === 0 && (
-        <FlatList
-          data={suggestions}
-          renderItem={renderSuggestion}
-          keyExtractor={item => item}
-          keyboardShouldPersistTaps="handled"
-          style={s.suggestions}
-        />
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <View style={s.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-
-      {/* Error */}
-      {error && (
-        <View style={s.centered}>
-          <Text style={s.errorText}>{error}</Text>
-          <Pressable onPress={() => search()} style={s.retryBtn}>
-            <Text style={s.retryText}>Retry</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Results */}
-      {!loading && !error && results.length > 0 && (
-        <FlatList
-          data={results}
-          renderItem={renderResult}
-          keyExtractor={item => item.id}
-          contentContainerStyle={s.resultsList}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && results.length === 0 && query.length === 0 && (
-        <View style={s.centered}>
-          <Search size={48} color={colors.mutedForeground} />
-          <Text style={s.emptyText}>Search for music on YouTube</Text>
-        </View>
-      )}
+    <View className="flex-1 bg-background">
+      <Animated.FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={item => item.key}
+        ListHeaderComponent={header}
+        ListEmptyComponent={empty}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: topInset,
+          paddingHorizontal: 4,
+          paddingBottom: bottomInset,
+        }}
+      />
+      <WindowHeader title="Search" scrollY={scrollY} photo="summer" actions={<Avatar />} />
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    gap: 8,
-    height: 44,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.foreground,
-    paddingVertical: 0,
-  },
-  suggestions: {
-    maxHeight: 200,
-    marginHorizontal: 16,
-  },
-  suggestion: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: colors.foreground,
-    flex: 1,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-  resultsList: {
-    paddingBottom: 100,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 12,
-  },
-  thumbnail: {
-    width: 120,
-    height: 68,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: colors.muted,
-  },
-  thumbnailImg: {
-    width: '100%',
-    height: '100%',
-  },
-  thumbnailPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.muted,
-  },
-  durationBadge: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    backgroundColor: colors.shade,
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  durationText: {
-    fontSize: 11,
-    color: colors.foreground,
-    fontVariant: ['tabular-nums'],
-  },
-  streamingOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: colors.veil,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resultInfo: {
-    flex: 1,
-    gap: 4,
-    justifyContent: 'center',
-  },
-  resultTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.foreground,
-    lineHeight: 18,
-  },
-  resultMeta: {
-    fontSize: 12,
-    color: colors.mutedForeground,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: colors.mutedForeground,
-    marginTop: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.destructive,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  retryBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-  },
-  retryText: {
-    fontSize: 14,
-    color: colors.foreground,
-    fontWeight: '500',
-  },
-});

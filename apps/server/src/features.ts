@@ -8,9 +8,10 @@
 /**
  * Whether the YouTube proxy module (`/api/youtube/*`) is mounted.
  *
- * The module is maintained but dormant — the mobile app is its only consumer,
- * and mobile work resumes after the v1 desktop release. Flipping this to `true`
- * mounts the routes *and* makes `API_KEY` mandatory in production (see
- * `env.ts`), so the guarded surface can never come online unauthenticated.
+ * On for the mobile app, its only consumer: search, suggestions and the audio
+ * route the phone streams and saves songs from. While it is on, `API_KEY` is
+ * mandatory in production (see `env.ts`), so the guarded surface can never
+ * come online unauthenticated, and the image needs the `yt-dlp` binary
+ * (`YTDLP_PATH`). Set it back to `false` to unmount every route at once.
  */
-export const YOUTUBE_PROXY_ENABLED: boolean = false;
+export const YOUTUBE_PROXY_ENABLED: boolean = true;

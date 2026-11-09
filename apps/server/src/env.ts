@@ -11,11 +11,12 @@ const envSchema = z
     SHARE_BASE_URL: z.string().default('https://api.shiranami.app'),
     SHARE_TTL_SECONDS: z.coerce.number().default(3600),
     YTDLP_PATH: z.string().default('yt-dlp'),
-    // Optional by default, but mandatory in production once a guarded surface
-    // is actually mounted: ApiKeyGuard denies every request when it is unset,
-    // so booting without it would take those routes offline rather than expose
-    // them. Nothing is guarded while YOUTUBE_PROXY_ENABLED is false, so today
-    // this stays optional and existing deployments are unaffected.
+    // Mandatory in production while a guarded surface is mounted (the YouTube
+    // proxy, see ./features): ApiKeyGuard denies every request when it is
+    // unset, so booting without it would take those routes offline rather than
+    // expose them. It also signs the audio links `stream/:videoId` hands out.
+    // Optional in development and tests, and whenever YOUTUBE_PROXY_ENABLED is
+    // false.
     API_KEY: z.string().min(1, 'API_KEY must not be empty').optional(),
   })
   .superRefine((env, ctx) => {
