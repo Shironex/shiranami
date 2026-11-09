@@ -51,7 +51,7 @@ function controllableDeps() {
   };
 }
 
-const flush = () => new Promise(resolve => setImmediate(resolve));
+const flush = () => new Promise<void>(resolve => setImmediate(() => resolve()));
 const job = () => useYouTubeSaveStore.getState().jobs[RESULT.id];
 
 beforeEach(() => {
