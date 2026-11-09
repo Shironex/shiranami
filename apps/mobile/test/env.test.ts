@@ -1,12 +1,13 @@
 import { normalizeHttpUrl, readEnv } from '@/lib/env';
 
 describe('readEnv', () => {
-  it('falls back to defaults when nothing is set, with YouTube search off', () => {
+  it('falls back to defaults when nothing is set, with YouTube search on', () => {
     expect(readEnv({})).toEqual({
       apiUrl: 'http://localhost:3000',
       apiKey: '',
-      youtubeSearch: false,
+      youtubeSearch: true,
     });
+    expect(readEnv({ EXPO_PUBLIC_FEATURE_YOUTUBE_SEARCH: ' ' }).youtubeSearch).toBe(true);
   });
 
   it('trims the server URL and drops trailing slashes', () => {
