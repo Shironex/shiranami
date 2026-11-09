@@ -69,6 +69,7 @@ export function getLocalizedChangelogTitle(
 
 // kanji assigned per release to give the changelog masthead a visual anchor
 const KANJI_BY_VERSION: Record<string, string> = {
+  '2.2.0': '繋', // "connect": the phone and the desktop, paired over the home network
   '2.1.0': '響', // "resonance": ambience under the music, lyrics that ring out
   '2.0.0': '二', // "two" — Shiranami 2, the Rust/Tauri rewrite
   '1.0.0': '一', // "one" — the 1.0 milestone; the 0.x series graduates
@@ -147,6 +148,142 @@ export function weekdayLabel(date: string, lang: ChangelogLanguage): string {
 }
 
 export const changelog: ChangelogRelease[] = [
+  {
+    version: '2.2.0',
+    date: '2026-11-09',
+    title: l(
+      'Shiranami on your phone, and LAN sync',
+      'Shiranami w telefonie i synchronizacja w sieci domowej'
+    ),
+    description: l(
+      'An early preview of the Android app arrives with this release, and the desktop can now pair with it over your home network. Switch on sync, scan the QR code with the phone, allow it on the desktop, and your library, playlists, favourites and songs follow. The phone app plays your music with lock screen controls, synced lyrics and swipe to queue. Windows and macOS both update inside the app, and a round of security updates is included. The Android preview (0.2.0) is installed by hand from the release assets.',
+      'Z tym wydaniem pojawia się wczesna wersja zapoznawcza aplikacji na Androida, a komputer może się z nią teraz sparować przez sieć domową. Włącz synchronizację, zeskanuj kod QR telefonem, zezwól na komputerze, a biblioteka, playlisty, ulubione i utwory pojawią się w telefonie. Aplikacja mobilna odtwarza muzykę ze sterowaniem na ekranie blokady, zsynchronizowanym tekstem i przeciąganiem utworów do kolejki. Windows i macOS aktualizują się w aplikacji, a wydanie zawiera też zbiorcze aktualizacje bezpieczeństwa. Wersję zapoznawczą na Androida (0.2.0) instaluje się ręcznie z plików dołączonych do wydania.'
+    ),
+    categories: [
+      {
+        label: l('New Features', 'Nowe funkcje'),
+        entries: [
+          l(
+            'Android app, early preview (0.2.0): a first look at Shiranami on your phone, shipped as an APK you install by hand. It is Android only, expect rough edges, and there is no Play Store listing yet.',
+            'Aplikacja na Androida, wersja zapoznawcza (0.2.0): pierwsze spojrzenie na Shiranami w telefonie, w postaci pliku APK instalowanego ręcznie. Działa tylko na Androidzie, spodziewaj się niedociągnięć, a w Sklepie Play jeszcze jej nie ma.'
+          ),
+          l(
+            'Sync with phone (desktop): a new Settings section shows a QR code. Scan it from the phone, press Allow on the desktop, and the phone can pull your library, playlists, favourites, history, covers and audio. Sync is off by default, works only on your local network and nothing goes to the cloud. A code works for one phone and expires after 5 minutes, and you can revoke a phone at any time.',
+            'Synchronizacja z telefonem (komputer): nowa sekcja w Ustawieniach pokazuje kod QR. Zeskanuj go w telefonie, naciśnij Zezwól na komputerze, a telefon pobierze bibliotekę, playlisty, ulubione, historię, okładki i dźwięk. Synchronizacja jest domyślnie wyłączona, działa tylko w sieci lokalnej i nic nie trafia do chmury. Kod działa dla jednego telefonu i wygasa po 5 minutach, a telefon można w każdej chwili odłączyć.'
+          ),
+          l(
+            'Phone, library: scan the music already on your phone, with tags, cover art and duplicates recognised by their audio, so a song you also imported is not listed twice. Browse by All, Favourites, History, Artists and Albums, with album and artist pages.',
+            'Telefon, biblioteka: przeskanuj muzykę, która już jest w telefonie, razem z tagami, okładkami i rozpoznawaniem duplikatów po dźwięku, więc utwór zaimportowany dwa razy nie pojawia się podwójnie. Przeglądaj według Wszystkie, Ulubione, Historia, Wykonawcy i Albumy, z osobnymi stronami albumów i wykonawców.'
+          ),
+          l(
+            'Phone, playback: music keeps playing in the background with lock screen, notification, headset and Bluetooth controls, including next and previous. Radio, shuffle, repeat and a sleep timer with an optional fade are included.',
+            'Telefon, odtwarzanie: muzyka gra w tle, ze sterowaniem na ekranie blokady, w powiadomieniu oraz ze słuchawek i Bluetooth, także następny i poprzedni. Są też radio, losowanie, powtarzanie i wyłącznik czasowy z opcjonalnym wyciszaniem.'
+          ),
+          l(
+            'Phone, player: a Lyrics, Up next and Similar card under the cover. Synced lyrics follow the sung line with a karaoke-style fill, and a tap on a line jumps there. An action row adds to a playlist, shares and sets the sleep timer. The player grows out of the mini player and follows your finger when you swipe it down. Reduced motion turns the animations into fades.',
+            'Telefon, odtwarzacz: karta Tekst, Dalej i Podobne pod okładką. Zsynchronizowany tekst podąża za śpiewaną linijką z wypełnieniem w stylu karaoke, a dotknięcie linijki przewija do niej. Rząd akcji pozwala dodać do playlisty, udostępnić i ustawić wyłącznik czasowy. Odtwarzacz wyrasta z mini odtwarzacza i podąża za palcem przy przeciąganiu w dół. Ograniczenie ruchu zamienia animacje w płynne przejścia.'
+          ),
+          l(
+            'Phone, queue: swipe a song row right to play it next or left to add it to a playlist, with an Undo toast for play next.',
+            'Telefon, kolejka: przeciągnij wiersz utworu w prawo, aby zagrać go jako następny, lub w lewo, aby dodać do playlisty, a przy graniu jako następny pojawia się komunikat z opcją Cofnij.'
+          ),
+          l(
+            'Phone, remove tracks: Remove from library from a long press or the player menu, with 5 seconds to undo. Only files the app copied itself are ever deleted, so music found by a scan is never touched.',
+            'Telefon, usuwanie utworów: Usuń z biblioteki z długiego przytrzymania lub menu odtwarzacza, z 5 sekundami na cofnięcie. Usuwane są tylko pliki skopiowane przez samą aplikację, więc muzyka znaleziona podczas skanowania nigdy nie jest ruszana.'
+          ),
+          l(
+            'Phone, launcher shortcuts: long press the app icon for Resume (from where you stopped), Play your last radio station, and Shuffle library.',
+            'Telefon, skróty na ekranie głównym: przytrzymaj ikonę aplikacji, aby wznowić odtwarzanie (od miejsca, w którym skończyłeś), włączyć ostatnią stację radiową albo losować bibliotekę.'
+          ),
+          l(
+            'Phone, sync with the desktop: pair by scanning the desktop QR code, then pull favourites, playlists, songs and covers over Wi-Fi. Downloads resume if the connection drops, and Sync now picks up later changes.',
+            'Telefon, synchronizacja z komputerem: sparuj telefon, skanując kod QR z komputera, a potem pobierz ulubione, playlisty, utwory i okładki przez Wi-Fi. Pobieranie wznawia się po zerwaniu połączenia, a Synchronizuj teraz łapie późniejsze zmiany.'
+          ),
+          l(
+            'Phone, updates in the app: fixes to the app itself arrive over the air and install on the next restart. Settings shows the current version and a Check for updates row.',
+            'Telefon, aktualizacje w aplikacji: poprawki samej aplikacji docierają przez internet i instalują się po ponownym uruchomieniu. Ustawienia pokazują bieżącą wersję i wiersz Sprawdź aktualizacje.'
+          ),
+        ],
+      },
+      {
+        label: l('Bug Fixes', 'Poprawki błędów'),
+        entries: [
+          l(
+            'A failed update install on macOS no longer deletes the app, and updates are now checked against their signature more strictly.',
+            'Nieudana instalacja aktualizacji na macOS nie usuwa już aplikacji, a aktualizacje są dokładniej sprawdzane pod kątem podpisu.'
+          ),
+          l(
+            'Extracting a downloaded tool archive now stops with an error on an entry name it cannot decode, instead of carrying on.',
+            'Rozpakowywanie pobranego archiwum narzędzia kończy się teraz błędem, gdy nazwy wpisu nie da się odczytać, zamiast działać dalej.'
+          ),
+        ],
+      },
+      {
+        label: l('Performance', 'Wydajność'),
+        entries: [
+          l(
+            'The phone app animates smoothly: on a 120 Hz phone, janky frames in a scripted run dropped from 18% to 2%.',
+            'Aplikacja mobilna animuje się płynnie: na telefonie 120 Hz liczba szarpiących klatek w scenariuszowym teście spadła z 18% do 2%.'
+          ),
+        ],
+      },
+      {
+        label: l('Accessibility', 'Dostępność'),
+        entries: [
+          l(
+            'On the phone, the seek bar reads out the position and moves in 10 second steps for screen readers.',
+            'W telefonie pasek postępu odczytuje pozycję i przesuwa się o 10 sekund dla czytników ekranu.'
+          ),
+          l(
+            'Phone animations turn into simple fades when the system asks for reduced motion.',
+            'Animacje w telefonie zamieniają się w proste przejścia, gdy system prosi o ograniczenie ruchu.'
+          ),
+        ],
+      },
+      {
+        label: l('Under the Hood', 'Pod maską'),
+        entries: [
+          l(
+            'Dependency and security updates for the desktop app: the zip crate and Tauri (zip advisories), TLS crates, and a sweep of web dependencies.',
+            'Aktualizacje zależności i bezpieczeństwa aplikacji na komputer: biblioteka zip i Tauri (zgłoszenia dotyczące zip), biblioteki TLS oraz zbiorcza aktualizacja zależności interfejsu.'
+          ),
+          l(
+            'The server and website images now run as a non-root user, and the server has a health check endpoint.',
+            'Obrazy serwera i strony działają teraz jako użytkownik bez uprawnień roota, a serwer ma punkt kontroli stanu.'
+          ),
+          l(
+            'The website has a new 3D listening room on the homepage and a faster, statically rendered changelog.',
+            'Strona ma nowy trójwymiarowy pokój do słuchania na stronie głównej oraz szybszy, statycznie generowany dziennik zmian.'
+          ),
+        ],
+      },
+      {
+        label: l('Notes', 'Uwagi'),
+        entries: [
+          l(
+            'The Android app is an early preview. Download the APK from the release assets and allow installing from that source when Android asks. Expect rough edges. On Android 12 and older the lock screen shows only play and pause. There is no Play Store listing yet, and a new APK, not an in-app update, is needed for changes outside the app code.',
+            'Aplikacja na Androida to wczesna wersja zapoznawcza. Pobierz plik APK z plików wydania i zezwól na instalację z tego źródła, gdy Android o to zapyta. Spodziewaj się niedociągnięć. Na Androidzie 12 i starszym ekran blokady pokazuje tylko odtwarzanie i pauzę. Nie ma jej jeszcze w Sklepie Play, a zmiany poza kodem aplikacji wymagają nowego pliku APK, a nie aktualizacji w aplikacji.'
+          ),
+          l(
+            'YouTube search on mobile is on hold. YouTube blocks requests from my server, so it stays off until I find a reliable way around that. Saving songs from YouTube is not coming to the mobile app yet either. The desktop downloads are unaffected.',
+            'Wyszukiwanie YouTube w aplikacji mobilnej jest wstrzymane. YouTube blokuje zapytania z mojego serwera, więc zostaje wyłączone, dopóki nie znajdę niezawodnego obejścia. Zapisywanie utworów z YouTube też jeszcze nie trafi do aplikacji mobilnej. Pobieranie na komputerze działa bez zmian.'
+          ),
+          l(
+            'LAN sync is a first version. Turning it on lasts until you restart the desktop app, the first time the system firewall may ask for permission, and a song you delete on the phone comes back on the next sync. The phone talks to the desktop over plain HTTP, and only to addresses on your local network.',
+            'Synchronizacja w sieci domowej to pierwsza wersja. Włączenie trwa do ponownego uruchomienia aplikacji na komputerze, przy pierwszym użyciu zapora systemowa może poprosić o zgodę, a utwór usunięty w telefonie wraca przy następnej synchronizacji. Telefon łączy się z komputerem zwykłym HTTP i tylko z adresami w sieci lokalnej.'
+          ),
+          l(
+            'Windows and macOS builds are still unsigned, so Windows SmartScreen and macOS Gatekeeper may warn on first launch.',
+            'Wersje na Windows i macOS nadal nie są podpisane, więc Windows SmartScreen i macOS Gatekeeper mogą ostrzegać przy pierwszym uruchomieniu.'
+          ),
+          l(
+            'Coming from 1.x on macOS? Remove the old Shiranami entry from System Settings > General > Login Items once; 2.x manages its own.',
+            'Przechodzisz z 1.x na macOS? Usuń raz stary wpis Shiranami w Ustawieniach systemowych > Ogólne > Rzeczy otwierane podczas logowania; 2.x zarządza własnym wpisem.'
+          ),
+        ],
+      },
+    ],
+  },
   {
     version: '2.1.0',
     date: '2026-10-22',

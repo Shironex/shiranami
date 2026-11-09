@@ -5279,7 +5279,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-audio"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "ebur128",
  "realfft",
@@ -5294,7 +5294,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-core"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "regex",
  "serde",
@@ -5309,7 +5309,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-db"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -5325,7 +5325,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-desktop"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "auto-launch",
@@ -5379,7 +5379,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-downloader"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "regex",
@@ -5404,7 +5404,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-integrations"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "discord-rich-presence",
  "futures",
@@ -5430,7 +5430,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-library"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "fs4",
  "lofty",
@@ -5456,7 +5456,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-media-controls"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -5472,7 +5472,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-metadata"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "fast_image_resize",
  "futures",
@@ -5495,7 +5495,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-net"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "bytes",
  "httpdate",
@@ -5511,7 +5511,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-recommendation"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -5529,7 +5529,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-serve"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "axum",
  "bytes",
@@ -5549,7 +5549,7 @@ dependencies = [
 
 [[package]]
 name = "shiranami-sync"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
