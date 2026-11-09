@@ -15,6 +15,7 @@ import { groupAlbums, hasAlbum } from '@/lib/albums';
 import { countLabel } from '@/lib/format';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useListAppear } from '@/hooks/useListAppear';
 
 const SHELF_COVER = 128;
 
@@ -49,6 +50,7 @@ export default function ArtistScreen() {
     ),
     [currentTrackId, isPlaying, playFromList, tracks, name, router]
   );
+  const renderRow = useListAppear(renderItem, tracks.length > 0);
 
   const header = (
     <View>
@@ -97,7 +99,7 @@ export default function ArtistScreen() {
     <View className="flex-1 bg-background">
       <Animated.FlatList
         data={tracks}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={item => item.id}
         ListHeaderComponent={header}
         ListEmptyComponent={

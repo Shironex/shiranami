@@ -1,5 +1,7 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
@@ -7,31 +9,26 @@ import EllipsisVertical from 'lucide-react-native/icons/ellipsis-vertical';
 import Heart from 'lucide-react-native/icons/heart';
 import LibraryIcon from 'lucide-react-native/icons/library';
 import RadioIcon from 'lucide-react-native/icons/radio';
-import { ArtTile } from '@/components/art/ArtTile';
 import { RemovalToast } from '@/components/library/RemovalToast';
-import { Cover } from '@/components/player/Cover';
 import { PlayerActions } from '@/components/player/PlayerActions';
-import { PeekCard } from '@/components/player/PeekCard';
+import { PlayerCard } from '@/components/player/PlayerCard';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
+import { PlayerStage, enterLift, entered, staggered } from '@/components/player/PlayerStage';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
+import { useLyrics } from '@/hooks/useLyrics';
+import { usePlayerEnter } from '@/hooks/usePlayerEnter';
+import { usePlayerFold } from '@/hooks/usePlayerFold';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
+import { mixRect, rectTransform } from '@/lib/player-stage';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
-import { PEEK_CARD_MIN_HEIGHT, peekCardRoom } from '@/lib/up-next';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
-
-/** Cover side margin; the cover is the screen width minus both. */
-const COVER_GUTTER = 24;
-/** Keeps the whole player on screen on short phones. */
-const MAX_COVER = 420;
-/** The cover beside the title when the lyrics and up next card is shown. */
-const PEEK_COVER = 132;
 
 /** Where the queue came from, as a quiet chip in the top bar. */
 function SourceChip({ live, source }: { live: boolean; source: string }) {
@@ -105,12 +102,7 @@ type MetaHref =
 
 export default function PlayerScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const track = usePlayerStore(s => s.currentTrack);
-  const source = usePlayerStore(s => s.queueSource);
-  const toggleFavorite = useToggleFavorite();
-  const radio = useCurrentStation();
 
   // Close once the queue is cleared under the open player (not on a cold open).
   const hadTrack = useRef(false);
@@ -120,25 +112,76 @@ export default function PlayerScreen() {
   }, [track, router]);
 
   if (!track) return <View className="flex-1 bg-background" />;
+  return <PlayerView track={track} />;
+}
 
+function PlayerView({ track }: { track: Track }) {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const source = usePlayerStore(s => s.queueSource);
+  const toggleFavorite = useToggleFavorite();
+  const radio = useCurrentStation();
   const live = !!track.isLive;
+  const { lyrics, loading: lyricsLoading } = useLyrics(
+    live ? undefined : track.title,
+    track.artist,
+    track.album,
+    track.duration
+  );
+  const hasLyrics = !!(lyrics.synced || lyrics.plain);
+  // While lyrics load, auto mode keeps the card open instead of folding and reopening.
+  const { folded, hero, fade, tab, onTab } = usePlayerFold(
+    track.id,
+    live,
+    hasLyrics || lyricsLoading
+  );
+  const { width, height } = useWindowDimensions();
+  const { enter, row, makePan, settled, closeThen } = usePlayerEnter();
+  const headerPan = useMemo(makePan, [makePan]);
+  const stagePan = useMemo(makePan, [makePan]);
+
+  // The backdrop grows out of the mini player row and follows a drag down.
+  // It keeps its full size and moves by transforms only: its gradient is drawn
+  // once, and no frame of the open waits on a layout pass.
+  const backdropStyle = useAnimatedStyle(() => {
+    const p = entered(enter.progress.value, enter.leaving.value);
+    const full = { x: 0, y: enter.drag.value, width, height };
+    const from = row.value;
+    const rect = from ? mixRect(from, full, p) : full;
+    return { opacity: Math.min(1, p / 0.4), transform: rectTransform(rect, width, height) };
+  });
+  // Once open, the backdrop's end state comes from React; only a drag moves it.
+  const settledBackdropStyle = useAnimatedStyle(() => ({
+    opacity: 1,
+    transform: [{ translateY: enter.drag.value }],
+  }));
+  const contentStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          enter.drag.value +
+          enterLift(enter.progress.value, enter.origin.value !== null, enter.leaving.value),
+      },
+    ],
+  }));
+  const stageStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const headerStyle = useAnimatedStyle(() => {
+    const shown = staggered(enter.progress.value, 0.3, enter.leaving.value);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * -8 }] };
+  });
+  const chromeStyle = useAnimatedStyle(() => {
+    const shown = staggered(enter.progress.value, 0.4, enter.leaving.value);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * 14 }] };
+  });
+
   const favorite = live ? radio.saved : !!track.isFavorite;
-  // Tall phones get the small cover and the lyrics and up next card; short ones
-  // and radio keep the big cover, which shrinks before any control does.
-  const peek = !live && peekCardRoom(height, insets.top, insets.bottom) >= PEEK_CARD_MIN_HEIGHT;
-  // Room under the cover for meta, seek, transport and actions (about 380pt).
-  const coverSize = Math.min(width - COVER_GUTTER * 2, MAX_COVER, height - 380 - insets.top);
-  const open = (href: MetaHref) => {
-    router.back();
-    router.navigate(href);
-  };
+  // Without lyrics the cover is only a picture, labelled with the song.
+  const coverOpensLyrics = !live && hasLyrics;
+  // The close transition runs first; the page opens once the player is gone.
+  const open = (href: MetaHref) => closeThen(() => router.navigate(href));
 
   const meta = (
-    <Text
-      variant="bodyMuted"
-      numberOfLines={1}
-      className={peek ? 'mt-1 text-[15px]' : 'mt-1 text-[16px]'}
-    >
+    <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[15px]">
       {live && radio.station ? (
         stationMeta(radio.station)
       ) : (
@@ -160,94 +203,116 @@ export default function PlayerScreen() {
     ) : null;
 
   return (
-    <View className="flex-1 bg-background">
-      <PlayerBackdrop />
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingTop: insets.top + 6,
-          paddingBottom: Math.max(insets.bottom, 12) + 8,
-        }}
+    <View className="flex-1">
+      {/* A new backdrop view once open (and again when closing): Reanimated
+          writes props it thinks settled back into React state and never
+          clears them, and a stale copy from before the open started must not
+          outlive the open. */}
+      <Animated.View
+        key={settled ? 'open' : 'moving'}
+        pointerEvents="none"
+        style={[styles.backdrop, { width, height }, settled ? settledBackdropStyle : backdropStyle]}
       >
-        <View className="flex-row items-center justify-between gap-2 px-2">
-          <IconButton
-            icon={ChevronDown}
-            size={24}
-            color={colors.foreground}
-            accessibilityLabel="Close player"
-            onPress={() => router.back()}
-          />
-          <SourceChip live={live} source={source} />
-          {live ? (
-            <View className="h-11 w-11" />
-          ) : (
+        <PlayerBackdrop />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.content,
+          { paddingTop: insets.top + 6, paddingBottom: Math.max(insets.bottom, 12) + 8 },
+          contentStyle,
+        ]}
+      >
+        <GestureDetector gesture={headerPan}>
+          <Animated.View style={[styles.header, headerStyle]}>
             <IconButton
-              icon={EllipsisVertical}
+              icon={ChevronDown}
+              size={24}
               color={colors.foreground}
-              accessibilityLabel="More for this song"
-              onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+              accessibilityLabel="Close player"
+              onPress={() => router.back()}
             />
-          )}
-        </View>
+            <SourceChip live={live} source={source} />
+            {live ? (
+              <View className="h-11 w-11" />
+            ) : (
+              <IconButton
+                icon={EllipsisVertical}
+                color={colors.foreground}
+                accessibilityLabel="More for this song"
+                onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+              />
+            )}
+          </Animated.View>
+        </GestureDetector>
 
-        {peek ? (
-          <>
-            <View className="flex-row items-end gap-4 pl-6 pr-[18px] pt-[18px]">
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Lyrics full screen"
-                onPress={() => router.push('/lyrics')}
-                style={{ borderRadius: 18, boxShadow: '0 24px 40px -18px rgba(0,0,4,0.95)' }}
-              >
-                <ArtTile
-                  title={track.title}
-                  artUri={track.albumArt}
-                  size={PEEK_COVER}
-                  radius={18}
-                />
-              </Pressable>
-              <View className="min-w-0 flex-1 pb-1.5">
+        <Animated.View style={[{ flex: 1 }, stageStyle]}>
+          <PlayerStage
+            track={track}
+            hasCard={!live}
+            hero={hero}
+            folded={folded}
+            enter={enter}
+            gesture={stagePan}
+            coverLabel={coverOpensLyrics ? 'Lyrics full screen' : undefined}
+            onCoverPress={coverOpensLyrics ? () => router.push('/lyrics') : undefined}
+            sideTitle={
+              <>
                 <Text variant="heading" numberOfLines={2}>
                   {track.title}
                 </Text>
                 {meta}
-              </View>
-              <View className="pb-0.5">{heart}</View>
-            </View>
-            <View className="mt-[18px] flex-1">
-              <PeekCard track={track} />
-            </View>
-          </>
-        ) : (
-          <>
-            <View className="items-center pt-5">
-              <Cover track={track} size={coverSize} />
-            </View>
-            <View className="flex-row items-center gap-3 pl-7 pr-[18px] pt-6">
-              <View className="min-w-0 flex-1">
+              </>
+            }
+            heroTitle={
+              <>
                 <Text variant="title" numberOfLines={1}>
                   {track.title}
                 </Text>
                 {meta}
-              </View>
-              {heart}
-            </View>
-          </>
-        )}
+              </>
+            }
+            heart={heart}
+            renderCard={bodyHeight => (
+              <PlayerCard
+                track={track}
+                lyrics={lyrics}
+                loading={lyricsLoading}
+                tab={tab}
+                onTab={onTab}
+                folded={folded}
+                fold={hero}
+                bodyHeight={bodyHeight}
+              />
+            )}
+          />
+        </Animated.View>
 
-        <View className={peek ? 'px-7 pt-4' : 'px-7 pt-[18px]'}>
-          <SeekBar />
-        </View>
-        <View className="px-[22px] pt-3.5">
-          <Transport />
-        </View>
-        <View className={peek ? 'px-4 pt-2' : 'mt-auto px-4 pt-6'}>
-          <PlayerActions />
-        </View>
-      </ScrollView>
+        <Animated.View style={chromeStyle}>
+          <View className="px-4 pt-3">
+            <PlayerActions track={track} />
+          </View>
+          <View className="px-7 pt-2">
+            <SeekBar />
+          </View>
+          <View className="px-[22px] pt-3.5">
+            <Transport />
+          </View>
+        </Animated.View>
+      </Animated.View>
       <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
     </View>
   );
 }
+
+// Reanimated views take no className (NativeWind only maps core components).
+const styles = StyleSheet.create({
+  backdrop: { position: 'absolute', left: 0, top: 0, transformOrigin: 'left top' },
+  content: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+});

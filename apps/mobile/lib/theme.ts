@@ -37,6 +37,12 @@ export const colors = {
   handle: generated.colors.handle,
 } as const;
 
+/**
+ * The player card's fill: the border token (white at 6%) flattened over the
+ * background, so the fades at the edges of its lists can match it exactly.
+ */
+export const PLAYER_CARD = '#101014';
+
 export const fonts = {
   body: fontFamily.body,
   bodyMedium: fontFamily['body-medium'],
@@ -51,6 +57,9 @@ export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 /** ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1): moves that should land softly, no bounce. */
 export const EASE_OUT_QUART = [0.25, 1, 0.5, 1] as const;
+
+/** ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1): quick start, long soft landing, no bounce. */
+export const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
 
 export const NAV_THEME: Theme = {
   ...DarkTheme,

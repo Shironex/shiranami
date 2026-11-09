@@ -16,6 +16,7 @@ import { GroupLabel } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { RADIO_CHIPS, useRadioView, type RadioItem } from '@/hooks/useRadioView';
+import { useListAppear } from '@/hooks/useListAppear';
 import { dockPlayerMode } from '@/lib/dock';
 import { stationTrack, type RadioStation } from '@/lib/radio';
 import { radioNotice, radioSubtitle } from '@/lib/radio-view';
@@ -77,6 +78,7 @@ export default function RadioScreen() {
     },
     [currentTrackId, isPlaying, favoriteIds, play, toggleFavorite, db]
   );
+  const renderRow = useListAppear(renderItem, items.length > 0);
 
   const toggleSearch = () => {
     if (searching) setQuery('');
@@ -140,7 +142,7 @@ export default function RadioScreen() {
     <View className="flex-1 bg-background">
       <Animated.FlatList
         data={items}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={item => item.key}
         ListHeaderComponent={header}
         onScroll={onScroll}

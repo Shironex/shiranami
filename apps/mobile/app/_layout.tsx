@@ -79,9 +79,16 @@ export default function RootLayout() {
                 }}
               >
                 <Stack.Screen name="(tabs)" />
+                {/* The player draws its own open and close transition (it grows out
+                    of the mini player), so the screen itself appears at once over
+                    the tabs, which stay visible underneath. */}
                 <Stack.Screen
                   name="player"
-                  options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+                  options={{
+                    presentation: 'transparentModal',
+                    animation: 'none',
+                    contentStyle: { backgroundColor: 'transparent' },
+                  }}
                 />
                 <Stack.Screen
                   name="lyrics"

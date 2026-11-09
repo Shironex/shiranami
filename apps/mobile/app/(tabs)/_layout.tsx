@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { Tabs } from 'expo-router';
 import { QueueToast } from '@/components/library/QueueToast';
 import { RemovalToast } from '@/components/library/RemovalToast';
@@ -8,18 +9,23 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { useAppShortcuts } from '@/hooks/useAppShortcuts';
 import { useInitialData } from '@/hooks/useInitialData';
 import { env } from '@/lib/env';
+import { TAB_TRANSITION, TAB_TRANSITION_REDUCED } from '@/lib/tab-motion';
 
 export default function TabsLayout() {
   const libraryLoaded = useInitialData();
   useAppShortcuts(libraryLoaded);
   const [dockHeight, setDockHeight] = useState(0);
+  const reduceMotion = useReducedMotion();
   return (
     <DockHeightProvider value={dockHeight}>
       <View className="flex-1 bg-background">
         <OfflineBanner />
         <Tabs
           tabBar={props => <Dock {...props} onHeight={setDockHeight} />}
-          screenOptions={{ headerShown: false }}
+          screenOptions={{
+            headerShown: false,
+            ...(reduceMotion ? TAB_TRANSITION_REDUCED : TAB_TRANSITION),
+          }}
         >
           <Tabs.Screen name="(library)" options={{ title: 'Library' }} />
           <Tabs.Screen name="playlists" options={{ title: 'Playlists' }} />

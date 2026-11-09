@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { useLibraryActions } from '@/hooks/useLibraryActions';
 import { useLibraryScan } from '@/hooks/useLibraryScan';
+import { useListAppear } from '@/hooks/useListAppear';
 import {
   LIBRARY_FILTERS,
   SORT_LABELS,
@@ -156,6 +157,7 @@ export default function LibraryScreen() {
     },
     [currentTrackId, isPlaying, playFromList, tracks, source, router, albumSize]
   );
+  const renderRow = useListAppear(renderItem, view.items.length > 0);
 
   if (view.total === 0) return <FirstRun onImport={importFiles} importing={importing} />;
 
@@ -218,7 +220,7 @@ export default function LibraryScreen() {
     <View className="flex-1 bg-background">
       <Animated.FlatList
         data={items}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={item => item.key}
         ListHeaderComponent={header}
         onScroll={onScroll}

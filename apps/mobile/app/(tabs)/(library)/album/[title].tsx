@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/text';
 import { albumMeta, findAlbum } from '@/lib/albums';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { useListAppear } from '@/hooks/useListAppear';
 
 const BACKDROP_HEIGHT = 300;
 const COVER = 132;
@@ -51,6 +52,7 @@ export default function AlbumScreen() {
     ),
     [currentTrackId, isPlaying, playFromList, tracks, title, router]
   );
+  const renderRow = useListAppear(renderItem, tracks.length > 0);
 
   const back = (
     <IconButton
@@ -88,7 +90,7 @@ export default function AlbumScreen() {
               router.push({ pathname: '/artist/[name]', params: { name: album.artist } })
             }
             hitSlop={8}
-            className="mt-1.5 self-start"
+            className="mt-1.5 self-start active:opacity-70"
           >
             <Text variant="rowTitle" numberOfLines={1} className="text-[15px] text-primary">
               {album.artist}
@@ -137,7 +139,7 @@ export default function AlbumScreen() {
       </View>
       <FlatList
         data={tracks}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={item => item.id}
         ListHeaderComponent={header}
         showsVerticalScrollIndicator={false}
