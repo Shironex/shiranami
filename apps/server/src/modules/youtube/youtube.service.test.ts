@@ -38,7 +38,7 @@ function audioLines({
   return [isLive, protocol, ext, filesize, availableAt, url].join('\n') + '\n';
 }
 
-function createService() {
+function createService(env: Record<string, string> = {}) {
   const store = new Map<string, string>();
   const redis = {
     get: vi.fn(async (key: string) => store.get(key) ?? null),
@@ -47,7 +47,9 @@ function createService() {
       return 'OK';
     }),
   } as unknown as RedisService;
-  const config = { get: (_key: string, fallback: string) => fallback } as unknown as ConfigService;
+  const config = {
+    get: (key: string, fallback?: string) => env[key] ?? fallback,
+  } as unknown as ConfigService;
   const logger = { info: vi.fn(), warn: vi.fn() } as unknown as PinoLogger;
   return { service: new YoutubeService(redis, config, logger), store, redis };
 }
@@ -172,6 +174,66 @@ describe('YoutubeService.resolveAudio', () => {
     const error = (await service.resolveAudio(VIDEO).catch((e: unknown) => e)) as Error;
     expect(error).not.toBeInstanceOf(VideoUnavailableError);
     expect(error.message).toMatch(/sign in/);
+  });
+});
+
+describe('YoutubeService with a PO token provider', () => {
+  const PROVIDER = 'http://bgutil:4416';
+  const PLUGINS = '/usr/local/share/yt-dlp/plugins';
+
+  it('leaves the yt-dlp arguments alone when no provider is set', async () => {
+    spawnMock.mockReturnValue(fakeProcess(audioLines()));
+    const { service } = createService({ YTDLP_PLUGIN_DIR: PLUGINS });
+
+    await service.resolveAudio(VIDEO);
+
+    const args = spawnMock.mock.calls[0][1] as string[];
+    expect(args[0]).toBe('-f');
+    expect(args).not.toContain('--plugin-dirs');
+    expect(args).not.toContain('--extractor-args');
+  });
+
+  it('loads the plugin and points it at the provider on every run', async () => {
+    spawnMock.mockImplementation(() => fakeProcess(audioLines()));
+    const { service } = createService({
+      YTDLP_POT_PROVIDER_URL: PROVIDER,
+      YTDLP_PLUGIN_DIR: PLUGINS,
+    });
+    const expected = [
+      '--plugin-dirs',
+      PLUGINS,
+      '--extractor-args',
+      `youtubepot-bgutilhttp:base_url=${PROVIDER}`,
+      '--extractor-args',
+      'youtube:player_client=mweb,default',
+    ];
+
+    await service.resolveAudio(VIDEO);
+    await service.search('song');
+    await service.extractPlaylist('https://www.youtube.com/playlist?list=PL1');
+
+    expect(spawnMock).toHaveBeenCalledTimes(3);
+    for (const [, args] of spawnMock.mock.calls as [string, string[]][]) {
+      expect(args.slice(0, expected.length)).toEqual(expected);
+    }
+    const audioArgs = spawnMock.mock.calls[0][1] as string[];
+    expect(audioArgs.at(-1)).toBe(`https://www.youtube.com/watch?v=${VIDEO}`);
+  });
+
+  it('skips --plugin-dirs when the plugin lives in a default location', async () => {
+    spawnMock.mockReturnValue(fakeProcess(audioLines()));
+    const { service } = createService({ YTDLP_POT_PROVIDER_URL: PROVIDER });
+
+    await service.resolveAudio(VIDEO);
+
+    const args = spawnMock.mock.calls[0][1] as string[];
+    expect(args).not.toContain('--plugin-dirs');
+    expect(args.slice(0, 4)).toEqual([
+      '--extractor-args',
+      `youtubepot-bgutilhttp:base_url=${PROVIDER}`,
+      '--extractor-args',
+      'youtube:player_client=mweb,default',
+    ]);
   });
 });
 
