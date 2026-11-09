@@ -134,6 +134,15 @@ overrides:
   # relax to floors once they have aged.
   '@monogrid/gainmap-js': 3.4.0
   draco3d: 1.5.7
+  # Expo SDK 57.0.32 (@expo/cli, @expo/config, @expo/metro-config) asks for
+  # glob ^14.0.3. glob 14.0.4 and its minimatch 11.0.5 and
+  # @isaacs/nonrecursive-glob-match 1.1.0 came out on November 5 and 6, under
+  # the 7 day release age gate that pnpm 10.9.0 does not enforce. Held at the
+  # last aged releases, which already carry the glob and minimatch advisory
+  # fixes; relax to floors once they have aged.
+  'glob@14': 14.0.3
+  'minimatch@11': 11.0.4
+  '@isaacs/nonrecursive-glob-match@1': 1.0.3
   'ip-address@<10.7.4': 10.7.5
   'zod@>=4 <4.6.6': ^4.6.6
 
