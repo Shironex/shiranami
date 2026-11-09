@@ -4,6 +4,9 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# pnpm checks every patchedDependencies file named in pnpm-workspace.yaml even
+# when the patched package (expo-audio, mobile only) is filtered out.
+COPY patches/ patches/
 COPY apps/landing/package.json apps/landing/
 RUN pnpm install --frozen-lockfile --filter @shiranami/landing...
 
