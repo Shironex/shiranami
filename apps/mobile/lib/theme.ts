@@ -37,6 +37,12 @@ export const colors = {
   handle: generated.colors.handle,
 } as const;
 
+/**
+ * The player card's fill: the border token (white at 6%) flattened over the
+ * background, so the fades at the edges of its lists can match it exactly.
+ */
+export const PLAYER_CARD = '#101014';
+
 export const fonts = {
   body: fontFamily.body,
   bodyMedium: fontFamily['body-medium'],

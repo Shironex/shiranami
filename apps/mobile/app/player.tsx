@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import ChevronDown from 'lucide-react-native/icons/chevron-down';
@@ -11,20 +11,21 @@ import { ArtTile } from '@/components/art/ArtTile';
 import { RemovalToast } from '@/components/library/RemovalToast';
 import { Cover } from '@/components/player/Cover';
 import { PlayerActions } from '@/components/player/PlayerActions';
-import { PeekCard } from '@/components/player/PeekCard';
+import { PlayerCard } from '@/components/player/PlayerCard';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { useCurrentStation } from '@/hooks/useCurrentStation';
+import { useLyrics } from '@/hooks/useLyrics';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
-import { PEEK_CARD_MIN_HEIGHT, peekCardRoom } from '@/lib/up-next';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+import { usePlayerViewStore } from '@/stores/usePlayerViewStore';
 
 /** Cover side margin; the cover is the screen width minus both. */
 const COVER_GUTTER = 24;
@@ -111,6 +112,14 @@ export default function PlayerScreen() {
   const source = usePlayerStore(s => s.queueSource);
   const toggleFavorite = useToggleFavorite();
   const radio = useCurrentStation();
+  const tab = usePlayerViewStore(s => s.tab);
+  const setTab = usePlayerViewStore(s => s.setTab);
+  const { lyrics, loading: lyricsLoading } = useLyrics(
+    track?.isLive ? undefined : track?.title,
+    track?.artist,
+    track?.album,
+    track?.duration
+  );
 
   // Close once the queue is cleared under the open player (not on a cold open).
   const hadTrack = useRef(false);
@@ -123,11 +132,14 @@ export default function PlayerScreen() {
 
   const live = !!track.isLive;
   const favorite = live ? radio.saved : !!track.isFavorite;
-  // Tall phones get the small cover and the lyrics and up next card; short ones
-  // and radio keep the big cover, which shrinks before any control does.
-  const peek = !live && peekCardRoom(height, insets.top, insets.bottom) >= PEEK_CARD_MIN_HEIGHT;
+  // Songs get the small cover and the lyrics and up next card; radio keeps the big cover.
+  const peek = !live;
   // Room under the cover for meta, seek, transport and actions (about 380pt).
-  const coverSize = Math.min(width - COVER_GUTTER * 2, MAX_COVER, height - 380 - insets.top);
+  const coverSize = Math.min(
+    width - COVER_GUTTER * 2,
+    MAX_COVER,
+    height - 380 - insets.top - insets.bottom
+  );
   const open = (href: MetaHref) => {
     router.back();
     router.navigate(href);
@@ -162,14 +174,9 @@ export default function PlayerScreen() {
   return (
     <View className="flex-1 bg-background">
       <PlayerBackdrop />
-      <ScrollView
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          flexGrow: 1,
-          paddingTop: insets.top + 6,
-          paddingBottom: Math.max(insets.bottom, 12) + 8,
-        }}
+      <View
+        className="flex-1"
+        style={{ paddingTop: insets.top + 6, paddingBottom: Math.max(insets.bottom, 12) + 8 }}
       >
         <View className="flex-row items-center justify-between gap-2 px-2">
           <IconButton
@@ -216,8 +223,14 @@ export default function PlayerScreen() {
               </View>
               <View className="pb-0.5">{heart}</View>
             </View>
-            <View className="mt-[18px] flex-1">
-              <PeekCard track={track} />
+            <View className="mx-4 mt-[18px] min-h-0 flex-1">
+              <PlayerCard
+                track={track}
+                lyrics={lyrics}
+                loading={lyricsLoading}
+                tab={tab}
+                onTab={setTab}
+              />
             </View>
           </>
         ) : (
@@ -243,10 +256,10 @@ export default function PlayerScreen() {
         <View className="px-[22px] pt-3.5">
           <Transport />
         </View>
-        <View className={peek ? 'px-4 pt-2' : 'mt-auto px-4 pt-6'}>
+        <View className={peek ? 'px-4 pt-1' : 'mt-auto px-4 pt-4'}>
           <PlayerActions />
         </View>
-      </ScrollView>
+      </View>
       <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
     </View>
   );
