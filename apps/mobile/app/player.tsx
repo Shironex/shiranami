@@ -178,6 +178,8 @@ function PlayerView({ track }: { track: Track }) {
   });
 
   const favorite = live ? radio.saved : !!track.isFavorite;
+  // Without lyrics the cover is only a picture, labelled with the song.
+  const coverOpensLyrics = !live && hasLyrics;
   // The close transition runs first; the page opens once the player is gone.
   const open = (href: MetaHref) => {
     router.back();
@@ -257,8 +259,8 @@ function PlayerView({ track }: { track: Track }) {
             folded={folded}
             enter={enter}
             gesture={stagePan}
-            coverLabel={live ? undefined : 'Lyrics full screen'}
-            onCoverPress={live || !hasLyrics ? undefined : () => router.push('/lyrics')}
+            coverLabel={coverOpensLyrics ? 'Lyrics full screen' : undefined}
+            onCoverPress={coverOpensLyrics ? () => router.push('/lyrics') : undefined}
             sideTitle={
               <>
                 <Text variant="heading" numberOfLines={2}>
