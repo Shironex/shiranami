@@ -130,4 +130,19 @@ describe('useYouTubeSaveStore', () => {
     await retry;
     expect(job()).toBeUndefined();
   });
+
+  it('keeps a save done when reloading the library afterwards fails', async () => {
+    const { deps, finish } = controllableDeps();
+    const onSaved = jest.fn(async () => {
+      throw new Error('database is locked');
+    });
+
+    const running = useYouTubeSaveStore.getState().save(deps, RESULT, onSaved);
+    await flush();
+    finish();
+    await running;
+
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(job()).toBeUndefined();
+  });
 });

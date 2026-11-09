@@ -25,6 +25,19 @@ interface YouTubeSaveState {
   dismiss: (videoId: string) => void;
 }
 
+/**
+ * Runs the after-save callback. The song is already on the phone and in the
+ * database by then, so a failure here (reloading the library) must not mark
+ * the save as failed; the next library load shows it either way.
+ */
+async function reportSaved(onSaved: (() => Promise<void> | void) | undefined): Promise<void> {
+  try {
+    await onSaved?.();
+  } catch {
+    // Saved all the same: the row shows up on the next library load.
+  }
+}
+
 /** Running saves, outside the state: an AbortController is not data to render. */
 const running = new Map<string, AbortController>();
 
@@ -59,8 +72,8 @@ export const useYouTubeSaveStore = create<YouTubeSaveState>((set, get) => {
             if (job?.status === 'saving') put(videoId, { status: 'saving', progress: ratio });
           },
         });
-        if (outcome === 'saved') await onSaved?.();
         put(videoId, null);
+        if (outcome === 'saved') await reportSaved(onSaved);
       } catch (error) {
         put(
           videoId,
