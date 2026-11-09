@@ -7,6 +7,9 @@ WORKDIR /app
 # pnpm to resolve the `workspace:*` link.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# pnpm checks every patchedDependencies file named in pnpm-workspace.yaml even
+# when the patched package (expo-audio, mobile only) is filtered out.
+COPY patches/ patches/
 COPY apps/server/package.json apps/server/
 COPY packages/contracts/package.json packages/contracts/
 COPY apps/server/prisma/ apps/server/prisma/
@@ -40,6 +43,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches/ patches/
 COPY apps/server/package.json apps/server/
 COPY packages/contracts/package.json packages/contracts/
 COPY --from=build /app/apps/server/dist ./apps/server/dist
