@@ -38,10 +38,17 @@ const Word = memo(function Word({
   gap: number;
 }) {
   const width = useSharedValue(0);
+  // The clip covers the whole word and slides in from the left while the
+  // bright copy inside slides the other way, so the copy stays put and only
+  // its sung part shows. Transforms only: nothing re-lays out per frame.
   const clip = useAnimatedStyle(() => ({
-    width: width.value * karaokeWordProgress(word, elapsed.value),
+    // Until the word is measured the clip would show the whole bright copy.
+    opacity: width.value > 0 ? 1 : 0,
+    transform: [{ translateX: -width.value * (1 - karaokeWordProgress(word, elapsed.value)) }],
   }));
-  const copy = useAnimatedStyle(() => ({ width: width.value + CLIP_SLACK }));
+  const copy = useAnimatedStyle(() => ({
+    transform: [{ translateX: width.value * (1 - karaokeWordProgress(word, elapsed.value)) }],
+  }));
   return (
     <View
       style={{ marginRight: gap }}
@@ -53,7 +60,7 @@ const Word = memo(function Word({
         {word.text}
       </Text>
       <Animated.View style={[styles.clip, clip]}>
-        <Animated.View style={copy}>
+        <Animated.View style={[styles.copy, copy]}>
           <Text className={className} numberOfLines={1}>
             {word.text}
           </Text>
@@ -93,5 +100,6 @@ export function KaraokeText({ text, lineTime, duration, className, gap }: Karaok
 
 const styles = StyleSheet.create({
   line: { flexDirection: 'row', flexWrap: 'wrap' },
-  clip: { position: 'absolute', left: 0, top: 0, bottom: 0, overflow: 'hidden' },
+  clip: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' },
+  copy: { position: 'absolute', left: 0, right: -CLIP_SLACK, top: 0, bottom: 0 },
 });
