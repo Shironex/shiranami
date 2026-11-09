@@ -1,14 +1,11 @@
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import ListMusic from 'lucide-react-native/icons/list-music';
-import MicVocal from 'lucide-react-native/icons/mic-vocal';
 import Moon from 'lucide-react-native/icons/moon';
 import type { IconComponent } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { useSleepLabel } from '@/hooks/useSleepLabel';
 import { colors } from '@/lib/theme';
 import { cn } from '@/lib/utils';
-import { usePlayerStore } from '@/stores/usePlayerStore';
 
 interface ActionProps {
   icon: IconComponent;
@@ -38,15 +35,13 @@ function Action({ icon: Icon, label, on = false, accessibilityLabel, onPress }: 
   );
 }
 
-/** Labelled actions under the transport: Lyrics, Sleep (with time left) and Queue. */
+/** The sleep timer under the transport, with the time left while it runs. */
 export function PlayerActions() {
   const router = useRouter();
-  const isLive = usePlayerStore(s => s.currentTrack?.isLive ?? false);
   const sleep = useSleepLabel();
 
   return (
     <View className="flex-row">
-      {!isLive && <Action icon={MicVocal} label="Lyrics" onPress={() => router.push('/lyrics')} />}
       <Action
         icon={Moon}
         label={sleep ?? 'Sleep'}
@@ -54,7 +49,6 @@ export function PlayerActions() {
         accessibilityLabel={sleep ? `Sleep timer, ${sleep} left` : 'Sleep timer'}
         onPress={() => router.push('/sleep')}
       />
-      {!isLive && <Action icon={ListMusic} label="Queue" onPress={() => router.push('/queue')} />}
     </View>
   );
 }
