@@ -71,10 +71,10 @@ overrides:
   # that major jump is tracked separately as a Phase 3 migration.
   vitest: '>=4.1.12 <5'
   esbuild: '>=0.28.1'
-  # Pinned at 8.3.4 (fixes the 8.0-8.1.5 and 8.3.0-8.3.2 advisories): a floor
-  # resolves 8.3.5, which is under the 7 day release age gate that pnpm 10.9.0
-  # does not enforce. Relax to a floor once 8.3.5 has aged.
-  vite: 8.3.4
+  # Pinned at 8.3.5 (fixes the 8.0-8.1.5 and 8.3.0-8.3.2 advisories): a floor
+  # resolves 8.3.6 or newer, which is under the 7 day release age gate that
+  # pnpm 10.9.0 does not enforce. Relax to a floor once those have aged.
+  vite: 8.3.5
   # Bounded below 8.0.0: every consumer here (babel-preset-expo, react-native,
   # jest, @sentry/bundler-plugins) declares the 7 line, and an unbounded floor
   # resolved Babel 8 for all of them.
