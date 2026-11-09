@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import {
+  ReduceMotion,
   useReducedMotion,
   useSharedValue,
   withDelay,
@@ -40,11 +41,17 @@ export function usePlayerFold(trackId: string, live: boolean, hasLyrics: boolean
     }
     const target = folded ? 1 : 0;
     if (reduceMotion) {
+      // Fades are what reduce motion leaves, so these opt out of its skipping.
+      const never = ReduceMotion.Never;
       fade.value = withSequence(
-        withTiming(0, { duration: FADE_OUT_MS }),
-        withTiming(1, { duration: FADE_IN_MS })
+        withTiming(0, { duration: FADE_OUT_MS, reduceMotion: never }),
+        withTiming(1, { duration: FADE_IN_MS, reduceMotion: never })
       );
-      hero.value = withDelay(FADE_OUT_MS, withTiming(target, { duration: 0 }));
+      hero.value = withDelay(
+        FADE_OUT_MS,
+        withTiming(target, { duration: 0, reduceMotion: never }),
+        never
+      );
     } else {
       hero.value = withTiming(target, motion(MOTION.slow));
     }
