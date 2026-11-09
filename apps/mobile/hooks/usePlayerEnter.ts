@@ -81,8 +81,9 @@ export function usePlayerEnter(): PlayerEnter {
   const offset = useSharedValue({ x: 0, y: 0 });
   const drag = useSharedValue(0);
   const leaving = useSharedValue(false);
-  // Measure as early as possible, while the stage lays out.
-  const firstSpot = useRef(measureMiniPlayer());
+  // Measure as early as possible, while the stage lays out, and only once.
+  const firstSpot = useRef<Promise<MiniPlayerSpot | null> | null>(null);
+  firstSpot.current ??= measureMiniPlayer();
   const closing = useRef(false);
 
   const [settled, setSettled] = useState(false);
@@ -130,7 +131,7 @@ export function usePlayerEnter(): PlayerEnter {
   );
 
   const onPlaced = useCallback(() => {
-    void firstSpot.current.then(spot => start(spot));
+    void (firstSpot.current ?? measureMiniPlayer()).then(spot => start(spot));
   }, [start]);
 
   useEffect(() => {
