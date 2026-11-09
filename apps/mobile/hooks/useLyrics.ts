@@ -91,12 +91,19 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
   // uncached song counts as loading from its first render.
   const [loaded, setLoaded] = useState<Loaded>({ key: null, lyrics: NO_LYRICS });
   const requestRef = useRef(0);
+  const latestKey = useRef(key);
+  latestKey.current = key;
 
   useEffect(() => {
-    // Drop any request still out for the song before.
     const reqId = ++requestRef.current;
     if (!key || !title || !artist) return;
-    if (cache.has(key)) return;
+    const hit = cache.get(key);
+    if (hit) {
+      // Filled since the render (by another screen or an earlier request for
+      // this song): re-render with it, unless that already happened.
+      setLoaded(prev => (prev.key === key ? prev : { key, lyrics: hit }));
+      return;
+    }
 
     fetchFromLrclib(title, artist, album, duration)
       .then(result => {
@@ -105,7 +112,12 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
       })
       .catch(() => NO_LYRICS)
       .then(result => {
-        if (reqId === requestRef.current) setLoaded({ key, lyrics: result });
+        // A newer request for the same song (its duration or album arrived)
+        // may never answer, so any result for the song on screen is applied;
+        // results for a song since left are dropped.
+        if (reqId === requestRef.current || key === latestKey.current) {
+          setLoaded({ key, lyrics: result });
+        }
       });
   }, [key, title, artist, album, duration]);
 
