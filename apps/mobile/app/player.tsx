@@ -30,9 +30,6 @@ import { UNKNOWN_ARTIST } from '@/lib/track-meta';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
-/** Opening a page from the player waits for the close transition (280 ms) to finish. */
-const CLOSE_NAVIGATE_DELAY_MS = 320;
-
 /** Where the queue came from, as a quiet chip in the top bar. */
 function SourceChip({ live, source }: { live: boolean; source: string }) {
   const Icon = live ? RadioIcon : LibraryIcon;
@@ -139,7 +136,7 @@ function PlayerView({ track }: { track: Track }) {
     hasLyrics || lyricsLoading
   );
   const { width, height } = useWindowDimensions();
-  const { enter, row, makePan, settled } = usePlayerEnter();
+  const { enter, row, makePan, settled, closeThen } = usePlayerEnter();
   const headerPan = useMemo(makePan, [makePan]);
   const stagePan = useMemo(makePan, [makePan]);
 
@@ -181,10 +178,7 @@ function PlayerView({ track }: { track: Track }) {
   // Without lyrics the cover is only a picture, labelled with the song.
   const coverOpensLyrics = !live && hasLyrics;
   // The close transition runs first; the page opens once the player is gone.
-  const open = (href: MetaHref) => {
-    router.back();
-    setTimeout(() => router.navigate(href), CLOSE_NAVIGATE_DELAY_MS);
-  };
+  const open = (href: MetaHref) => closeThen(() => router.navigate(href));
 
   const meta = (
     <Text variant="bodyMuted" numberOfLines={1} className="mt-1 text-[15px]">

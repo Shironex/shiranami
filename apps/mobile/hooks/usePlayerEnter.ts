@@ -63,6 +63,8 @@ export interface PlayerEnter {
   makePan: () => ReturnType<typeof Gesture.Pan>;
   /** True once open; the screen then draws its end state from React. */
   settled: boolean;
+  /** Closes the player and runs `then` once the screen has gone. */
+  closeThen: (then: () => void) => void;
 }
 
 /**
@@ -85,6 +87,7 @@ export function usePlayerEnter(): PlayerEnter {
   const firstSpot = useRef<Promise<MiniPlayerSpot | null> | null>(null);
   firstSpot.current ??= measureMiniPlayer();
   const closing = useRef(false);
+  const afterLeave = useRef<(() => void) | null>(null);
 
   const [settled, setSettled] = useState(false);
   const started = useRef(false);
@@ -156,6 +159,10 @@ export function usePlayerEnter(): PlayerEnter {
       if (left) return;
       left = true;
       navigation.dispatch(data.action);
+      const then = afterLeave.current;
+      afterLeave.current = null;
+      // After the pop has been handled, so the next route is not blocked by it.
+      if (then) setTimeout(then, 0);
     };
     void measureMiniPlayer().then(spot => {
       place(spot);
@@ -171,6 +178,14 @@ export function usePlayerEnter(): PlayerEnter {
   });
 
   const close = useCallback(() => navigation.goBack(), [navigation]);
+  const closeThen = useCallback(
+    (then: () => void) => {
+      if (closing.current) return;
+      afterLeave.current = then;
+      navigation.goBack();
+    },
+    [navigation]
+  );
 
   const makePan = useCallback(
     () =>
@@ -194,5 +209,5 @@ export function usePlayerEnter(): PlayerEnter {
     () => ({ progress, origin, offset, drag, leaving, onPlaced }),
     [progress, origin, offset, drag, leaving, onPlaced]
   );
-  return { enter, row, makePan, settled };
+  return { enter, row, makePan, settled, closeThen };
 }
