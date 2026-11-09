@@ -18,6 +18,7 @@ import { Text } from '@/components/ui/text';
 import type { LyricsResult } from '@/hooks/useLyrics';
 import { MOTION, motion } from '@/lib/motion';
 import { PLAYER_CARD, colors } from '@/lib/theme';
+import { countLabel } from '@/lib/format';
 import { upNextEntries, upNextSummary } from '@/lib/up-next';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import type { PlayerCardTab } from '@/stores/usePlayerViewStore';
@@ -77,8 +78,9 @@ function UpNextSummary() {
       hitSlop={8}
       className="ml-2 min-w-0 shrink rounded-full px-2 py-1 active:bg-border"
     >
+      {/* Only the count fits beside the tab pill; the length is read out. */}
       <Text variant="meta" numberOfLines={1} className="font-body-semibold text-[13px]">
-        {summary}
+        {countLabel(entries.length, 'song', 'songs')}
       </Text>
     </Pressable>
   );

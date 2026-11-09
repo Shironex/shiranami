@@ -106,23 +106,28 @@ describe('card fold', () => {
 });
 
 describe('tab for a new song', () => {
+  it('waits while the lyrics load', () => {
+    expect(tabForSong('upNext', false, false, 'loading')).toBeNull();
+    expect(tabForSong('lyrics', true, false, 'loading')).toBeNull();
+  });
+
   it('opens a song with lyrics on Lyrics until the user picks a tab', () => {
-    expect(tabForSong('similar', false, 'auto', false, true)).toBe('lyrics');
-    expect(tabForSong('lyrics', false, 'auto', false, true)).toBeNull();
+    expect(tabForSong('upNext', false, false, 'some')).toBe('lyrics');
+    expect(tabForSong('lyrics', false, false, 'some')).toBeNull();
   });
 
   it('keeps a picked tab on a new song with lyrics', () => {
-    expect(tabForSong('upNext', true, 'auto', false, true)).toBeNull();
-    expect(tabForSong('similar', true, 'open', false, true)).toBeNull();
+    expect(tabForSong('upNext', true, false, 'some')).toBeNull();
+    expect(tabForSong('similar', true, false, 'some')).toBeNull();
   });
 
   it('leaves Lyrics for Up next when the new song has none', () => {
-    expect(tabForSong('lyrics', true, 'auto', false, false)).toBe('upNext');
-    expect(tabForSong('lyrics', false, 'open', false, false)).toBe('upNext');
-    expect(tabForSong('similar', true, 'open', false, false)).toBeNull();
+    expect(tabForSong('lyrics', true, false, 'none')).toBe('upNext');
+    expect(tabForSong('lyrics', false, false, 'none')).toBe('upNext');
+    expect(tabForSong('similar', true, false, 'none')).toBeNull();
   });
 
   it('leaves the tab alone for radio, which has no card', () => {
-    expect(tabForSong('lyrics', true, 'auto', true, false)).toBeNull();
+    expect(tabForSong('lyrics', true, true, 'none')).toBeNull();
   });
 });

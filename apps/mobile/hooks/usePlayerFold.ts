@@ -9,7 +9,7 @@ import {
 } from 'react-native-reanimated';
 import { useSettingsContext } from '@/context/SettingsContext';
 import { MOTION, motion } from '@/lib/motion';
-import { cardFolded, pressCardTab, tabForSong } from '@/lib/player-stage';
+import { cardFolded, pressCardTab, tabForSong, type LyricsState } from '@/lib/player-stage';
 import { usePlayerViewStore, type PlayerCardTab } from '@/stores/usePlayerViewStore';
 
 /** With reduce motion on, the layout swaps while the stage is faded out. */
@@ -22,13 +22,20 @@ const FADE_IN_MS = 180;
  * opacity, used only by the reduced motion fallback). The open or folded
  * choice is saved in settings, the tab is kept for the session.
  */
-export function usePlayerFold(trackId: string, live: boolean, hasLyrics: boolean) {
+export function usePlayerFold(
+  trackId: string,
+  live: boolean,
+  hasLyrics: boolean,
+  lyricsLoading: boolean
+) {
   const { settings, update } = useSettingsContext();
   const mode = settings.playerCard;
   const tab = usePlayerViewStore(s => s.tab);
   const setTab = usePlayerViewStore(s => s.setTab);
   const reduceMotion = useReducedMotion();
-  const folded = cardFolded(mode, live, hasLyrics);
+  // While lyrics load, auto mode keeps the card open instead of folding and reopening.
+  const folded = cardFolded(mode, live, hasLyrics || lyricsLoading);
+  const lyrics: LyricsState = lyricsLoading ? 'loading' : hasLyrics ? 'some' : 'none';
 
   const hero = useSharedValue(folded ? 1 : 0);
   const fade = useSharedValue(1);
@@ -57,12 +64,14 @@ export function usePlayerFold(trackId: string, live: boolean, hasLyrics: boolean
     }
   }, [folded, reduceMotion, hero, fade]);
 
-  // A new song may move the card to another tab; see tabForSong.
+  // A new song, or its lyrics arriving, may move the card to another tab; see
+  // tabForSong. The store is read here, so a tab tapped while the lyrics
+  // loaded is seen as picked.
   useEffect(() => {
     const { tab: current, picked } = usePlayerViewStore.getState();
-    const next = tabForSong(current, picked, mode, live, hasLyrics);
+    const next = tabForSong(current, picked, live, lyrics);
     if (next) setTab(next);
-  }, [trackId, mode, live, hasLyrics, setTab]);
+  }, [trackId, live, lyrics, setTab]);
 
   const onTab = useCallback(
     (pressed: PlayerCardTab) => {

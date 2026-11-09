@@ -1,48 +1,16 @@
-import { Animated, Easing } from 'react-native';
-import { EASE_OUT_EXPO } from '@/lib/theme';
-import { MOTION } from '@/lib/motion';
+/** How far a tab's screen drifts in from the side it is on. */
+export const TAB_SHIFT = 16;
 
-/** How far a tab's screen drifts sideways while it fades in or out. */
-const TAB_SHIFT = 16;
-
-interface SceneProgress {
-  current: { progress: Animated.AnimatedInterpolation<number> };
-}
+/** Time past the end of the fade after which the screen is put in place by hand. */
+export const TAB_SETTLE_GRACE_MS = 300;
 
 /**
- * Switching dock tabs: the new screen fades in while drifting a little from
- * the side it is on, the old one fades out the other way. The navigator runs
- * this on the core Animated API, hence the React Native easing.
+ * Where a tab's screen starts its entrance when it comes to the front: the
+ * sideways offset (from the right when it sits right of the tab before, from
+ * the left otherwise), or null for no entrance (the first screen at launch,
+ * or the same tab again).
  */
-export const TAB_TRANSITION = {
-  animation: 'shift',
-  transitionSpec: {
-    animation: 'timing',
-    config: { duration: MOTION.base, easing: Easing.bezier(...EASE_OUT_EXPO) },
-  },
-  sceneStyleInterpolator: ({ current }: SceneProgress) => ({
-    sceneStyle: {
-      opacity: current.progress.interpolate({
-        inputRange: [-1, 0, 1],
-        outputRange: [0, 1, 0],
-      }),
-      transform: [
-        {
-          translateX: current.progress.interpolate({
-            inputRange: [-1, 0, 1],
-            outputRange: [-TAB_SHIFT, 0, TAB_SHIFT],
-          }),
-        },
-      ],
-    },
-  }),
-} as const;
-
-/** With reduce motion on, tabs cross fade instead. */
-export const TAB_TRANSITION_REDUCED = {
-  animation: 'fade',
-  transitionSpec: {
-    animation: 'timing',
-    config: { duration: MOTION.fast, easing: Easing.linear },
-  },
-} as const;
+export function tabEntryShift(previous: number | null, index: number): number | null {
+  if (previous === null || index < 0 || previous === index) return null;
+  return index > previous ? TAB_SHIFT : -TAB_SHIFT;
+}
