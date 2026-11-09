@@ -13,7 +13,11 @@ overrides:
   '@wdio/native-utils': 2.5.0
   h3: 1.15.9
   undici: ^6.29.1
-  jsdom: ^30.0.1
+  jsdom: ^30.1.3
+  # jsdom 30.1.3 declares `^7.1.3`, which resolves 7.2.0 (Nov 8), under the 7 day
+  # release age gate that pnpm 10.9.0 does not enforce. Held at 7.1.9 (Oct 25);
+  # relax to a floor once 7.2.0 has aged.
+  '@asamuzakjp/css-color': 7.1.9
   path-to-regexp: 8.4.0
   # apps/server declares `^5.8.5`; the exact pin below it was blocking
   # fastify's own patched release (schema-validation bypass +
@@ -30,7 +34,10 @@ overrides:
   yaml: 2.8.4
   postcss: '>=8.5.18'
   lodash: 4.18.1
-  lucide-react: ^1.16.0
+  # Exact 1.66.0 (Oct 31): apps/web and apps/landing both resolve it. 1.67.0 (Nov 3) and
+  # newer are under the 7 day release age gate that pnpm
+  # 10.9.0 does not enforce, so a floor would pick up a too young version.
+  lucide-react: 1.66.0
   react: ^19.2.6
   react-dom: ^19.2.6
   # Expo SDK 57 pins React 19.2.3 exactly, as SDK 56 did (react-native 0.86.3
