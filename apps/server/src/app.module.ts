@@ -19,6 +19,8 @@ const isDev = process.env.NODE_ENV !== 'production';
       pinoHttp: {
         transport: isDev ? { target: 'pino-pretty', options: { colorize: true } } : undefined,
         level: process.env.LOG_LEVEL ?? 'info',
+        // Request logs carry every header; the API key must never land in them.
+        redact: ['req.headers["x-shiranami-key"]'],
       },
     }),
     ScheduleModule.forRoot(),
