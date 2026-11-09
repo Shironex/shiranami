@@ -141,9 +141,31 @@ function parseResults(stdout: string, requireDuration: boolean): SearchResult[] 
     .filter((r): r is SearchResult => r !== null);
 }
 
+/**
+ * Points yt-dlp at a bgutil PO token provider: loads the plugin from
+ * `pluginDir` (when the plugin is not in a default location) and hands it the
+ * provider's URL. No URL, no arguments.
+ *
+ * The mweb client goes first because a PO token is what it needs to get past
+ * the bot check on a flagged IP, where the default clients only answer
+ * LOGIN_REQUIRED; the defaults stay behind it as a fallback.
+ */
+function potProviderArgs(providerUrl?: string, pluginDir?: string): string[] {
+  if (!providerUrl) return [];
+  return [
+    ...(pluginDir ? ['--plugin-dirs', pluginDir] : []),
+    '--extractor-args',
+    `youtubepot-bgutilhttp:base_url=${providerUrl}`,
+    '--extractor-args',
+    'youtube:player_client=mweb,default',
+  ];
+}
+
 @Injectable()
 export class YoutubeService {
   private readonly ytdlpPath: string;
+  /** Arguments every yt-dlp run gets first, the PO token provider when one is set. */
+  private readonly baseArgs: string[];
 
   constructor(
     private readonly redis: RedisService,
@@ -151,6 +173,10 @@ export class YoutubeService {
     @InjectPinoLogger(YoutubeService.name) private readonly logger: PinoLogger
   ) {
     this.ytdlpPath = this.config.get<string>('YTDLP_PATH', 'yt-dlp');
+    this.baseArgs = potProviderArgs(
+      this.config.get<string>('YTDLP_POT_PROVIDER_URL'),
+      this.config.get<string>('YTDLP_PLUGIN_DIR')
+    );
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -412,7 +438,7 @@ export class YoutubeService {
 
   private spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
     return new Promise((resolve, reject) => {
-      const proc = spawn(this.ytdlpPath, args, { env: { ...process.env } });
+      const proc = spawn(this.ytdlpPath, [...this.baseArgs, ...args], { env: { ...process.env } });
       let stdout = '';
       let stderr = '';
       const timer = setTimeout(() => proc.kill('SIGKILL'), YTDLP_TIMEOUT_MS);
