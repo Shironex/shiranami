@@ -68,7 +68,7 @@ describe('saveYouTubeTrack', () => {
     expect(deps.download).toHaveBeenCalledWith(
       LINK.url,
       'yt-abcdefghijk.m4a',
-      expect.objectContaining({ onBytes: expect.any(Function) })
+      expect.objectContaining({ onBytes: expect.any(Function), expectedSize: 1000 })
     );
     expect(deps.saveCover).toHaveBeenCalledWith(RESULT.thumbnail, 'yt-abcdefghijk.jpg', undefined);
     expect(deps.lock).toHaveBeenCalledTimes(1);

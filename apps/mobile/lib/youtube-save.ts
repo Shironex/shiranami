@@ -28,6 +28,11 @@ export interface DownloadOptions {
   signal?: AbortSignal;
   /** Bytes written so far. */
   onBytes?: (written: number) => void;
+  /**
+   * The whole file size from the server, when known. A body that ends short
+   * of it (the server lost YouTube mid-file) fails instead of being saved.
+   */
+  expectedSize?: number;
 }
 
 /** The phone side of a save: network, files and the library lock. */
@@ -93,6 +98,7 @@ export async function saveYouTubeTrack(
   onProgress?.(0);
   const audio = await deps.download(link.url, `${id}.${safeExtension(link.ext)}`, {
     signal,
+    expectedSize: link.size > 0 ? link.size : undefined,
     onBytes: written => onProgress?.(link.size > 0 ? Math.min(written / link.size, 1) : 0),
   });
 

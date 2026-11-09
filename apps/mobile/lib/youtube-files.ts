@@ -12,7 +12,7 @@ export function youtubeSaveDeps(db: SQLiteDatabase): SaveDeps {
     db,
     audioLink: getAudioLink,
     lock: withLibraryLock,
-    download: async (url, name, { signal, onBytes }) => {
+    download: async (url, name, { signal, onBytes, expectedSize }) => {
       const file = partialFile(name);
       // A part left by an earlier attempt is not resumed: links are re-signed
       // per attempt and a fresh start keeps this simple.
@@ -46,6 +46,9 @@ export function youtubeSaveDeps(db: SQLiteDatabase): SaveDeps {
           await reader.cancel().catch(() => undefined);
           if (signal?.aborted) throw new SaveCancelledError();
           throw error;
+        }
+        if (expectedSize != null && written !== expectedSize) {
+          throw new ApiError('server', `got ${written} of ${expectedSize} bytes`);
         }
         return { uri: await file.finish(), size: written };
       } catch (error) {
