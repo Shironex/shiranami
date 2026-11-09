@@ -143,7 +143,7 @@ export default defineConfig(
       'react-hooks': reactHooks,
     },
     settings: {
-      // Expo SDK 56 pins React 19.2.
+      // Expo SDK 57 pins React 19.2.
       react: { version: '19.2' },
     },
     rules: {
