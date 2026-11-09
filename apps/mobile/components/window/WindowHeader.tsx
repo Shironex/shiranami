@@ -105,6 +105,21 @@ export function WindowHeader({
       },
     ],
   }));
+  // The scrim keeps the expanded height and rides up with the frame's bottom
+  // edge, so collapsed it still darkens behind the title. An SVG redraws its
+  // bitmap whenever its size changes, so it never resizes while scrolling.
+  const scrimStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: interpolate(
+          scrollY.value,
+          [0, COLLAPSE_DISTANCE],
+          [0, -COLLAPSE_DISTANCE],
+          Extrapolation.CLAMP
+        ),
+      },
+    ],
+  }));
   const titleStyle = useAnimatedStyle(() => {
     const t = interpolate(scrollY.value, [0, COLLAPSE_DISTANCE], [0, 1], Extrapolation.CLAMP);
     return {
@@ -146,7 +161,9 @@ export function WindowHeader({
             <ThemePhoto photo={photo} x={focusX} y={focusY} className="flex-1" />
           )}
         </Animated.View>
-        <Scrim stops={SCRIM} />
+        <Animated.View pointerEvents="none" style={[styles.scrim, scrimStyle]}>
+          <Scrim stops={SCRIM} />
+        </Animated.View>
         <Animated.View style={[styles.title, titleStyle]}>
           <Text variant="display" numberOfLines={1}>
             {title}
@@ -183,6 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   photo: { position: 'absolute', left: 0, right: 0, top: 0, height: WINDOW_EXPANDED },
+  scrim: { position: 'absolute', left: 0, right: 0, top: 0, height: WINDOW_EXPANDED },
   title: { position: 'absolute', left: 20, right: 96, bottom: 16, transformOrigin: 'left bottom' },
   footer: { position: 'absolute', right: 14, bottom: 14, flexDirection: 'row', gap: 8 },
 });
