@@ -10,6 +10,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { playlistMeta, usePlaylists } from '@/hooks/usePlaylists';
+import { useListAppear } from '@/hooks/useListAppear';
 import { countLabel } from '@/lib/format';
 import { mosaicCovers, playlistRows, type PlaylistCell } from '@/lib/playlist-grid';
 import { colors } from '@/lib/theme';
@@ -85,12 +86,13 @@ export default function PlaylistsScreen() {
     ),
     [renderCell]
   );
+  const renderRow = useListAppear(renderItem, rows.length > 0);
 
   return (
     <View className="flex-1 bg-background">
       <Animated.FlatList
         data={rows}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={row => row[0].key}
         onScroll={onScroll}
         scrollEventThrottle={16}
