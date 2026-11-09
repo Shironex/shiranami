@@ -67,16 +67,18 @@ function UpNextSummary() {
   const queueIndex = usePlayerStore(s => s.queueIndex);
   const entries = upNextEntries(queue, queueIndex);
   if (entries.length === 0) return null;
+  const summary = upNextSummary(entries);
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`Up next, ${summary}`}
       accessibilityHint="Opens the queue"
       onPress={() => router.push('/queue')}
       hitSlop={8}
       className="ml-2 min-w-0 shrink rounded-full px-2 py-1 active:bg-border"
     >
       <Text variant="meta" numberOfLines={1} className="font-body-semibold text-[13px]">
-        {upNextSummary(entries)}
+        {summary}
       </Text>
     </Pressable>
   );

@@ -77,6 +77,7 @@ export function CardTabs<T extends string>({ tabs, value, folded, onPress }: Car
           <Pressable
             key={tab.value}
             role="tab"
+            accessibilityLabel={tab.label}
             accessibilityState={{ selected: on && !folded, expanded: !folded }}
             accessibilityHint={on && !folded ? 'Hides the card' : undefined}
             onPress={() => onPress(tab.value)}

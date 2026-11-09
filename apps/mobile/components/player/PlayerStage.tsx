@@ -212,8 +212,12 @@ export function PlayerStage({
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       {layout && (
         <>
+          {/* Both title layouts stay mounted for the fold; screen readers get
+              only the one on screen. */}
           <Animated.View
             pointerEvents={folded ? 'none' : 'box-none'}
+            accessibilityElementsHidden={folded}
+            importantForAccessibility={folded ? 'no-hide-descendants' : 'auto'}
             style={[styles.abs, { width: sideTitleWidth }, sideTitleStyle]}
             onLayout={e => {
               sideTitleHeight.value = e.nativeEvent.layout.height;
@@ -223,6 +227,8 @@ export function PlayerStage({
           </Animated.View>
           <Animated.View
             pointerEvents={folded ? 'box-none' : 'none'}
+            accessibilityElementsHidden={!folded}
+            importantForAccessibility={folded ? 'auto' : 'no-hide-descendants'}
             style={[styles.abs, { left: HERO_TITLE_X, width: heroTitleWidth }, heroTitleStyle]}
           >
             {heroTitle}
@@ -235,7 +241,7 @@ export function PlayerStage({
           >
             <Pressable
               accessibilityRole={onCoverPress ? 'button' : 'image'}
-              accessibilityLabel={coverLabel}
+              accessibilityLabel={coverLabel ?? `Cover of ${track.title}`}
               disabled={!onCoverPress}
               onPress={onCoverPress}
             >
