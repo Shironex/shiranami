@@ -28,7 +28,6 @@ import type { PlaceholderArt } from '@/hooks/useSettings';
 import { describeScan } from '@/lib/library-scan';
 import { permissionNote } from '@/lib/media-permission';
 import { colors } from '@/lib/theme';
-import { useAppStore } from '@/stores/useAppStore';
 
 const ART_LABELS: Record<PlaceholderArt, string> = { kanji: 'Kanji', photo: 'Photo' };
 const SAMPLE_TITLES = ['Snowfall', 'Midnight Rain'];
@@ -37,8 +36,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { settings, update } = useSettingsContext();
-  const serverUrl = useAppStore(s => s.serverUrl);
-  const setServerUrl = useAppStore(s => s.setServerUrl);
   const { scrollY, onScroll } = useWindowScroll();
   const topInset = useWindowInset();
   const scan = useLibraryScan();
@@ -143,14 +140,12 @@ export default function SettingsScreen() {
             {advanced && (
               <View className="px-2 pb-4 pt-1">
                 <Text variant="meta" className="mb-2">
-                  Optional. Your library and radio work without it.
+                  Your Shiranami server, for YouTube search and saving songs. Your library and radio
+                  work without it.
                 </Text>
                 <TextInput
-                  value={serverUrl}
-                  onChangeText={url => {
-                    setServerUrl(url);
-                    update('serverUrl', url);
-                  }}
+                  value={settings.serverUrl}
+                  onChangeText={url => update('serverUrl', url)}
                   placeholder="https://api.shiranami.app"
                   placeholderTextColor={colors.mutedForeground}
                   selectionColor={colors.primary}
