@@ -33,7 +33,7 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@radix-ui/react-switch": "^1.4.1",
     "@radix-ui/react-tooltip": "^1.4.1",
-    "@sentry/react": "10.78.0",
+    "@sentry/react": "11.11.0",
     "@shiranami/contracts": "workspace:*",
     "@shiranami/shared": "workspace:*",
     "@tanstack/react-query": "5.105.3",
