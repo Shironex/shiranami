@@ -22,8 +22,14 @@ const AUDIO_CACHE_TTL = 3600;
 const AUDIO_EXPIRY_MARGIN = 300;
 /** A yt-dlp run that takes longer than this is killed. */
 const YTDLP_TIMEOUT_MS = 45_000;
-/** How long one upstream request may take to answer. */
+/** How long one upstream request may take to answer with its headers. */
 const UPSTREAM_TIMEOUT_MS = 20_000;
+/**
+ * How long one read of an upstream body may wait for bytes. Only the wait on
+ * googlevideo counts: time the client spends not reading (a paused player,
+ * slow Wi-Fi) is backpressure, not a stall, and never trips it.
+ */
+const UPSTREAM_IDLE_TIMEOUT_MS = 30_000;
 /** The longest pre-roll wait honoured before the first upstream request. */
 const MAX_AVAILABILITY_WAIT_MS = 30_000;
 
@@ -48,6 +54,24 @@ export interface AudioSource {
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** One body read that fails when googlevideo sends nothing for the idle timeout. */
+async function readWithIdleTimeout(
+  reader: ReadableStreamDefaultReader<Uint8Array>
+): Promise<Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>['read']>>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const idle = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('YouTube stopped sending audio')),
+      UPSTREAM_IDLE_TIMEOUT_MS
+    );
+  });
+  try {
+    return await Promise.race([reader.read(), idle]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** The video exists but cannot be played here (removed, private, live, age gated). */
 export class VideoUnavailableError extends Error {}
@@ -323,7 +347,7 @@ export class YoutubeService {
     const reader = response.body.getReader();
     try {
       for (;;) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readWithIdleTimeout(reader);
         if (done) return;
         if (value?.length) yield value;
       }
@@ -333,11 +357,26 @@ export class YoutubeService {
     }
   }
 
-  private fetchPiece(url: string, piece: ByteRange, signal: AbortSignal): Promise<Response> {
-    return fetch(url, {
-      headers: { Range: `bytes=${piece.start}-${piece.end}` },
-      signal: AbortSignal.any([signal, AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)]),
-    });
+  /**
+   * Requests one piece. The timeout covers the wait for the headers only: a
+   * signal handed to fetch also aborts the body, and a piece read at playback
+   * speed takes minutes. The body is guarded by the idle timeout instead, and
+   * `signal` (the client hanging up) still aborts both.
+   */
+  private async fetchPiece(url: string, piece: ByteRange, signal: AbortSignal): Promise<Response> {
+    const headersTimeout = new AbortController();
+    const timer = setTimeout(
+      () => headersTimeout.abort(new Error('YouTube did not answer in time')),
+      UPSTREAM_TIMEOUT_MS
+    );
+    try {
+      return await fetch(url, {
+        headers: { Range: `bytes=${piece.start}-${piece.end}` },
+        signal: AbortSignal.any([signal, headersTimeout.signal]),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** The total size from a one byte request, for a format yt-dlp gave no size for. */

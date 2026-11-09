@@ -287,4 +287,123 @@ describe('YoutubeService.openAudio', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  describe('timeouts', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      // Node's AbortSignal.timeout runs on its own clock; route it through the
+      // fake one so a timeout spanning the body would show up here too.
+      vi.spyOn(AbortSignal, 'timeout').mockImplementation(ms => {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(new Error('timed out')), ms);
+        return controller.signal;
+      });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    });
+
+    /**
+     * A 206 whose body sends one byte per `gapMs`, `count` times. Like
+     * undici, aborting the request signal also errors the body.
+     */
+    function slowPiece(count: number, gapMs: number, captured: AbortSignal[]) {
+      return vi.fn(async (_url: string, init: RequestInit) => {
+        const requestSignal = init.signal as AbortSignal;
+        captured.push(requestSignal);
+        let sent = 0;
+        const body = new ReadableStream<Uint8Array>({
+          start: controller => {
+            requestSignal.addEventListener('abort', () => controller.error(requestSignal.reason));
+          },
+          pull: controller =>
+            new Promise<void>(resolve => {
+              setTimeout(() => {
+                try {
+                  if (sent === count) controller.close();
+                  else controller.enqueue(new Uint8Array([sent++]));
+                } catch {
+                  // Cancelled meanwhile.
+                }
+                resolve();
+              }, gapMs);
+            }),
+        });
+        return new Response(body, {
+          status: 206,
+          headers: { 'Content-Range': `bytes 0-${count - 1}/${count}` },
+        });
+      });
+    }
+
+    it('lets a body that takes longer than the headers timeout finish', async () => {
+      const { service } = createService();
+      withSource(service, 4);
+      const signals: AbortSignal[] = [];
+      vi.stubGlobal('fetch', slowPiece(4, 15_000, signals));
+
+      const audio = await service.openAudio(VIDEO, undefined, signal());
+      if (audio.status === 416) throw new Error('unexpected 416');
+      const read = readAll(audio.body);
+      await vi.advanceTimersByTimeAsync(5 * 15_000);
+
+      expect(await read).toEqual([0, 1, 2, 3]);
+      expect(signals[0].aborted).toBe(false);
+    });
+
+    it('does not count time the client spends not reading', async () => {
+      const { service } = createService();
+      withSource(service, 2);
+      vi.stubGlobal('fetch', slowPiece(2, 10, []));
+
+      const audio = await service.openAudio(VIDEO, undefined, signal());
+      if (audio.status === 416) throw new Error('unexpected 416');
+      const iterator = audio.body[Symbol.asyncIterator]();
+      const first = iterator.next();
+      await vi.advanceTimersByTimeAsync(10);
+      expect(Array.from((await first).value as Uint8Array)).toEqual([0]);
+
+      // A paused player: nothing is read for two minutes.
+      await vi.advanceTimersByTimeAsync(120_000);
+      const second = iterator.next();
+      await vi.advanceTimersByTimeAsync(10);
+      expect(Array.from((await second).value as Uint8Array)).toEqual([1]);
+    });
+
+    it('fails a body that sends nothing for the idle timeout', async () => {
+      const { service } = createService();
+      withSource(service, 4);
+      vi.stubGlobal('fetch', slowPiece(4, 31_000, []));
+
+      const audio = await service.openAudio(VIDEO, undefined, signal());
+      if (audio.status === 416) throw new Error('unexpected 416');
+      const read = readAll(audio.body).catch((e: Error) => e);
+      await vi.advanceTimersByTimeAsync(31_000);
+
+      expect(((await read) as Error).message).toBe('YouTube stopped sending audio');
+    });
+
+    it('gives up when the headers do not arrive in time', async () => {
+      const { service } = createService();
+      withSource(service, 4);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          (_url: string, init: RequestInit) =>
+            new Promise((_, reject) =>
+              (init.signal as AbortSignal).addEventListener('abort', () =>
+                reject((init.signal as AbortSignal).reason)
+              )
+            )
+        )
+      );
+
+      const opened = service.openAudio(VIDEO, undefined, signal()).catch((e: Error) => e);
+      await vi.advanceTimersByTimeAsync(20_000);
+
+      expect(((await opened) as Error).message).toBe('YouTube did not answer in time');
+    });
+  });
 });
