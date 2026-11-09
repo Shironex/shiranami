@@ -61,6 +61,26 @@ RUN set -eux; \
   echo "${sha}  /usr/local/bin/yt-dlp" | sha256sum -c -; \
   chmod 0755 /usr/local/bin/yt-dlp
 ENV YTDLP_PATH=/usr/local/bin/yt-dlp
+
+# bgutil PO token provider plugin for yt-dlp. It stays dormant: the server only
+# passes `--plugin-dirs` (and the provider URL) when YTDLP_POT_PROVIDER_URL is
+# set, so this directory is outside yt-dlp's default plugin paths on purpose.
+# The plugin asks a separate provider container for tokens: run the image
+# brainicism/bgutil-ytdlp-pot-provider at the same version on a network shared
+# with this container, publish no ports, and set
+# YTDLP_POT_PROVIDER_URL=http://<provider name>:4416.
+# Bump BGUTIL_VERSION and the checksum (the release asset's sha256) together.
+ARG BGUTIL_VERSION=2.0.2
+ARG BGUTIL_SHA256=a26b980bf6d8e8400d8f21445daa4d8381bf6183d20f0be309391f86b31e27ef
+RUN set -eux; \
+  dir=/usr/local/share/yt-dlp/plugins/bgutil-ytdlp-pot-provider; \
+  wget -qO /tmp/bgutil.zip "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/${BGUTIL_VERSION}/bgutil-ytdlp-pot-provider.zip"; \
+  echo "${BGUTIL_SHA256}  /tmp/bgutil.zip" | sha256sum -c -; \
+  mkdir -p "$dir"; \
+  unzip -q /tmp/bgutil.zip -d "$dir"; \
+  rm /tmp/bgutil.zip; \
+  chmod -R a+rX /usr/local/share/yt-dlp
+ENV YTDLP_PLUGIN_DIR=/usr/local/share/yt-dlp/plugins
 # yt-dlp unpacks itself and caches YouTube's player code; keep both in /tmp,
 # the only place the unprivileged user below may write.
 ENV XDG_CACHE_HOME=/tmp/cache TMPDIR=/tmp

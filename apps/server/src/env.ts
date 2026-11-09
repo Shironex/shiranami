@@ -11,6 +11,13 @@ const envSchema = z
     SHARE_BASE_URL: z.string().default('https://api.shiranami.app'),
     SHARE_TTL_SECONDS: z.coerce.number().default(3600),
     YTDLP_PATH: z.string().default('yt-dlp'),
+    // Base URL of a bgutil PO token provider (for example http://bgutil:4416).
+    // When set, every yt-dlp run asks it for YouTube PO tokens; unset leaves
+    // yt-dlp's arguments untouched.
+    YTDLP_POT_PROVIDER_URL: z.string().url('YTDLP_POT_PROVIDER_URL must be a valid URL').optional(),
+    // Extra yt-dlp plugin directory holding the provider plugin. Dockerfile.server
+    // sets it; it is only passed to yt-dlp together with YTDLP_POT_PROVIDER_URL.
+    YTDLP_PLUGIN_DIR: z.string().min(1).optional(),
     // Mandatory in production while a guarded surface is mounted (the YouTube
     // proxy, see ./features): ApiKeyGuard denies every request when it is
     // unset, so booting without it would take those routes offline rather than
