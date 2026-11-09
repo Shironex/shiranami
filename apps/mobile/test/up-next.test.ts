@@ -1,4 +1,4 @@
-import { PEEK_CARD_MIN_HEIGHT, peekCardRoom, upNextEntries, upNextSummary } from '@/lib/up-next';
+import { upNextEntries, upNextSummary } from '@/lib/up-next';
 import type { Track } from '@/stores/usePlayerStore';
 
 const t = (id: string, duration = 120): Track => ({
@@ -26,10 +26,5 @@ describe('up next', () => {
       '2 songs, 34 min'
     );
     expect(upNextSummary(upNextEntries([t('a'), t('b', 0)], 0))).toBe('1 song');
-  });
-
-  it('keeps the card on tall phones and drops it on short ones', () => {
-    expect(peekCardRoom(915, 36, 24)).toBeGreaterThanOrEqual(PEEK_CARD_MIN_HEIGHT);
-    expect(peekCardRoom(740, 24, 24)).toBeLessThan(PEEK_CARD_MIN_HEIGHT);
   });
 });

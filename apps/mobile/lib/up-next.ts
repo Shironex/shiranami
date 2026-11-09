@@ -18,16 +18,3 @@ export function upNextSummary(entries: UpNextEntry[]): string {
   const minutes = Math.round(entries.reduce((sum, e) => sum + (e.track.duration || 0), 0) / 60);
   return minutes > 0 ? `${count}, ${minutes} min` : count;
 }
-
-/**
- * The tall player stacks a 132pt cover beside the title and spends the rest on
- * the lyrics and up next card. Below this much room for the card, the card
- * goes and the classic large cover comes back, before any control shrinks.
- */
-export const PEEK_CARD_MIN_HEIGHT = 240;
-
-/** Height the player has for the card once the fixed rows are placed. */
-export function peekCardRoom(screenHeight: number, insetTop: number, insetBottom: number): number {
-  // Top bar 50, cover row 150, seek 52, transport 86, actions 88, gaps 46.
-  return screenHeight - insetTop - Math.max(insetBottom, 12) - 472;
-}

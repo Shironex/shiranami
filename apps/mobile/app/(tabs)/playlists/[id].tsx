@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { IconButton } from '@/components/ui/icon-button';
 import { WindowHeader, useWindowInset, useWindowScroll } from '@/components/window/WindowHeader';
 import { playlistMeta, usePlaylist } from '@/hooks/usePlaylists';
+import { useListAppear } from '@/hooks/useListAppear';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 import { usePlaylistStore } from '@/stores/usePlaylistStore';
@@ -46,6 +47,7 @@ export default function PlaylistScreen() {
     ),
     [currentTrackId, isPlaying, playFromList, tracks, name, router, id]
   );
+  const renderRow = useListAppear(renderItem, tracks.length > 0);
 
   if (!playlist) return <View className="flex-1 bg-background" />;
 
@@ -66,7 +68,7 @@ export default function PlaylistScreen() {
     <View className="flex-1 bg-background">
       <Animated.FlatList
         data={tracks}
-        renderItem={renderItem}
+        renderItem={renderRow}
         keyExtractor={(item, index) => `${item.id}-${index}`}
         onScroll={onScroll}
         scrollEventThrottle={16}

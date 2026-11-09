@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { activeLyricIndex } from '@/lib/lyrics-sync';
 
 export interface LyricLine {
   time: number;
@@ -71,25 +72,44 @@ async function fetchFromLrclib(
   };
 }
 
+function cacheKey(title?: string, artist?: string): string | null {
+  return title && artist ? `${title.toLowerCase()}::${artist.toLowerCase()}` : null;
+}
+
 export function useLyrics(title?: string, artist?: string, album?: string, duration?: number) {
-  const [lyrics, setLyrics] = useState<LyricsResult>({ synced: null, plain: null });
-  const [loading, setLoading] = useState(false);
+  // Start from the cache, and count an uncached song as loading from the first
+  // render, so the player never lays out for "no lyrics" before it knows.
+  const [lyrics, setLyrics] = useState<LyricsResult>(() => {
+    const key = cacheKey(title, artist);
+    return (key && cache.get(key)) || { synced: null, plain: null };
+  });
+  const [loading, setLoading] = useState(() => {
+    const key = cacheKey(title, artist);
+    return !!key && !cache.has(key);
+  });
   const requestRef = useRef(0);
 
   useEffect(() => {
     if (!title || !artist) {
+      requestRef.current++;
       setLyrics({ synced: null, plain: null });
+      setLoading(false);
       return;
     }
 
-    const key = `${title.toLowerCase()}::${artist.toLowerCase()}`;
+    const key = cacheKey(title, artist) ?? '';
     const cached = cache.get(key);
     if (cached) {
+      // Drop any request still out for the song before.
+      requestRef.current++;
       setLyrics(cached);
+      setLoading(false);
       return;
     }
 
+    // The song before's lines must not show, highlight or seek while these load.
     const reqId = ++requestRef.current;
+    setLyrics({ synced: null, plain: null });
     setLoading(true);
 
     fetchFromLrclib(title, artist, album, duration)
@@ -108,13 +128,7 @@ export function useLyrics(title?: string, artist?: string, album?: string, durat
   }, [title, artist, album, duration]);
 
   const getActiveLine = useCallback(
-    (currentTime: number): number => {
-      if (!lyrics.synced) return -1;
-      for (let i = lyrics.synced.length - 1; i >= 0; i--) {
-        if (currentTime >= lyrics.synced[i].time) return i;
-      }
-      return -1;
-    },
+    (currentTime: number): number => activeLyricIndex(lyrics.synced, currentTime),
     [lyrics.synced]
   );
 

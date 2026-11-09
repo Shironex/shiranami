@@ -142,6 +142,46 @@ describe('track end', () => {
   });
 });
 
+describe('seek counter', () => {
+  it('counts every seek, even back to the same spot', () => {
+    store().playFromList([a], 0);
+    const before = store().seekCount;
+    store().seek(42);
+    store().seek(42);
+    expect(store().seekCount).toBe(before + 2);
+    expect(store().currentTime).toBe(42);
+  });
+
+  it('counts going back to the start of the song', () => {
+    store().playFromList([a, b], 1);
+    store()._syncPlayback({ isPlaying: true, isBuffering: false, currentTime: 30, duration: 180 });
+    const before = store().seekCount;
+    store().previous();
+    expect(store().currentTime).toBe(0);
+    expect(store().seekCount).toBe(before + 1);
+  });
+
+  it('counts repeat one starting the song over', () => {
+    store().playFromList([a, b], 0);
+    store().cycleRepeatMode();
+    store().cycleRepeatMode();
+    store()._syncPlayback({ isPlaying: true, isBuffering: false, currentTime: 180, duration: 180 });
+    const before = store().seekCount;
+    store()._onTrackEnd();
+    expect(store().currentTime).toBe(0);
+    expect(store().seekCount).toBe(before + 1);
+  });
+
+  it('leaves the counter alone for plain playback ticks and live streams', () => {
+    store().playFromList([a, track('radio-1', { isLive: true, duration: 0 })], 0);
+    const before = store().seekCount;
+    store()._syncPlayback({ isPlaying: true, isBuffering: false, currentTime: 12, duration: 180 });
+    store().next();
+    store().seek(10);
+    expect(store().seekCount).toBe(before);
+  });
+});
+
 describe('shuffle', () => {
   it('keeps the current track and restores the original order when turned off', () => {
     store().playFromList([a, b, c, d], 2);
