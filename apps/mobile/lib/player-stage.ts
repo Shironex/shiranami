@@ -116,21 +116,26 @@ export function cardFolded(mode: CardMode, live: boolean, hasLyrics: boolean): b
   return mode === 'folded';
 }
 
+/** What is known about the lyrics of the song on screen. */
+export type LyricsState = 'loading' | 'some' | 'none';
+
 /**
- * The tab a new song (or a change in its lyrics) moves the card to, or null
- * to stay. Until the user picks a tab, auto mode opens a song with lyrics on
- * Lyrics. A picked tab survives a new song, except Lyrics on a song without
- * any, which moves to Up next.
+ * The tab a new song (or its lyrics arriving) moves the card to, or null to
+ * stay. Nothing moves while the lyrics load. Until the user picks a tab, a
+ * song with lyrics opens on Lyrics, whatever the card mode. A picked tab
+ * survives a new song, except Lyrics on a song without any, which moves to
+ * Up next (and counts as not picked, so the next song with lyrics opens on
+ * Lyrics again).
  */
 export function tabForSong(
   current: string,
   picked: boolean,
-  mode: CardMode,
   live: boolean,
-  hasLyrics: boolean
+  lyrics: LyricsState
 ): 'lyrics' | 'upNext' | null {
-  if (hasLyrics) return mode === 'auto' && !picked && current !== 'lyrics' ? 'lyrics' : null;
-  return !live && current === 'lyrics' ? 'upNext' : null;
+  if (live || lyrics === 'loading') return null;
+  if (lyrics === 'some') return !picked && current !== 'lyrics' ? 'lyrics' : null;
+  return current === 'lyrics' ? 'upNext' : null;
 }
 
 /**

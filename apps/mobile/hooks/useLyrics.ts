@@ -76,56 +76,44 @@ function cacheKey(title?: string, artist?: string): string | null {
   return title && artist ? `${title.toLowerCase()}::${artist.toLowerCase()}` : null;
 }
 
+const NO_LYRICS: LyricsResult = { synced: null, plain: null };
+
+interface Loaded {
+  /** The song these lyrics belong to (its cache key), or null for none. */
+  key: string | null;
+  lyrics: LyricsResult;
+}
+
 export function useLyrics(title?: string, artist?: string, album?: string, duration?: number) {
-  // Start from the cache, and count an uncached song as loading from the first
-  // render, so the player never lays out for "no lyrics" before it knows.
-  const [lyrics, setLyrics] = useState<LyricsResult>(() => {
-    const key = cacheKey(title, artist);
-    return (key && cache.get(key)) || { synced: null, plain: null };
-  });
-  const [loading, setLoading] = useState(() => {
-    const key = cacheKey(title, artist);
-    return !!key && !cache.has(key);
-  });
+  const key = cacheKey(title, artist);
+  // The result is tagged with its song, so a render for a new song never
+  // shows, highlights or seeks with the lines of the song before, and an
+  // uncached song counts as loading from its first render.
+  const [loaded, setLoaded] = useState<Loaded>({ key: null, lyrics: NO_LYRICS });
   const requestRef = useRef(0);
 
   useEffect(() => {
-    if (!title || !artist) {
-      requestRef.current++;
-      setLyrics({ synced: null, plain: null });
-      setLoading(false);
-      return;
-    }
-
-    const key = cacheKey(title, artist) ?? '';
-    const cached = cache.get(key);
-    if (cached) {
-      // Drop any request still out for the song before.
-      requestRef.current++;
-      setLyrics(cached);
-      setLoading(false);
-      return;
-    }
-
-    // The song before's lines must not show, highlight or seek while these load.
+    // Drop any request still out for the song before.
     const reqId = ++requestRef.current;
-    setLyrics({ synced: null, plain: null });
-    setLoading(true);
+    if (!key || !title || !artist) return;
+    if (cache.has(key)) return;
 
     fetchFromLrclib(title, artist, album, duration)
       .then(result => {
-        if (reqId !== requestRef.current) return;
         cache.set(key, result);
-        setLyrics(result);
+        return result;
       })
-      .catch(() => {
-        if (reqId !== requestRef.current) return;
-        setLyrics({ synced: null, plain: null });
-      })
-      .finally(() => {
-        if (reqId === requestRef.current) setLoading(false);
+      .catch(() => NO_LYRICS)
+      .then(result => {
+        if (reqId === requestRef.current) setLoaded({ key, lyrics: result });
       });
-  }, [title, artist, album, duration]);
+  }, [key, title, artist, album, duration]);
+
+  const cached = key ? cache.get(key) : undefined;
+  const current = loaded.key === key;
+  // A cached song is known at once; an uncached one waits for its own result.
+  const lyrics = !key ? NO_LYRICS : (cached ?? (current ? loaded.lyrics : NO_LYRICS));
+  const loading = !!key && !cached && !current;
 
   const getActiveLine = useCallback(
     (currentTime: number): number => activeLyricIndex(lyrics.synced, currentTime),
