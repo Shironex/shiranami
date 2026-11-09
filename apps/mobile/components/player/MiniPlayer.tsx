@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
@@ -10,10 +10,19 @@ import { ArtTile } from '@/components/art/ArtTile';
 import { IconButton } from '@/components/ui/icon-button';
 import { Text } from '@/components/ui/text';
 import { dockPlayerMode } from '@/lib/dock';
+import { registerMiniPlayer } from '@/lib/player-origin';
+import type { Rect } from '@/lib/player-stage';
 import { EASE_OUT_QUART, colors } from '@/lib/theme';
 import { usePlayerStore } from '@/stores/usePlayerStore';
 
 const EASE = Easing.bezier(...EASE_OUT_QUART);
+
+function measureRect(view: View | null): Promise<Rect | null> {
+  return new Promise(resolve => {
+    if (!view) return resolve(null);
+    view.measureInWindow((x, y, width, height) => resolve({ x, y, width, height }));
+  });
+}
 
 /** The progress line under the song; it doubles as the divider above the tabs. */
 function Progress() {
@@ -38,6 +47,21 @@ function MiniPlayerInner() {
   const togglePlay = usePlayerStore(s => s.togglePlay);
   const next = usePlayerStore(s => s.next);
   const clearQueue = usePlayerStore(s => s.clearQueue);
+  const rowRef = useRef<View>(null);
+  const artRef = useRef<View>(null);
+
+  // The player grows out of this row's artwork and shrinks back into it.
+  useEffect(
+    () =>
+      registerMiniPlayer(async () => {
+        const [art, row] = await Promise.all([
+          measureRect(artRef.current),
+          measureRect(rowRef.current),
+        ]);
+        return art && row ? { art, row } : null;
+      }),
+    []
+  );
 
   const mode = dockPlayerMode(track);
   if (!track || mode === 'none') return null;
@@ -48,14 +72,16 @@ function MiniPlayerInner() {
       entering={FadeIn.duration(200).easing(EASE)}
       exiting={FadeOut.duration(150).easing(EASE)}
     >
-      <View className="h-16 flex-row items-center pr-1.5">
+      <View ref={rowRef} collapsable={false} className="h-16 flex-row items-center pr-1.5">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Open player, ${track.title}`}
           onPress={() => router.push('/player')}
-          className="h-full min-w-0 flex-1 flex-row items-center gap-3 pl-2.5"
+          className="h-full min-w-0 flex-1 flex-row items-center gap-3 pl-2.5 active:opacity-70"
         >
-          <ArtTile title={track.title} artUri={track.albumArt} size={44} radius={12} />
+          <View ref={artRef} collapsable={false}>
+            <ArtTile title={track.title} artUri={track.albumArt} size={44} radius={12} />
+          </View>
           <View className="min-w-0 flex-1">
             <Text variant="rowTitle" numberOfLines={1} className="text-[15px]">
               {track.title}

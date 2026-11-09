@@ -9,6 +9,8 @@ export const MOTION = {
 } as const;
 
 export const easeOutExpo = Easing.bezier(...EASE_OUT_EXPO);
+/** The same curve as a plain function of 0 to 1, for worklets that ease by hand. */
+export const easeOutExpoFn = Easing.bezierFn(...EASE_OUT_EXPO);
 
 /**
  * A timing config on the app's curve. With the system's reduce motion setting

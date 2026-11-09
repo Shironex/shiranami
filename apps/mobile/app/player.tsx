@@ -1,5 +1,6 @@
-import { useEffect, useRef, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,7 +13,7 @@ import { RemovalToast } from '@/components/library/RemovalToast';
 import { PlayerActions } from '@/components/player/PlayerActions';
 import { PlayerCard } from '@/components/player/PlayerCard';
 import { PlayerBackdrop } from '@/components/player/PlayerBackdrop';
-import { PlayerStage, staggered } from '@/components/player/PlayerStage';
+import { PlayerStage, enterLift, entered, staggered } from '@/components/player/PlayerStage';
 import { SeekBar } from '@/components/player/SeekBar';
 import { Transport } from '@/components/player/Transport';
 import { IconButton } from '@/components/ui/icon-button';
@@ -23,10 +24,16 @@ import { usePlayerEnter } from '@/hooks/usePlayerEnter';
 import { usePlayerFold } from '@/hooks/usePlayerFold';
 import { useToggleFavorite } from '@/hooks/useToggleFavorite';
 import { hasAlbum, normalizeAlbumTitle } from '@/lib/albums';
+import { mixRect } from '@/lib/player-stage';
 import { stationMeta } from '@/lib/radio';
 import { UNKNOWN_ARTIST } from '@/lib/track-meta';
 import { colors } from '@/lib/theme';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
+
+/** The dock's corner radius, where the backdrop starts and ends. */
+const MINI_RADIUS = 26;
+/** Opening a page from the player waits for the close transition (280 ms) to finish. */
+const CLOSE_NAVIGATE_DELAY_MS = 320;
 
 /** Where the queue came from, as a quiet chip in the top bar. */
 function SourceChip({ live, source }: { live: boolean; source: string }) {
@@ -133,18 +140,50 @@ function PlayerView({ track }: { track: Track }) {
     live,
     hasLyrics || lyricsLoading
   );
-  const enter = usePlayerEnter();
+  const { width, height } = useWindowDimensions();
+  const { enter, row, makePan } = usePlayerEnter();
+  const headerPan = useMemo(makePan, [makePan]);
+  const stagePan = useMemo(makePan, [makePan]);
 
+  // The backdrop grows out of the mini player row and follows a drag down.
+  const backdropStyle = useAnimatedStyle(() => {
+    const p = entered(enter.progress.value, enter.leaving.value);
+    const full = { x: 0, y: enter.drag.value, width, height };
+    const from = row.value;
+    const rect = from ? mixRect(from, full, p) : full;
+    return {
+      opacity: Math.min(1, p / 0.4),
+      left: rect.x,
+      top: rect.y,
+      width: rect.width,
+      height: rect.height,
+      borderRadius: from ? MINI_RADIUS * (1 - p) : 0,
+    };
+  });
+  const contentStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          enter.drag.value +
+          enterLift(enter.progress.value, enter.origin.value !== null, enter.leaving.value),
+      },
+    ],
+  }));
   const stageStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const headerStyle = useAnimatedStyle(() => {
+    const shown = staggered(enter.progress.value, 0.3, enter.leaving.value);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * -8 }] };
+  });
   const chromeStyle = useAnimatedStyle(() => {
-    const shown = staggered(enter.progress.value, 0.2);
-    return { opacity: shown, transform: [{ translateY: (1 - shown) * 12 }] };
+    const shown = staggered(enter.progress.value, 0.4, enter.leaving.value);
+    return { opacity: shown, transform: [{ translateY: (1 - shown) * 14 }] };
   });
 
   const favorite = live ? radio.saved : !!track.isFavorite;
+  // The close transition runs first; the page opens once the player is gone.
   const open = (href: MetaHref) => {
     router.back();
-    router.navigate(href);
+    setTimeout(() => router.navigate(href), CLOSE_NAVIGATE_DELAY_MS);
   };
 
   const meta = (
@@ -170,39 +209,48 @@ function PlayerView({ track }: { track: Track }) {
     ) : null;
 
   return (
-    <View className="flex-1 bg-background">
-      <PlayerBackdrop />
-      <View
-        className="flex-1"
-        style={{ paddingTop: insets.top + 6, paddingBottom: Math.max(insets.bottom, 12) + 8 }}
+    <View className="flex-1">
+      <Animated.View pointerEvents="none" style={[styles.backdrop, backdropStyle]}>
+        <PlayerBackdrop />
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.content,
+          { paddingTop: insets.top + 6, paddingBottom: Math.max(insets.bottom, 12) + 8 },
+          contentStyle,
+        ]}
       >
-        <View className="flex-row items-center justify-between gap-2 px-2">
-          <IconButton
-            icon={ChevronDown}
-            size={24}
-            color={colors.foreground}
-            accessibilityLabel="Close player"
-            onPress={() => router.back()}
-          />
-          <SourceChip live={live} source={source} />
-          {live ? (
-            <View className="h-11 w-11" />
-          ) : (
+        <GestureDetector gesture={headerPan}>
+          <Animated.View style={[styles.header, headerStyle]}>
             <IconButton
-              icon={EllipsisVertical}
+              icon={ChevronDown}
+              size={24}
               color={colors.foreground}
-              accessibilityLabel="More for this song"
-              onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+              accessibilityLabel="Close player"
+              onPress={() => router.back()}
             />
-          )}
-        </View>
+            <SourceChip live={live} source={source} />
+            {live ? (
+              <View className="h-11 w-11" />
+            ) : (
+              <IconButton
+                icon={EllipsisVertical}
+                color={colors.foreground}
+                accessibilityLabel="More for this song"
+                onPress={() => router.push({ pathname: '/track/[id]', params: { id: track.id } })}
+              />
+            )}
+          </Animated.View>
+        </GestureDetector>
 
         <Animated.View style={[{ flex: 1 }, stageStyle]}>
           <PlayerStage
             track={track}
             hasCard={!live}
             hero={hero}
+            folded={folded}
             enter={enter}
+            gesture={stagePan}
             coverLabel={live ? undefined : 'Lyrics full screen'}
             onCoverPress={live || !hasLyrics ? undefined : () => router.push('/lyrics')}
             sideTitle={
@@ -248,8 +296,21 @@ function PlayerView({ track }: { track: Track }) {
             <Transport />
           </View>
         </Animated.View>
-      </View>
+      </Animated.View>
       <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
     </View>
   );
 }
+
+// Reanimated views take no className (NativeWind only maps core components).
+const styles = StyleSheet.create({
+  backdrop: { position: 'absolute', overflow: 'hidden' },
+  content: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+});
