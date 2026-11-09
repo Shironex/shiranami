@@ -88,7 +88,7 @@ export default function AlbumScreen() {
               router.push({ pathname: '/artist/[name]', params: { name: album.artist } })
             }
             hitSlop={8}
-            className="mt-1.5 self-start"
+            className="mt-1.5 self-start active:opacity-70"
           >
             <Text variant="rowTitle" numberOfLines={1} className="text-[15px] text-primary">
               {album.artist}
