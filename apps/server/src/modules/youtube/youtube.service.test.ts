@@ -8,6 +8,14 @@ import { UpstreamError, VideoUnavailableError, YoutubeService } from './youtube.
 
 const spawnMock = vi.hoisted(() => vi.fn());
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
+const fsMock = vi.hoisted(() => ({
+  mkdir: vi.fn(),
+  mkdtemp: vi.fn(),
+  copyFile: vi.fn(),
+  chmod: vi.fn(),
+  rm: vi.fn(),
+}));
+vi.mock('node:fs/promises', () => fsMock);
 
 const VIDEO = 'abcdefghijk';
 const URL_ = 'https://rr1.googlevideo.com/videoplayback?itag=140';
@@ -51,7 +59,7 @@ function createService(env: Record<string, string> = {}) {
     get: (key: string, fallback?: string) => env[key] ?? fallback,
   } as unknown as ConfigService;
   const logger = { info: vi.fn(), warn: vi.fn() } as unknown as PinoLogger;
-  return { service: new YoutubeService(redis, config, logger), store, redis };
+  return { service: new YoutubeService(redis, config, logger), store, redis, logger };
 }
 
 /** A body of `total` bytes where byte i is i % 256, served by Range like googlevideo. */
@@ -84,6 +92,8 @@ const signal = () => new AbortController().signal;
 
 beforeEach(() => {
   spawnMock.mockReset();
+  for (const fn of Object.values(fsMock)) fn.mockReset().mockResolvedValue(undefined);
+  fsMock.mkdtemp.mockImplementation(async (prefix: string) => `${prefix}abc123`);
 });
 
 afterEach(() => {
@@ -234,6 +244,61 @@ describe('YoutubeService with a PO token provider', () => {
       '--extractor-args',
       'youtube:player_client=mweb,default',
     ]);
+  });
+});
+
+describe('YoutubeService with a cookies file', () => {
+  const SOURCE = '/run/secrets/cookies.txt';
+  const PROVIDER = 'http://bgutil:4416';
+
+  it('leaves the arguments alone and touches no file when unset', async () => {
+    spawnMock.mockReturnValue(fakeProcess(audioLines()));
+    const { service } = createService();
+
+    await service.resolveAudio(VIDEO);
+
+    expect(spawnMock.mock.calls[0][1] as string[]).not.toContain('--cookies');
+    expect(fsMock.copyFile).not.toHaveBeenCalled();
+  });
+
+  it('passes a private copy to every run, after the PO token arguments', async () => {
+    spawnMock.mockImplementation(() => fakeProcess(audioLines()));
+    const { service } = createService({
+      YTDLP_COOKIES_FILE: SOURCE,
+      YTDLP_POT_PROVIDER_URL: PROVIDER,
+    });
+
+    await service.resolveAudio(VIDEO);
+    await service.search('song');
+    await service.extractPlaylist('https://www.youtube.com/playlist?list=PL1');
+
+    expect(spawnMock).toHaveBeenCalledTimes(3);
+    for (const [, args] of spawnMock.mock.calls as [string, string[]][]) {
+      const at = args.indexOf('--cookies');
+      expect(at).toBe(4);
+      expect(args[at + 1]).toMatch(/yt-dlp\/run-abc123\/cookies\.txt$/);
+      expect(args[at + 1]).not.toBe(SOURCE);
+      expect(args).toContain(`youtubepot-bgutilhttp:base_url=${PROVIDER}`);
+    }
+    expect(fsMock.copyFile).toHaveBeenCalledTimes(3);
+    expect(fsMock.copyFile.mock.calls[0][0]).toBe(SOURCE);
+    expect(fsMock.chmod).toHaveBeenCalledWith(expect.stringMatching(/cookies\.txt$/), 0o600);
+    expect(fsMock.rm).toHaveBeenCalledTimes(3);
+  });
+
+  it('warns once and runs without cookies when the file cannot be read', async () => {
+    spawnMock.mockImplementation(() => fakeProcess(audioLines()));
+    fsMock.copyFile.mockRejectedValue(Object.assign(new Error('nope'), { code: 'ENOENT' }));
+    const { service, logger } = createService({ YTDLP_COOKIES_FILE: SOURCE });
+
+    await service.resolveAudio(VIDEO);
+    await service.search('song');
+
+    for (const [, args] of spawnMock.mock.calls as [string, string[]][]) {
+      expect(args).not.toContain('--cookies');
+    }
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(vi.mocked(logger.warn).mock.calls)).not.toContain(SOURCE);
   });
 });
 
