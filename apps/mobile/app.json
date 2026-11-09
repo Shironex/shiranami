@@ -66,6 +66,7 @@
         }
       ],
       "expo-sqlite",
+      "./plugins/with-gradle-memory",
       [
         "expo-quick-actions",
         {

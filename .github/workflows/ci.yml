@@ -171,8 +171,7 @@ jobs:
       # Expo's project health check: SDK-aligned versions, duplicate native
       # modules, missing peer dependencies, config drift. It reaches out to
       # Expo's API and the React Native Directory, so a network blip can fail
-      # it; rerun the job in that case. A single known failure (Hermes V1,
-      # fixed only by SDK 57) is tolerated by name in the script.
+      # it; rerun the job in that case. Every failed check fails the job.
       - name: Expo doctor
         run: pnpm --filter @shiranami/mobile check:expo
 

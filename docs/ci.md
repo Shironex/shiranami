@@ -19,11 +19,11 @@ How CI is wired and what to do when something fails.
 
 ## Mobile
 
-`apps/mobile` (Expo SDK 56) is a workspace package; the device and dev build flow is in `apps/mobile/README.md`. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs `expo-doctor`, a typecheck and the Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile check:expo`, `... typecheck` and `... test`.
+`apps/mobile` (Expo SDK 57, React Native 0.86) is a workspace package; the device and dev build flow is in `apps/mobile/README.md`. The root `pnpm lint` and `pnpm format:check` cover it; the `Mobile` job runs `expo-doctor`, a typecheck and the Jest suite (`jest-expo`) when `apps/mobile/**` or a root config file changes. Locally: `pnpm --filter @shiranami/mobile check:expo`, `... typecheck` and `... test`.
 
-`expo-doctor` is pinned as a devDependency and run through `apps/mobile/scripts/expo-doctor.js`, which fails on every failed check except the Hermes V1 memory regression check. That one has no config switch and is only fixed by Expo SDK 57, so it is tolerated by name until the upgrade (remove the entry from `KNOWN_FAILURES` then). Some checks call Expo's API and the React Native Directory, so a network blip can fail the job; rerun it.
+`expo-doctor` is pinned as a devDependency and `check:expo` runs it as is: every failed check fails the job, with no exceptions. Its version check compares the installed packages with the newest SDK patches from Expo's API, so a patch that is still under the 7 day release age gate shows up as "out of date" until it has aged and been installed. Some checks call Expo's API and the React Native Directory, so a network blip can fail the job; rerun it.
 
-React Native pins React to the exact version its renderer was built with (19.2.3 for SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps the two apart with a parent-scoped override (`'@shiranami/mobile>react'`), and `apps/mobile/metro.config.js` resolves every `react` import from the app itself, so Metro never picks up the web copy from pnpm's hidden hoist folder.
+React Native pins React to the exact version its renderer was built with (19.2.3 for SDK 57, the same as SDK 56), while `apps/web` and `apps/landing` run a newer React. The root `pnpm-workspace.yaml` keeps the two apart with a parent-scoped override (`'@shiranami/mobile>react'`), and `apps/mobile/metro.config.js` resolves every `react` import from the app itself, so Metro never picks up the web copy from pnpm's hidden hoist folder.
 
 ## Releasing mobile
 

@@ -25,7 +25,7 @@ import {
   type SeededTrack,
 } from '../helpers/app.js';
 import { profile } from '../helpers/profile.js';
-import { writeTracks } from '../helpers/audio.js';
+import { silentWav, writeTracks } from '../helpers/audio.js';
 
 const MEDIA = profile('library').mediaDir;
 
@@ -63,7 +63,10 @@ describe('playback store', () => {
     await waitForShell();
     await resetLibrary();
 
-    const files = writeTracks(MEDIA, 3);
+    // Long enough that no track ends mid-spec. The engine plays the queue for
+    // real, and a 1s fixture ends and advances to the next track within a
+    // couple of WebDriver round trips on a slow runner.
+    const files = writeTracks(MEDIA, 3, () => silentWav(30));
     tracks = await seedTracks(
       files.map((filePath, index) => ({ title: `Track ${index + 1}`, filePath }))
     );
@@ -165,6 +168,11 @@ describe('playback store', () => {
     // "restart" until you are near the start of the track. 3s is the store's
     // threshold, so 4 is inside the restart branch and 1 is outside it.
     await queueTracks(tracks, 1);
+    // Paused, so the audio engine stays out of it: while playing, its tick
+    // copies the deck's real position into the store once the 300ms seek
+    // window closes, and a slow runner spends longer than that between two
+    // WebDriver calls. A paused seek writes the target and nothing else.
+    await browser.execute(() => window.__shiranami!.stores.playback.getState().pause());
     await browser.execute(() => window.__shiranami!.stores.playback.getState().seek(4));
 
     await browser.execute(() => window.__shiranami!.stores.playback.getState().previous());
