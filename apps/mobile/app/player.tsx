@@ -250,14 +250,14 @@ export default function PlayerScreen() {
           </>
         )}
 
-        <View className={peek ? 'px-7 pt-4' : 'px-7 pt-[18px]'}>
+        <View className={peek ? 'px-4 pt-3' : 'mt-auto px-4 pt-4'}>
+          <PlayerActions track={track} />
+        </View>
+        <View className="px-7 pt-2">
           <SeekBar />
         </View>
         <View className="px-[22px] pt-3.5">
           <Transport />
-        </View>
-        <View className={peek ? 'px-4 pt-1' : 'mt-auto px-4 pt-4'}>
-          <PlayerActions />
         </View>
       </View>
       <RemovalToast bottom={Math.max(insets.bottom, 12) + 96} />
