@@ -87,10 +87,10 @@ describe('validateEnv', () => {
     expect(env.SHARE_TTL_SECONDS).toBe(3600);
   });
 
-  it('allows a production env without API_KEY while no guarded surface is mounted', async () => {
-    // Nothing is behind ApiKeyGuard until the YouTube proxy is enabled, so
-    // requiring the key today would only break deploys that have no guarded
-    // routes to protect.
+  it('allows a production env without API_KEY when the YouTube proxy is disabled', async () => {
+    // Nothing is behind ApiKeyGuard without the proxy, so requiring the key
+    // would only break deploys that have no guarded routes to protect.
+    vi.doMock('./features', () => ({ YOUTUBE_PROXY_ENABLED: false }));
     Object.assign(process.env, { ...VALID_ENV, NODE_ENV: 'production' });
     delete process.env.API_KEY;
 
@@ -99,8 +99,7 @@ describe('validateEnv', () => {
     expect(env.API_KEY).toBeUndefined();
   });
 
-  it('exits when API_KEY is missing in production and the YouTube proxy is enabled', async () => {
-    vi.doMock('./features', () => ({ YOUTUBE_PROXY_ENABLED: true }));
+  it('exits when API_KEY is missing in production with the shipped feature switches', async () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('process.exit called');
     });

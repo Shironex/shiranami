@@ -42,6 +42,29 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# yt-dlp for the YouTube proxy (YOUTUBE_PROXY_ENABLED in apps/server/src/features.ts).
+# The musl build is self-contained (no Python) and solves YouTube's JS
+# challenges with this image's Node. YouTube breaks old versions every few
+# months: bump YTDLP_VERSION and both checksums (from the release's
+# SHA2-256SUMS) when search or playback starts failing.
+ARG YTDLP_VERSION=2026.10.26
+ARG YTDLP_SHA256_AMD64=e97a4dd919221d233e7720e18fa3f66db60fbd1d8c0846bf6deb8e88e04475a8
+ARG YTDLP_SHA256_ARM64=ea97b8564667f3cabc334c3216526de39bc684e99815ecf07b6642f4cba8af4d
+ARG TARGETARCH
+RUN set -eux; \
+  case "${TARGETARCH:-amd64}" in \
+    amd64) asset=yt-dlp_musllinux; sha="$YTDLP_SHA256_AMD64" ;; \
+    arm64) asset=yt-dlp_musllinux_aarch64; sha="$YTDLP_SHA256_ARM64" ;; \
+    *) echo "no yt-dlp build for $TARGETARCH" >&2; exit 1 ;; \
+  esac; \
+  wget -qO /usr/local/bin/yt-dlp "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${asset}"; \
+  echo "${sha}  /usr/local/bin/yt-dlp" | sha256sum -c -; \
+  chmod 0755 /usr/local/bin/yt-dlp
+ENV YTDLP_PATH=/usr/local/bin/yt-dlp
+# yt-dlp unpacks itself and caches YouTube's player code; keep both in /tmp,
+# the only place the unprivileged user below may write.
+ENV XDG_CACHE_HOME=/tmp/cache TMPDIR=/tmp
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches/ patches/
 COPY apps/server/package.json apps/server/
@@ -54,7 +77,8 @@ COPY --from=build /app/packages/contracts/dist ./packages/contracts/dist
 RUN pnpm install --frozen-lockfile --filter @shiranami/server... --prod --ignore-scripts
 
 # Run as an unprivileged user. 10001 avoids colliding with host uids (1000/1001).
-# App files stay root-owned and read-only; the process writes nothing at runtime.
+# App files stay root-owned and read-only; the process only writes to /tmp
+# (yt-dlp's unpacked files and cache).
 RUN addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
 USER 10001:10001
 
