@@ -81,6 +81,8 @@ RUN set -eux; \
   rm /tmp/bgutil.zip; \
   chmod -R a+rX /usr/local/share/yt-dlp
 ENV YTDLP_PLUGIN_DIR=/usr/local/share/yt-dlp/plugins
+# Optional: mount a cookies.txt read-only and set YTDLP_COOKIES_FILE to its path
+# (see apps/server/src/env.ts for how to export it; it expires).
 # yt-dlp unpacks itself and caches YouTube's player code; keep both in /tmp,
 # the only place the unprivileged user below may write.
 ENV XDG_CACHE_HOME=/tmp/cache TMPDIR=/tmp
