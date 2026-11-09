@@ -52,6 +52,9 @@ export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 /** ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1): moves that should land softly, no bounce. */
 export const EASE_OUT_QUART = [0.25, 1, 0.5, 1] as const;
 
+/** ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1): quick start, long soft landing, no bounce. */
+export const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
+
 export const NAV_THEME: Theme = {
   ...DarkTheme,
   colors: {

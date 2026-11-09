@@ -1,14 +1,21 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ArtTile } from '@/components/art/ArtTile';
-import { LyricRow } from '@/components/player/LyricRow';
+import { LyricsView } from '@/components/player/LyricsView';
 import { Text } from '@/components/ui/text';
-import { useLyrics, type LyricLine } from '@/hooks/useLyrics';
+import { useLyrics } from '@/hooks/useLyrics';
 import { upNextEntries, upNextSummary, type UpNextEntry } from '@/lib/up-next';
 import { cn } from '@/lib/utils';
 import { usePlayerStore, type Track } from '@/stores/usePlayerStore';
 
 type PeekTab = 'lyrics' | 'upNext';
+
+/**
+ * The card's fill: the border token (white at 6%) flattened over the
+ * background, so the list fades at its edges can match it exactly.
+ */
+export const PLAYER_CARD = '#101014';
 
 const TABS: { value: PeekTab; label: string }[] = [
   { value: 'lyrics', label: 'Lyrics' },
@@ -57,54 +64,20 @@ function Quiet({ children }: { children: string }) {
 }
 
 function Lyrics({ track }: { track: Track }) {
-  const currentTime = usePlayerStore(s => s.currentTime);
-  const seek = usePlayerStore(s => s.seek);
-  const listRef = useRef<FlatList<LyricLine>>(null);
-  const { lyrics, loading, getActiveLine } = useLyrics(
-    track.title,
-    track.artist,
-    track.album,
-    track.duration
+  const router = useRouter();
+  const { lyrics, loading } = useLyrics(track.title, track.artist, track.album, track.duration);
+  return (
+    <LyricsView
+      key={track.id}
+      lyrics={lyrics}
+      size="card"
+      fadeColor={PLAYER_CARD}
+      paddingHorizontal={4}
+      paddingVertical={14}
+      onBackgroundPress={() => router.push('/lyrics')}
+      empty={<Quiet>{loading ? 'Looking for lyrics' : 'No lyrics for this song.'}</Quiet>}
+    />
   );
-  const active = getActiveLine(currentTime);
-
-  useEffect(() => {
-    if (active < 0 || !lyrics.synced) return;
-    listRef.current?.scrollToIndex({ index: active, animated: true, viewPosition: 0.3 });
-  }, [active, lyrics.synced]);
-
-  if (lyrics.synced) {
-    return (
-      <FlatList
-        ref={listRef}
-        data={lyrics.synced}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item, index }) => (
-          <LyricRow
-            size="card"
-            text={item.text}
-            state={index === active ? 'now' : index < active ? 'past' : 'next'}
-            onPress={() => seek(item.time)}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingVertical: 10 }}
-        onScrollToIndexFailed={() => {}}
-      />
-    );
-  }
-  if (lyrics.plain) {
-    return (
-      <FlatList
-        data={lyrics.plain.split('\n')}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item }) => <LyricRow size="card" text={item || ' '} state="next" />}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingVertical: 10 }}
-      />
-    );
-  }
-  return <Quiet>{loading ? 'Looking for lyrics' : 'No lyrics for this song.'}</Quiet>;
 }
 
 const UpNextRow = memo(function UpNextRow({
@@ -161,7 +134,10 @@ export function PeekCard({ track }: { track: Track }) {
   const entries = upNextEntries(queue, queueIndex);
 
   return (
-    <View className="mx-4 flex-1 overflow-hidden rounded-[22px] border border-border bg-border px-[18px] pt-3.5">
+    <View
+      className="mx-4 flex-1 overflow-hidden rounded-[22px] border border-border px-[18px] pt-3.5"
+      style={{ backgroundColor: PLAYER_CARD }}
+    >
       <View className="flex-row items-center justify-between">
         <Segmented value={tab} onChange={setTab} />
         {tab === 'upNext' && entries.length > 0 && (
