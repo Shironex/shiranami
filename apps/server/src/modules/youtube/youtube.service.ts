@@ -1,5 +1,8 @@
 import { Readable } from 'node:stream';
 import { spawn } from 'node:child_process';
+import { chmod, copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -161,11 +164,17 @@ function potProviderArgs(providerUrl?: string, pluginDir?: string): string[] {
   ];
 }
 
+/** Private scratch directory for the per-run cookies copies. */
+const COOKIES_DIR = join(tmpdir(), 'yt-dlp');
+
 @Injectable()
 export class YoutubeService {
   private readonly ytdlpPath: string;
   /** Arguments every yt-dlp run gets first, the PO token provider when one is set. */
   private readonly baseArgs: string[];
+  /** Source cookies.txt (read-only mount in production), when one is configured. */
+  private readonly cookiesFile?: string;
+  private cookiesWarned = false;
 
   constructor(
     private readonly redis: RedisService,
@@ -177,6 +186,42 @@ export class YoutubeService {
       this.config.get<string>('YTDLP_POT_PROVIDER_URL'),
       this.config.get<string>('YTDLP_PLUGIN_DIR')
     );
+    this.cookiesFile = this.config.get<string>('YTDLP_COOKIES_FILE') || undefined;
+  }
+
+  /**
+   * A private copy of the cookies file for one yt-dlp run. yt-dlp dumps its
+   * cookie jar back into the `--cookies` file when it finishes, and the source
+   * is a read-only mount; concurrent runs would also rewrite one shared copy
+   * in place. So each run gets its own copy (mode 0600) and removes it after.
+   * An unreadable source logs one warning and the run goes without cookies.
+   */
+  private async prepareCookies(): Promise<{ args: string[]; cleanup: () => Promise<void> }> {
+    const none = { args: [], cleanup: async () => undefined };
+    if (!this.cookiesFile) return none;
+    let dir: string | undefined;
+    try {
+      await mkdir(COOKIES_DIR, { recursive: true, mode: 0o700 });
+      dir = await mkdtemp(join(COOKIES_DIR, 'run-'));
+      const copy = join(dir, 'cookies.txt');
+      await copyFile(this.cookiesFile, copy);
+      await chmod(copy, 0o600);
+      const runDir = dir;
+      return {
+        args: ['--cookies', copy],
+        cleanup: () => rm(runDir, { recursive: true, force: true }).catch(() => undefined),
+      };
+    } catch (error) {
+      if (dir) await rm(dir, { recursive: true, force: true }).catch(() => undefined);
+      if (!this.cookiesWarned) {
+        this.cookiesWarned = true;
+        const code = (error as NodeJS.ErrnoException).code ?? 'unknown';
+        this.logger.warn(
+          `YTDLP_COOKIES_FILE could not be copied (${code}); running yt-dlp without cookies`
+        );
+      }
+      return none;
+    }
   }
 
   async search(query: string): Promise<SearchResult[]> {
@@ -436,9 +481,20 @@ export class YoutubeService {
     return results;
   }
 
-  private spawnYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
+  private async spawnYtDlp(
+    args: string[]
+  ): Promise<{ stdout: string; stderr: string; code: number }> {
+    const cookies = await this.prepareCookies();
+    try {
+      return await this.runYtDlp([...this.baseArgs, ...cookies.args, ...args]);
+    } finally {
+      await cookies.cleanup();
+    }
+  }
+
+  private runYtDlp(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
     return new Promise((resolve, reject) => {
-      const proc = spawn(this.ytdlpPath, [...this.baseArgs, ...args], { env: { ...process.env } });
+      const proc = spawn(this.ytdlpPath, args, { env: { ...process.env } });
       let stdout = '';
       let stderr = '';
       const timer = setTimeout(() => proc.kill('SIGKILL'), YTDLP_TIMEOUT_MS);
